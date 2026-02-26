@@ -1,4 +1,36 @@
 workflows:
+  ios-ipa-unsigned:
+    name: River iOS Unsigned IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies
+        script: |
+          flutter pub get
+      - name: Build iOS app without signing
+        script: |
+          BUILD_NUMBER=$(date +%Y%m%d%H%M)
+          flutter build ios --release --no-codesign --build-number=$BUILD_NUMBER
+      - name: Pack unsigned IPA
+        script: |
+          APP_PATH="build/ios/iphoneos/Runner.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Runner.app not found at $APP_PATH"
+            exit 1
+          fi
+          rm -rf build/ios/unsigned
+          mkdir -p build/ios/unsigned/Payload
+          cp -R "$APP_PATH" build/ios/unsigned/Payload/
+          cd build/ios/unsigned
+          zip -r River-unsigned.ipa Payload
+    artifacts:
+      - build/ios/unsigned/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
   ios-ipa:
     name: River iOS IPA
     instance_type: mac_mini_m2
