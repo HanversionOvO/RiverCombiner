@@ -13,14 +13,18 @@ workflows:
       vars:
         # Replace with your real iOS bundle identifier.
         BUNDLE_ID: com.example.river
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: $BUNDLE_ID
     scripts:
+      - name: Apply bundle identifier
+        script: |
+          if [ "$BUNDLE_ID" != "com.example.river" ]; then
+            sed -i '' "s/com.example.river.RunnerTests/$BUNDLE_ID.RunnerTests/g" ios/Runner.xcodeproj/project.pbxproj
+            sed -i '' "s/com.example.river/$BUNDLE_ID/g" ios/Runner.xcodeproj/project.pbxproj
+          fi
       - name: Set up code signing
         script: |
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
           xcode-project use-profiles
       - name: Install dependencies
         script: |
