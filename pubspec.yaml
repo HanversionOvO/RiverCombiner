@@ -92,11 +92,11 @@ flutter:
     - assets/lottie/login_welcome.json
     - assets/lottie/weather/
     - assets/lottie/tab_select_fx.json
-    - _ref_river_lite/lib/emoji/1/
-    - _ref_river_lite/lib/emoji/2/
-    - _ref_river_lite/lib/emoji/3/
-    - _ref_river_lite/lib/emoji/4/
-    - _ref_river_lite/lib/emoji/5/
+    - assets/emoji/1/
+    - assets/emoji/2/
+    - assets/emoji/3/
+    - assets/emoji/4/
+    - assets/emoji/5/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

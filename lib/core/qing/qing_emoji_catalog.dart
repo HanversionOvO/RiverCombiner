@@ -1,5 +1,5 @@
 class QingEmojiCatalog {
-  static const String _assetPrefix = 'asset://_ref_river_lite/lib/emoji';
+  static const String _assetPrefix = 'asset://assets/emoji';
 
   static const List<int> _emojiA = <int>[
     1135,
