@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Release/main build: allow cleartext http for mini-app sources and local platform endpoints -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
