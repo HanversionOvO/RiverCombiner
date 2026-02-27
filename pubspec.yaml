@@ -69,6 +69,7 @@ dependencies:
   home_widget: ^0.8.1
   draggable_route: ^0.7.3
   pro_image_editor: ^12.0.0
+  flutter_dynamic_icon: ^2.1.0
 
 dev_dependencies:
   flutter_test:
