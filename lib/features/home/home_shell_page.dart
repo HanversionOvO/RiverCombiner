@@ -54,6 +54,10 @@ class _HomeShellPageState extends State<HomeShellPage> {
   }
 
   void _onPostsSecondFloorVisibilityChanged(bool visible) {
+    if (!_shouldTrackSecondFloorProgress()) {
+      _postsSecondFloorProgress = 0;
+      return;
+    }
     if (!mounted) {
       return;
     }
@@ -65,6 +69,9 @@ class _HomeShellPageState extends State<HomeShellPage> {
   }
 
   void _onPostsSecondFloorProgressChanged(double progress) {
+    if (!_shouldTrackSecondFloorProgress()) {
+      return;
+    }
     final next = progress.clamp(0.0, 1.0);
     if (!mounted || (_postsSecondFloorProgress - next).abs() < 0.001) {
       return;
@@ -105,14 +112,14 @@ class _HomeShellPageState extends State<HomeShellPage> {
   @override
   Widget build(BuildContext context) {
     final isIPhone = _isIPhoneDevice(context);
+
+    if (isIPhone) {
+      return _buildIPhoneAdaptiveScaffold(context);
+    }
+
     final secondFloorProgress = _selectedTabIndex == 0
         ? _postsSecondFloorProgress
         : 0.0;
-
-    if (isIPhone) {
-      return _buildIPhoneAdaptiveScaffold(secondFloorProgress);
-    }
-
     final bottomOpacity = (1 - secondFloorProgress).clamp(0.0, 1.0);
     final bottomSizeFactor = (1 - secondFloorProgress).clamp(0.0, 1.0);
     return Scaffold(
@@ -140,14 +147,40 @@ class _HomeShellPageState extends State<HomeShellPage> {
     return MediaQuery.sizeOf(context).shortestSide < 600;
   }
 
-  Widget _buildIPhoneAdaptiveScaffold(double secondFloorProgress) {
-    final shouldHideBottomBar = secondFloorProgress > 0.001;
+  bool _shouldTrackSecondFloorProgress() {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    if (mediaQuery == null) {
+      return true;
+    }
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return true;
+    }
+    final isIPhone = mediaQuery.size.shortestSide < 600;
+    return !isIPhone;
+  }
+
+  Widget _buildIPhoneAdaptiveScaffold(BuildContext context) {
+    final reserveBottomSpaceForNativeTabBar = PlatformInfo.isIOS26OrHigher();
+    final body = reserveBottomSpaceForNativeTabBar
+        ? Padding(
+            padding: EdgeInsets.only(
+              bottom: _iPhoneNativeTabBarReservedHeight(context),
+            ),
+            child: IndexedStack(index: _selectedTabIndex, children: _pages),
+          )
+        : IndexedStack(index: _selectedTabIndex, children: _pages);
+
     return AdaptiveScaffold(
       enableBlur: true,
       minimizeBehavior: TabBarMinimizeBehavior.automatic,
-      body: IndexedStack(index: _selectedTabIndex, children: _pages),
-      bottomNavigationBar: shouldHideBottomBar ? null : _buildIPhoneTabBar(),
+      body: body,
+      bottomNavigationBar: _buildIPhoneTabBar(),
     );
+  }
+
+  double _iPhoneNativeTabBarReservedHeight(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    return bottomInset + 56;
   }
 
   AdaptiveBottomNavigationBar _buildIPhoneTabBar() {
