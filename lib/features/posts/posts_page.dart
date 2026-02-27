@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'dart:ui';
 
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -117,10 +118,7 @@ class PostsPageController {
     await _state?._openSearchPageFromExternal();
   }
 
-  Future<void> openFeed(
-    RiverSideTopicFeed feed, {
-    bool refresh = true,
-  }) async {
+  Future<void> openFeed(RiverSideTopicFeed feed, {bool refresh = true}) async {
     await _state?._switchToFeedFromExternal(feed, refresh: refresh);
   }
 }
@@ -5450,7 +5448,13 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   }
 
   bool _shouldUseBottomSearchTab(BuildContext context) {
-    return false;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    if (MediaQuery.sizeOf(context).shortestSide >= 600) {
+      return false;
+    }
+    return PlatformInfo.isIOS26OrHigher();
   }
 }
 

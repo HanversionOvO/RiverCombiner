@@ -57,77 +57,92 @@ class RiverHomeWidgetProvider : HomeWidgetProvider() {
         appWidgetId: Int,
         widgetData: SharedPreferences,
     ) {
-        val size = resolveWidgetSize(appWidgetManager, appWidgetId)
-        val layoutId = when (size) {
-            WidgetSize.SMALL -> R.layout.river_home_widget_small
-            WidgetSize.MEDIUM -> R.layout.river_home_widget_medium
-            WidgetSize.LARGE -> R.layout.river_home_widget_large
+        try {
+            val size = resolveWidgetSize(appWidgetManager, appWidgetId)
+            val layoutId = when (size) {
+                WidgetSize.SMALL -> R.layout.river_home_widget_small
+                WidgetSize.MEDIUM -> R.layout.river_home_widget_medium
+                WidgetSize.LARGE -> R.layout.river_home_widget_large
+            }
+            val views = RemoteViews(context.packageName, layoutId)
+
+            val state = widgetData.getString(KEY_STATE, "empty") ?: "empty"
+            val feedName = widgetData.getString(KEY_FEED, "latestReplied") ?: "latestReplied"
+            val feedLabel = widgetData.getString(KEY_FEED_LABEL, "最新回复") ?: "最新回复"
+            val title = widgetData.getString(KEY_TITLE, "暂无可展示帖子") ?: "暂无可展示帖子"
+            val excerpt = widgetData.getString(KEY_EXCERPT, "打开聚河畔刷新后重试") ?: "打开聚河畔刷新后重试"
+            val meta = widgetData.getString(KEY_META, "河畔小组件") ?: "河畔小组件"
+            val replies = readInt(widgetData, KEY_REPLIES, 0)
+            val viewsCount = readInt(widgetData, KEY_VIEWS, 0)
+            val topicId = readInt(widgetData, KEY_TOPIC_ID, 0)
+            val accent = readInt(widgetData, KEY_ACCENT, DEFAULT_ACCENT)
+
+            val effectiveAccent = when (state) {
+                "error" -> COLOR_ERROR
+                else -> accent
+            }
+
+            views.setTextViewText(R.id.river_widget_feed, feedLabel)
+            views.setTextViewText(R.id.river_widget_title, title)
+            views.setTextViewText(R.id.river_widget_excerpt, excerpt)
+            views.setTextViewText(R.id.river_widget_meta, meta)
+            views.setTextViewText(R.id.river_widget_replies, "回复 $replies")
+            views.setTextViewText(R.id.river_widget_views, "浏览 $viewsCount")
+
+            views.setTextColor(R.id.river_widget_feed, effectiveAccent)
+            views.setInt(R.id.river_widget_accent, "setBackgroundColor", effectiveAccent)
+            views.setInt(
+                R.id.river_widget_feed,
+                "setBackgroundResource",
+                R.drawable.river_widget_chip_background,
+            )
+
+            if (size == WidgetSize.SMALL) {
+                views.setViewVisibility(R.id.river_widget_excerpt, View.GONE)
+                views.setViewVisibility(R.id.river_widget_views, View.GONE)
+            } else {
+                views.setViewVisibility(R.id.river_widget_excerpt, View.VISIBLE)
+                views.setViewVisibility(R.id.river_widget_views, View.VISIBLE)
+                val maxLines = if (size == WidgetSize.LARGE) 4 else 3
+                views.setInt(R.id.river_widget_excerpt, "setMaxLines", maxLines)
+            }
+
+            if (state == "error") {
+                views.setTextViewText(R.id.river_widget_meta, "同步失败 · 点击重试")
+            }
+
+            val openTopicUri = if (topicId > 0) {
+                Uri.parse("river://widget/topic/$topicId?feed=$feedName")
+            } else {
+                Uri.parse("river://widget/feed/$feedName")
+            }
+            val openFeedUri = Uri.parse("river://widget/feed/$feedName")
+
+            val rootPendingIntent = HomeWidgetLaunchIntent.getActivity(
+                context,
+                MainActivity::class.java,
+                openTopicUri,
+            )
+            val feedPendingIntent = HomeWidgetLaunchIntent.getActivity(
+                context,
+                MainActivity::class.java,
+                openFeedUri,
+            )
+
+            views.setOnClickPendingIntent(R.id.river_widget_root, rootPendingIntent)
+            views.setOnClickPendingIntent(R.id.river_widget_feed, feedPendingIntent)
+
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        } catch (_: Throwable) {
+            val fallback = RemoteViews(context.packageName, R.layout.river_home_widget_small)
+            fallback.setTextViewText(R.id.river_widget_feed, "最新回复")
+            fallback.setTextViewText(R.id.river_widget_title, "小组件加载失败")
+            fallback.setTextViewText(R.id.river_widget_meta, "点击打开应用重试")
+            fallback.setTextViewText(R.id.river_widget_excerpt, "请稍后再试")
+            fallback.setTextViewText(R.id.river_widget_replies, "回复 0")
+            fallback.setTextViewText(R.id.river_widget_views, "浏览 0")
+            appWidgetManager.updateAppWidget(appWidgetId, fallback)
         }
-        val views = RemoteViews(context.packageName, layoutId)
-
-        val state = widgetData.getString(KEY_STATE, "empty") ?: "empty"
-        val feedName = widgetData.getString(KEY_FEED, "latestReplied") ?: "latestReplied"
-        val feedLabel = widgetData.getString(KEY_FEED_LABEL, "最新回复") ?: "最新回复"
-        val title = widgetData.getString(KEY_TITLE, "暂无可展示帖子") ?: "暂无可展示帖子"
-        val excerpt = widgetData.getString(KEY_EXCERPT, "打开聚河畔刷新后重试") ?: "打开聚河畔刷新后重试"
-        val meta = widgetData.getString(KEY_META, "河畔小组件") ?: "河畔小组件"
-        val replies = readInt(widgetData, KEY_REPLIES, 0)
-        val viewsCount = readInt(widgetData, KEY_VIEWS, 0)
-        val topicId = readInt(widgetData, KEY_TOPIC_ID, 0)
-        val accent = readInt(widgetData, KEY_ACCENT, DEFAULT_ACCENT)
-
-        val effectiveAccent = when (state) {
-            "error" -> COLOR_ERROR
-            else -> accent
-        }
-
-        views.setTextViewText(R.id.river_widget_feed, feedLabel)
-        views.setTextViewText(R.id.river_widget_title, title)
-        views.setTextViewText(R.id.river_widget_excerpt, excerpt)
-        views.setTextViewText(R.id.river_widget_meta, meta)
-        views.setTextViewText(R.id.river_widget_replies, "回复 $replies")
-        views.setTextViewText(R.id.river_widget_views, "浏览 $viewsCount")
-
-        views.setTextColor(R.id.river_widget_feed, effectiveAccent)
-        views.setInt(R.id.river_widget_accent, "setBackgroundColor", effectiveAccent)
-        views.setInt(R.id.river_widget_feed, "setBackgroundResource", R.drawable.river_widget_chip_background)
-
-        if (size == WidgetSize.SMALL) {
-            views.setViewVisibility(R.id.river_widget_excerpt, View.GONE)
-            views.setViewVisibility(R.id.river_widget_views, View.GONE)
-        } else {
-            views.setViewVisibility(R.id.river_widget_excerpt, View.VISIBLE)
-            views.setViewVisibility(R.id.river_widget_views, View.VISIBLE)
-            val maxLines = if (size == WidgetSize.LARGE) 4 else 3
-            views.setInt(R.id.river_widget_excerpt, "setMaxLines", maxLines)
-        }
-
-        if (state == "error") {
-            views.setTextViewText(R.id.river_widget_meta, "同步失败 · 点击重试")
-        }
-
-        val openTopicUri = if (topicId > 0) {
-            Uri.parse("river://widget/topic/$topicId?feed=$feedName")
-        } else {
-            Uri.parse("river://widget/feed/$feedName")
-        }
-        val openFeedUri = Uri.parse("river://widget/feed/$feedName")
-
-        val rootPendingIntent = HomeWidgetLaunchIntent.getActivity(
-            context,
-            MainActivity::class.java,
-            openTopicUri,
-        )
-        val feedPendingIntent = HomeWidgetLaunchIntent.getActivity(
-            context,
-            MainActivity::class.java,
-            openFeedUri,
-        )
-
-        views.setOnClickPendingIntent(R.id.river_widget_root, rootPendingIntent)
-        views.setOnClickPendingIntent(R.id.river_widget_feed, feedPendingIntent)
-
-        appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
     private fun resolveWidgetSize(

@@ -7,10 +7,11 @@
     android:orientation="vertical"
     android:padding="18dp">
 
-    <View
+    <TextView
         android:id="@+id/river_widget_accent"
         android:layout_width="54dp"
         android:layout_height="4dp"
+        android:text=""
         android:background="#4A90E2" />
 
     <LinearLayout

@@ -78,16 +78,14 @@ class RiverHomeWidgetService {
 
     await _saveSharedBaseData(feed: feed, accentColorArgb: accent);
     try {
-      final topics = await _apiClient.fetchTopicSummaries(
-        feed: feed,
-        page: 0,
+      final topic = await _fetchFirstTopicWithFallback(
+        preferredFeed: feed,
         cookieHeader: cookieHeader,
       );
-      final topic = topics.isEmpty ? null : topics.first;
-      if (topic == null) {
-        await _saveEmptyData(feed: feed);
-      } else {
+      if (topic != null) {
         await _saveTopicData(feed: feed, topic: topic);
+      } else {
+        await _saveEmptyData(feed: feed);
       }
     } catch (_) {
       await _saveErrorData(feed: feed);
@@ -98,6 +96,57 @@ class RiverHomeWidgetService {
       qualifiedAndroidName: androidQualifiedProviderName,
       iOSName: iOSWidgetName,
     );
+  }
+
+  Future<RiverSideTopicSummary?> _fetchFirstTopicWithFallback({
+    required RiverSideTopicFeed preferredFeed,
+    required String? cookieHeader,
+  }) async {
+    final feedAttempts = <RiverSideTopicFeed>[
+      preferredFeed,
+      ...RiverSideTopicFeed.values.where((feed) => feed != preferredFeed),
+    ];
+
+    Future<RiverSideTopicSummary?> fetchOne({
+      required RiverSideTopicFeed feed,
+      required String? cookie,
+    }) async {
+      final topics = await _apiClient.fetchTopicSummaries(
+        feed: feed,
+        page: 0,
+        cookieHeader: cookie,
+      );
+      if (topics.isEmpty) {
+        return null;
+      }
+      return topics.first;
+    }
+
+    for (final feed in feedAttempts) {
+      try {
+        final topic = await fetchOne(feed: feed, cookie: cookieHeader);
+        if (topic != null) {
+          return topic;
+        }
+      } catch (_) {
+        // Continue fallback attempts.
+      }
+    }
+
+    if (cookieHeader != null && cookieHeader.trim().isNotEmpty) {
+      for (final feed in feedAttempts) {
+        try {
+          final topic = await fetchOne(feed: feed, cookie: null);
+          if (topic != null) {
+            return topic;
+          }
+        } catch (_) {
+          // Continue fallback attempts.
+        }
+      }
+    }
+
+    return null;
   }
 
   RiverHomeWidgetLaunchRequest? parseLaunchUri(Uri? uri) {

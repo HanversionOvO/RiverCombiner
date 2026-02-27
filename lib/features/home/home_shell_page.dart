@@ -7,11 +7,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:river/app/app_dependencies.dart';
+import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/features/compose/compose_topic_page.dart';
 import 'package:river/features/mine/mine_page.dart';
 import 'package:river/features/notifications/notifications_page.dart';
 import 'package:river/features/posts/posts_page.dart';
+import 'package:river/features/search/search_page.dart';
 
 enum HomeQuickAction { compose, search, latestCreated, latestReplied, hot }
 
@@ -56,6 +58,7 @@ class HomeShellPage extends StatefulWidget {
 
 class _HomeShellPageState extends State<HomeShellPage> {
   static const Duration _postsTabDoubleTapWindow = Duration(milliseconds: 320);
+  static const int _iPhoneSearchDestinationIndex = 1;
 
   int _selectedTabIndex = 0;
   int _notificationsUnreadCount = 0;
@@ -122,9 +125,73 @@ class _HomeShellPageState extends State<HomeShellPage> {
   }
 
   void _handleDestinationSelected(int index, {bool triggerHaptic = true}) {
+    _handleDestinationSelectedInternal(
+      index,
+      triggerHaptic: triggerHaptic,
+      hasIPhoneSearchDestination: false,
+    );
+  }
+
+  Future<void> _openSearchPageFromBottomTab() async {
+    await Navigator.of(context).push(
+      riverPageRoute<void>(
+        builder: (_) => SearchPage(
+          dependencies: widget.dependencies,
+          initialMode: SearchPageInitialMode.posts,
+          showEntryActionIcon: false,
+        ),
+      ),
+    );
+  }
+
+  int _toAppTabIndex(
+    int destinationIndex, {
+    required bool hasIPhoneSearchDestination,
+  }) {
+    if (!hasIPhoneSearchDestination) {
+      return destinationIndex;
+    }
+    if (destinationIndex > _iPhoneSearchDestinationIndex) {
+      return destinationIndex - 1;
+    }
+    return destinationIndex;
+  }
+
+  int _toDestinationIndex(
+    int appTabIndex, {
+    required bool hasIPhoneSearchDestination,
+  }) {
+    if (!hasIPhoneSearchDestination) {
+      return appTabIndex;
+    }
+    if (appTabIndex >= _iPhoneSearchDestinationIndex) {
+      return appTabIndex + 1;
+    }
+    return appTabIndex;
+  }
+
+  void _handleDestinationSelectedInternal(
+    int rawIndex, {
+    required bool hasIPhoneSearchDestination,
+    bool triggerHaptic = true,
+  }) {
     if (triggerHaptic) {
       HapticFeedback.selectionClick();
     }
+    if (hasIPhoneSearchDestination &&
+        rawIndex == _iPhoneSearchDestinationIndex) {
+      unawaited(_openSearchPageFromBottomTab());
+      if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
+
+    final index = _toAppTabIndex(
+      rawIndex,
+      hasIPhoneSearchDestination: hasIPhoneSearchDestination,
+    );
+
     if (index == 0) {
       if (_selectedTabIndex == 0) {
         final now = DateTime.now();
@@ -152,11 +219,17 @@ class _HomeShellPageState extends State<HomeShellPage> {
   }
 
   void _onMaterialDestinationSelected(int index) {
-    _handleDestinationSelected(index);
+    _handleDestinationSelectedInternal(
+      index,
+      hasIPhoneSearchDestination: false,
+    );
   }
 
   void _onIPhoneDestinationSelected(int index) {
-    _handleDestinationSelected(index);
+    _handleDestinationSelectedInternal(
+      index,
+      hasIPhoneSearchDestination: PlatformInfo.isIOS26OrHigher(),
+    );
   }
 
   @override
@@ -205,11 +278,14 @@ class _HomeShellPageState extends State<HomeShellPage> {
   }
 
   List<Widget> _buildPages({required bool isIPhone}) {
+    final composeBottomInset = isIPhone && PlatformInfo.isIOS26OrHigher()
+        ? 78.0
+        : 0.0;
     return <Widget>[
       _postsPage,
       ComposeTopicPage(
         dependencies: widget.dependencies,
-        bottomToolbarExtraInset: 0,
+        bottomToolbarExtraInset: composeBottomInset,
       ),
       _notificationsPage,
       _minePage,
@@ -253,13 +329,22 @@ class _HomeShellPageState extends State<HomeShellPage> {
     );
   }
 
-  List<AdaptiveNavigationDestination> _iPhoneDestinations() {
+  List<AdaptiveNavigationDestination> _iPhoneDestinations({
+    required bool hasSearchDestination,
+  }) {
     return <AdaptiveNavigationDestination>[
       const AdaptiveNavigationDestination(
         icon: 'bubble.left.and.bubble.right',
         selectedIcon: 'bubble.left.and.bubble.right.fill',
         label: '\u5e16\u5b50',
       ),
+      if (hasSearchDestination)
+        const AdaptiveNavigationDestination(
+          icon: 'magnifyingglass',
+          selectedIcon: 'magnifyingglass',
+          label: '\u641c\u7d22',
+          isSearch: true,
+        ),
       const AdaptiveNavigationDestination(
         icon: 'square.and.pencil',
         selectedIcon: 'square.and.pencil',
@@ -282,11 +367,14 @@ class _HomeShellPageState extends State<HomeShellPage> {
   }
 
   Widget _buildIPhoneTabBar(BuildContext context) {
-    final destinations = _iPhoneDestinations();
-    final selectedDestinationIndex = _selectedTabIndex.clamp(
-      0,
-      destinations.length - 1,
+    final hasSearchDestination = PlatformInfo.isIOS26OrHigher();
+    final destinations = _iPhoneDestinations(
+      hasSearchDestination: hasSearchDestination,
     );
+    final selectedDestinationIndex = _toDestinationIndex(
+      _selectedTabIndex,
+      hasIPhoneSearchDestination: hasSearchDestination,
+    ).clamp(0, destinations.length - 1);
 
     if (PlatformInfo.isIOS26OrHigher()) {
       return IOS26NativeTabBar(
@@ -379,7 +467,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
         return;
       case HomeQuickAction.search:
         _handleDestinationSelected(0, triggerHaptic: false);
-        await _postsPageController.openSearchPage();
+        await _openSearchPageFromBottomTab();
         return;
       case HomeQuickAction.latestCreated:
         _handleDestinationSelected(0, triggerHaptic: false);

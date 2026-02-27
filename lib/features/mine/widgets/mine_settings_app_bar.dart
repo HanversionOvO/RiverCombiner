@@ -93,11 +93,9 @@ class MineSettingsPageScaffold extends StatelessWidget {
           useNativeToolbar: true,
           actions: adaptiveActions,
         ),
-        body: Column(
-          children: [
-            SizedBox(height: topToolbarPlaceholder),
-            Expanded(child: resolvedBody),
-          ],
+        body: _wrapIOSBodyWithTopPlaceholder(
+          resolvedBody,
+          topToolbarPlaceholder,
         ),
       );
     }
@@ -114,6 +112,63 @@ class MineSettingsPageScaffold extends StatelessWidget {
             .toList(growable: false),
       ),
       body: resolvedBody,
+    );
+  }
+
+  Widget _wrapIOSBodyWithTopPlaceholder(Widget body, double placeholderHeight) {
+    final topPlaceholder = SizedBox(height: placeholderHeight);
+    if (body is ListView && body.childrenDelegate is SliverChildListDelegate) {
+      final delegate = body.childrenDelegate as SliverChildListDelegate;
+      return ListView(
+        key: body.key,
+        scrollDirection: body.scrollDirection,
+        reverse: body.reverse,
+        controller: body.controller,
+        primary: body.primary,
+        physics: body.physics,
+        shrinkWrap: body.shrinkWrap,
+        padding: body.padding,
+        itemExtent: body.itemExtent,
+        prototypeItem: body.prototypeItem,
+        cacheExtent: body.cacheExtent,
+        semanticChildCount: body.semanticChildCount,
+        dragStartBehavior: body.dragStartBehavior,
+        keyboardDismissBehavior: body.keyboardDismissBehavior,
+        restorationId: body.restorationId,
+        clipBehavior: body.clipBehavior,
+        hitTestBehavior: body.hitTestBehavior,
+        children: <Widget>[topPlaceholder, ...delegate.children],
+      );
+    }
+
+    if (body is CustomScrollView) {
+      return CustomScrollView(
+        key: body.key,
+        scrollDirection: body.scrollDirection,
+        reverse: body.reverse,
+        controller: body.controller,
+        primary: body.primary,
+        physics: body.physics,
+        shrinkWrap: body.shrinkWrap,
+        center: body.center,
+        anchor: body.anchor,
+        cacheExtent: body.cacheExtent,
+        semanticChildCount: body.semanticChildCount,
+        dragStartBehavior: body.dragStartBehavior,
+        keyboardDismissBehavior: body.keyboardDismissBehavior,
+        restorationId: body.restorationId,
+        clipBehavior: body.clipBehavior,
+        hitTestBehavior: body.hitTestBehavior,
+        slivers: <Widget>[
+          SliverToBoxAdapter(child: topPlaceholder),
+          ...body.slivers,
+        ],
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: placeholderHeight),
+      child: body,
     );
   }
 }

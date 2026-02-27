@@ -256,12 +256,15 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     if (widget.settingsController.iconPreset == preset) {
       return;
     }
-    widget.settingsController.updateIconPreset(preset);
     final applied = await AppIconSwitcher.switchToPreset(preset);
-    if (!mounted || applied) {
+    if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showRiverSnackBar('当前平台暂不支持即时切换图标，已保存你的选择');
+    if (applied) {
+      widget.settingsController.updateIconPreset(preset);
+      return;
+    }
+    ScaffoldMessenger.of(context).showRiverSnackBar('图标切换失败，请稍后重试或重新安装当前版本');
   }
 
   String _fontDisplayName(String? family) {
