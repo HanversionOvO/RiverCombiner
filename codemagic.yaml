@@ -34,12 +34,32 @@ workflows:
           cd ..
       - name: Pack unsigned IPA
         script: |
-          APP_PATH="build/ios/unsigned/Runner.xcarchive/Products/Applications/Runner.app"
-          if [ ! -d "$APP_PATH" ]; then
-            echo "Runner.app not found at $APP_PATH"
+          APP_PATH=""
+          for candidate in \
+            build/ios/unsigned/Runner.xcarchive/Products/Applications/*.app \
+            build/ios/iphoneos/*.app \
+            build/ios/Release-iphoneos/*.app; do
+            if [ -d "$candidate" ]; then
+              APP_PATH="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find build -type d -name "*.app" | head -n 1 || true)
+          fi
+
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+            echo "No .app bundle found under build/."
+            echo "Debug list:"
+            find build -maxdepth 6 -type d | sort || true
             exit 1
           fi
-          rm -rf build/ios/unsigned
+
+          echo "Using app bundle: $APP_PATH"
+          mkdir -p build/ios/unsigned
+          rm -rf build/ios/unsigned/Payload
+          rm -f build/ios/unsigned/River-unsigned.ipa
           mkdir -p build/ios/unsigned/Payload
           cp -R "$APP_PATH" build/ios/unsigned/Payload/
           cd build/ios/unsigned
