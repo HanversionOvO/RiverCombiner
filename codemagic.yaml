@@ -14,10 +14,27 @@ workflows:
       - name: Build iOS app without signing
         script: |
           BUILD_NUMBER=$(date +%Y%m%d%H%M)
-          flutter build ios --release --no-codesign --build-number=$BUILD_NUMBER
+          flutter build ios --release --config-only --build-number=$BUILD_NUMBER
+          cd ios
+          pod install
+          xcodebuild \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination generic/platform=iOS \
+            -archivePath ../build/ios/unsigned/Runner.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            COMPILER_INDEX_STORE_ENABLE=NO
+          cd ..
       - name: Pack unsigned IPA
         script: |
-          APP_PATH="build/ios/iphoneos/Runner.app"
+          APP_PATH="build/ios/unsigned/Runner.xcarchive/Products/Applications/Runner.app"
           if [ ! -d "$APP_PATH" ]; then
             echo "Runner.app not found at $APP_PATH"
             exit 1
