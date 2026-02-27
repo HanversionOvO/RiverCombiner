@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart'
@@ -774,6 +775,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
               children: [
                 _GlassIconButton(
                   icon: Icons.arrow_back_rounded,
+                  iosSymbol: 'chevron.left',
                   onTap: () => Navigator.of(context).pop(),
                 ),
                 const Spacer(),
@@ -781,6 +783,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
                   icon: _torchEnabled
                       ? Icons.flash_on_rounded
                       : Icons.flash_off_rounded,
+                  iosSymbol: _torchEnabled ? 'bolt.fill' : 'bolt.slash.fill',
                   onTap: _toggleTorch,
                 ),
               ],
@@ -980,22 +983,18 @@ class _MineIdentityQrPageState extends State<MineIdentityQrPage> {
     final style = _styles[_styleIndex];
     final hasBoth = _riverAccount != null && _qingAccount != null;
 
-    return Scaffold(
-      appBar: MineSettingsAppBar(
-        title: '身份二维码',
-        subtitle: '个性化展示与扫码跳转',
-        icon: Icons.qr_code_2_rounded,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: IconButton(
-              tooltip: '切换样式',
-              onPressed: _selectedAccount == null ? null : _nextStyle,
-              icon: const Icon(Icons.auto_awesome_rounded),
-            ),
-          ),
-        ],
-      ),
+    return MineSettingsPageScaffold(
+      title: '身份二维码',
+      subtitle: '个性化展示与扫码跳转',
+      icon: Icons.qr_code_2_rounded,
+      actions: [
+        MineSettingsToolbarAction(
+          iosSymbol: 'wand.and.stars',
+          icon: Icons.auto_awesome_rounded,
+          tooltip: '切换样式',
+          onPressed: _selectedAccount == null ? null : _nextStyle,
+        ),
+      ],
       body: SafeArea(
         child: Stack(
           children: [
@@ -1269,13 +1268,32 @@ class _IdentityQrCard extends StatelessWidget {
 }
 
 class _GlassIconButton extends StatelessWidget {
-  const _GlassIconButton({required this.icon, required this.onTap});
+  const _GlassIconButton({
+    required this.icon,
+    required this.onTap,
+    this.iosSymbol,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final String? iosSymbol;
 
   @override
   Widget build(BuildContext context) {
+    if (PlatformInfo.isIOS26OrHigher()) {
+      final symbol = iosSymbol ?? _symbolForIcon(icon);
+      return SizedBox(
+        width: 42,
+        height: 42,
+        child: AdaptiveButton.sfSymbol(
+          onPressed: onTap,
+          sfSymbol: SFSymbol(symbol, size: 18, color: Colors.white),
+          style: AdaptiveButtonStyle.glass,
+          size: AdaptiveButtonSize.medium,
+          useSmoothRectangleBorder: false,
+        ),
+      );
+    }
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1293,6 +1311,19 @@ class _GlassIconButton extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _symbolForIcon(IconData iconData) {
+    if (iconData == Icons.arrow_back_rounded) {
+      return 'chevron.left';
+    }
+    if (iconData == Icons.flash_on_rounded) {
+      return 'bolt.fill';
+    }
+    if (iconData == Icons.flash_off_rounded) {
+      return 'bolt.slash.fill';
+    }
+    return 'circle';
   }
 }
 

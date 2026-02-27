@@ -91,14 +91,12 @@ class _AboutPageState extends State<AboutPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
+    return MineSettingsPageScaffold(
       backgroundColor: colorScheme.surface,
-      appBar: const MineSettingsAppBar(
-        title: '关于 聚河畔',
-        subtitle: '应用信息与项目说明',
-        icon: Icons.info_outline_rounded,
-        heroTagPrefix: 'mine_settings_about',
-      ),
+      title: '关于 聚河畔',
+      subtitle: '应用信息与项目说明',
+      icon: Icons.info_outline_rounded,
+      heroTagPrefix: 'mine_settings_about',
       body: Stack(
         children: [
           Positioned.fill(

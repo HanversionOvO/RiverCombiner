@@ -278,13 +278,11 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const MineSettingsAppBar(
-        title: '开发者模式',
-        subtitle: '调试与本地小程序安装',
-        icon: Icons.developer_mode_rounded,
-        heroTagPrefix: 'mine_settings_developer',
-      ),
+    return MineSettingsPageScaffold(
+      title: '开发者模式',
+      subtitle: '调试与本地小程序安装',
+      icon: Icons.developer_mode_rounded,
+      heroTagPrefix: 'mine_settings_developer',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [

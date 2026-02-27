@@ -12,13 +12,11 @@ class NotificationsPushSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const MineSettingsAppBar(
-        title: '通知与推送',
-        subtitle: '横幅提醒与刷新行为',
-        icon: Icons.notifications_active_outlined,
-        heroTagPrefix: 'mine_settings_notifications_push',
-      ),
+    return MineSettingsPageScaffold(
+      title: '通知与推送',
+      subtitle: '横幅提醒与刷新行为',
+      icon: Icons.notifications_active_outlined,
+      heroTagPrefix: 'mine_settings_notifications_push',
       body: AnimatedBuilder(
         animation: settingsController,
         builder: (context, _) {

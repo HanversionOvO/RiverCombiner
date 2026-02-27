@@ -606,22 +606,19 @@ class _RiverSideAccountSettingsPageState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: MineSettingsAppBar(
-        title: 'RiverSide 账号设置',
-        subtitle: _activeAccount == null
-            ? '未登录'
-            : '@${_activeAccount!.username}',
-        icon: Icons.manage_accounts_rounded,
-        heroTagPrefix: 'mine_settings_riverside_account',
-        actions: [
-          IconButton(
-            tooltip: '刷新',
-            onPressed: _saving ? null : () => _loadInitial(),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
+    return MineSettingsPageScaffold(
+      title: 'RiverSide 账号设置',
+      subtitle: _activeAccount == null ? '未登录' : '@${_activeAccount!.username}',
+      icon: Icons.manage_accounts_rounded,
+      heroTagPrefix: 'mine_settings_riverside_account',
+      actions: [
+        MineSettingsToolbarAction(
+          iosSymbol: 'arrow.clockwise',
+          icon: Icons.refresh_rounded,
+          tooltip: '刷新',
+          onPressed: _saving ? null : _loadInitial,
+        ),
+      ],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _errorText != null

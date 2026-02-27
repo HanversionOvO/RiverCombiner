@@ -68,21 +68,19 @@ class _FeedbackWebViewPageState extends State<FeedbackWebViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: MineSettingsAppBar(
-        title: '反馈',
-        subtitle: '问题反馈与建议',
-        icon: Icons.feedback_outlined,
-        heroTagPrefix: 'mine_settings_feedback',
-        actions: [
-          IconButton(
-            tooltip: '外部打开',
-            onPressed: _openInBrowser,
-            icon: const Icon(Icons.open_in_new_rounded),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
+    return MineSettingsPageScaffold(
+      title: '反馈',
+      subtitle: '问题反馈与建议',
+      icon: Icons.feedback_outlined,
+      heroTagPrefix: 'mine_settings_feedback',
+      actions: [
+        MineSettingsToolbarAction(
+          iosSymbol: 'arrow.up.right.square',
+          icon: Icons.open_in_new_rounded,
+          tooltip: '外部打开',
+          onPressed: _openInBrowser,
+        ),
+      ],
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),

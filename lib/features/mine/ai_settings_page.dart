@@ -132,13 +132,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const MineSettingsAppBar(
-        title: 'AI设置',
-        subtitle: '服务商与模型配置',
-        icon: Icons.auto_awesome_rounded,
-        heroTagPrefix: 'mine_settings_ai',
-      ),
+    return MineSettingsPageScaffold(
+      title: 'AI设置',
+      subtitle: '服务商与模型配置',
+      icon: Icons.auto_awesome_rounded,
+      heroTagPrefix: 'mine_settings_ai',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [

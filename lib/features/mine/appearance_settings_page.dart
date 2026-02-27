@@ -281,13 +281,11 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const MineSettingsAppBar(
-        title: '个性化',
-        subtitle: '主题、字体与首页默认论坛设置',
-        icon: Icons.palette_outlined,
-        heroTagPrefix: 'mine_settings_appearance',
-      ),
+    return MineSettingsPageScaffold(
+      title: '个性化',
+      subtitle: '主题、字体与首页默认论坛设置',
+      icon: Icons.palette_outlined,
+      heroTagPrefix: 'mine_settings_appearance',
       body: AnimatedBuilder(
         animation: widget.settingsController,
         builder: (context, _) {

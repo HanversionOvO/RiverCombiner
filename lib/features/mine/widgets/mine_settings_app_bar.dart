@@ -1,9 +1,119 @@
 import 'dart:ui';
 
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 // ignore: implementation_imports
 import 'package:adaptive_platform_ui/src/widgets/ios26/ios26_native_toolbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+class MineSettingsToolbarAction {
+  const MineSettingsToolbarAction({
+    this.iosSymbol,
+    this.icon,
+    this.title,
+    required this.onPressed,
+    this.tooltip,
+    this.spacerAfter = ToolbarSpacerType.none,
+  }) : assert(
+         iosSymbol != null || icon != null || title != null,
+         'At least one of iosSymbol, icon, or title must be provided.',
+       );
+
+  final String? iosSymbol;
+  final IconData? icon;
+  final String? title;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+  final ToolbarSpacerType spacerAfter;
+
+  AdaptiveAppBarAction toAdaptiveAction() {
+    return AdaptiveAppBarAction(
+      iosSymbol: iosSymbol,
+      icon: icon,
+      title: title,
+      onPressed: onPressed ?? () {},
+      spacerAfter: spacerAfter,
+    );
+  }
+
+  Widget toMaterialAction(BuildContext context) {
+    if (title != null && title!.isNotEmpty) {
+      return TextButton(
+        onPressed: onPressed,
+        child: Text(title!),
+      );
+    }
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon ?? Icons.more_horiz_rounded),
+    );
+  }
+}
+
+class MineSettingsPageScaffold extends StatelessWidget {
+  const MineSettingsPageScaffold({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.body,
+    this.heroTagPrefix,
+    this.actions,
+    this.backgroundColor,
+    this.wrapBodyWithSafeArea = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Widget body;
+  final String? heroTagPrefix;
+  final List<MineSettingsToolbarAction>? actions;
+  final Color? backgroundColor;
+  final bool wrapBodyWithSafeArea;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedActions = actions ?? const <MineSettingsToolbarAction>[];
+    final adaptiveActions = resolvedActions
+        .where((action) => action.onPressed != null)
+        .map((action) => action.toAdaptiveAction())
+        .toList(growable: false);
+    Widget resolvedBody = body;
+    if (wrapBodyWithSafeArea) {
+      resolvedBody = SafeArea(top: false, child: resolvedBody);
+    }
+    if (backgroundColor != null) {
+      resolvedBody = ColoredBox(color: backgroundColor!, child: resolvedBody);
+    }
+
+    if (_isIPhoneDevice(context)) {
+      return AdaptiveScaffold(
+        appBar: AdaptiveAppBar(
+          title: title,
+          useNativeToolbar: true,
+          actions: adaptiveActions,
+        ),
+        body: resolvedBody,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: MineSettingsAppBar(
+        title: title,
+        subtitle: subtitle,
+        icon: icon,
+        heroTagPrefix: heroTagPrefix,
+        actions: resolvedActions
+            .map((action) => action.toMaterialAction(context))
+            .toList(growable: false),
+      ),
+      body: resolvedBody,
+    );
+  }
+}
 
 class MineSettingsAppBar extends StatelessWidget
     implements PreferredSizeWidget {
@@ -239,9 +349,13 @@ class MineSettingsAppBar extends StatelessWidget
   }
 
   bool _isIPhone(BuildContext context) {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
-      return false;
-    }
-    return MediaQuery.sizeOf(context).shortestSide < 600;
+    return _isIPhoneDevice(context);
   }
+}
+
+bool _isIPhoneDevice(BuildContext context) {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+    return false;
+  }
+  return MediaQuery.sizeOf(context).shortestSide < 600;
 }

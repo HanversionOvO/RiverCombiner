@@ -4,6 +4,29 @@ extension _SearchPageView on _SearchPageState {
   Widget _buildPage(BuildContext context) {
     final theme = Theme.of(context);
     final hasKeyword = _keywordController.text.trim().isNotEmpty;
+    final useIPhoneNativeLayout = _isIPhoneNativeSearchPage(context);
+
+    if (useIPhoneNativeLayout) {
+      return AdaptiveScaffold(
+        appBar: const AdaptiveAppBar(
+          title: _SearchPageState._labelSearch,
+          useNativeToolbar: true,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: Column(
+            children: [
+              _buildNativeSearchInput(theme, hasKeyword),
+              const SizedBox(height: 10),
+              _buildModeSelector(theme),
+              const SizedBox(height: 8),
+              Expanded(child: _buildResultsSwitcher()),
+            ],
+          ),
+        ),
+        floatingActionButton: _buildBackToTopFab(),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -46,56 +69,125 @@ extension _SearchPageView on _SearchPageState {
           ),
         ),
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 260),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.02),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            ),
-          );
-        },
-        child: KeyedSubtree(
-          key: ValueKey<String>(
-            'search-body:${_searchMode.name}:$_activeQuery:${_loading ? 1 : 0}'
-            ':${_error ?? ''}:$_resultAnimationEpoch',
+      body: _buildResultsSwitcher(),
+      floatingActionButton: _buildBackToTopFab(),
+    );
+  }
+
+  bool _isIPhoneNativeSearchPage(BuildContext context) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    if (MediaQuery.sizeOf(context).shortestSide >= 600) {
+      return false;
+    }
+    return PlatformInfo.isIOS26OrHigher();
+  }
+
+  Widget _buildResultsSwitcher() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.02),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
           ),
-          child: _buildBody(),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey<String>(
+          'search-body:${_searchMode.name}:$_activeQuery:${_loading ? 1 : 0}'
+          ':${_error ?? ''}:$_resultAnimationEpoch',
         ),
-      ),
-      floatingActionButton: ValueListenableBuilder<bool>(
-        valueListenable: _showBackToTop,
-        builder: (context, visible, _) {
-          final showingSuggestions =
-              _keywordFocused && _keywordController.text.trim().isNotEmpty;
-          final shouldShow = visible && !_loading && !showingSuggestions;
-          return IgnorePointer(
-            ignoring: !shouldShow,
-            child: AnimatedSlide(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              offset: shouldShow ? Offset.zero : const Offset(0, 0.15),
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 180),
-                opacity: shouldShow ? 1 : 0,
-                child: FloatingActionButton.small(
-                  heroTag: 'search_back_to_top',
-                  onPressed: shouldShow ? _scrollToTop : null,
-                  child: const Icon(Icons.arrow_upward_rounded),
-                ),
-              ),
-            ),
-          );
-        },
+        child: _buildBody(),
       ),
     );
+  }
+
+  Widget _buildBackToTopFab() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _showBackToTop,
+      builder: (context, visible, _) {
+        final showingSuggestions =
+            _keywordFocused && _keywordController.text.trim().isNotEmpty;
+        final shouldShow = visible && !_loading && !showingSuggestions;
+        return IgnorePointer(
+          ignoring: !shouldShow,
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            offset: shouldShow ? Offset.zero : const Offset(0, 0.15),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: shouldShow ? 1 : 0,
+              child: FloatingActionButton.small(
+                heroTag: 'search_back_to_top',
+                onPressed: shouldShow ? _scrollToTop : null,
+                child: const Icon(Icons.arrow_upward_rounded),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNativeSearchInput(ThemeData theme, bool hasKeyword) {
+    return AdaptiveTextField(
+      controller: _keywordController,
+      focusNode: _keywordFocusNode,
+      autofocus: true,
+      placeholder: _SearchPageState._labelSearchHint,
+      textInputAction: TextInputAction.search,
+      onChanged: _onKeywordInputChanged,
+      onSubmitted: (_) => _runSearch(reset: true),
+      prefixIcon: Icon(
+        Icons.search_rounded,
+        color: _keywordFocused
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurfaceVariant,
+      ),
+      suffix: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasKeyword)
+            IconButton(
+              icon: const Icon(Icons.close_rounded),
+              tooltip: '清空',
+              visualDensity: VisualDensity.compact,
+              onPressed: _clearKeywordInput,
+            ),
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_rounded),
+            tooltip: _SearchPageState._labelSearch,
+            visualDensity: VisualDensity.compact,
+            onPressed: () => _runSearch(reset: true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _clearKeywordInput() {
+    _keywordController.clear();
+    _mutateState(() {
+      _activeQuery = '';
+      _error = null;
+      _postItems = const <RiverSidePostSearchItem>[];
+      _userItems = const <RiverSideUserSearchItem>[];
+      _miniAppItems = const <RiverMiniAppEntry>[];
+    });
+    if (_searchMode == _SearchMode.miniApps) {
+      unawaited(_loadMiniAppCatalog(forceRefresh: false));
+    }
+    _loadRecentSearches();
   }
 
   Widget _buildSearchInput(ThemeData theme, bool hasKeyword) {
@@ -170,20 +262,7 @@ extension _SearchPageView on _SearchPageState {
                     icon: const Icon(Icons.close_rounded),
                     tooltip: '清空',
                     visualDensity: VisualDensity.compact,
-                    onPressed: () {
-                      _keywordController.clear();
-                      _mutateState(() {
-                        _activeQuery = '';
-                        _error = null;
-                        _postItems = const <RiverSidePostSearchItem>[];
-                        _userItems = const <RiverSideUserSearchItem>[];
-                        _miniAppItems = const <RiverMiniAppEntry>[];
-                      });
-                      if (_searchMode == _SearchMode.miniApps) {
-                        unawaited(_loadMiniAppCatalog(forceRefresh: false));
-                      }
-                      _loadRecentSearches();
-                    },
+                    onPressed: _clearKeywordInput,
                   ),
                 IconButton(
                   icon: const Icon(Icons.send_rounded),

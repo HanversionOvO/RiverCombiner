@@ -261,13 +261,11 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: const MineSettingsAppBar(
-        title: '服务器设置',
-        subtitle: '主域名与更新源',
-        icon: Icons.dns_outlined,
-        heroTagPrefix: 'mine_settings_server',
-      ),
+    return MineSettingsPageScaffold(
+      title: '服务器设置',
+      subtitle: '主域名与更新源',
+      icon: Icons.dns_outlined,
+      heroTagPrefix: 'mine_settings_server',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [

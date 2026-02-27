@@ -72,13 +72,11 @@ class _MiniAppPermissionsPageState extends State<MiniAppPermissionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: MineSettingsAppBar(
-        title: '小程序权限',
-        subtitle: widget.miniApp.name,
-        icon: Icons.admin_panel_settings_outlined,
-        heroTagPrefix: 'miniapp_permission_${widget.miniApp.id}',
-      ),
+    return MineSettingsPageScaffold(
+      title: '小程序权限',
+      subtitle: widget.miniApp.name,
+      icon: Icons.admin_panel_settings_outlined,
+      heroTagPrefix: 'miniapp_permission_${widget.miniApp.id}',
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

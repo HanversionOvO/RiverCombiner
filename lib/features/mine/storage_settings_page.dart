@@ -387,13 +387,11 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
       (it) => it.id == 'quick_clear',
     );
 
-    return Scaffold(
-      appBar: const MineSettingsAppBar(
-        title: '存储空间',
-        subtitle: '应用缓存空间管理与清理',
-        icon: Icons.sd_storage_rounded,
-        heroTagPrefix: 'mine_settings_storage',
-      ),
+    return MineSettingsPageScaffold(
+      title: '存储空间',
+      subtitle: '应用缓存空间管理与清理',
+      icon: Icons.sd_storage_rounded,
+      heroTagPrefix: 'mine_settings_storage',
       body: RefreshIndicator(
         onRefresh: _refreshAll,
         child: ListView(
