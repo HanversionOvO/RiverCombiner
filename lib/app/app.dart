@@ -88,14 +88,11 @@ class _RiverAppState extends State<RiverApp> {
 
   Future<void> _bootstrap() async {
     await _dependencies.settingsController.initialize();
-    final iconPreset = _dependencies.settingsController.iconPreset;
-    final iconApplied = await AppIconSwitcher.switchToPreset(iconPreset);
-    if (!iconApplied && iconPreset != AppAppIconPreset.origin) {
-      _dependencies.settingsController.updateIconPreset(
-        AppAppIconPreset.origin,
-      );
-      unawaited(AppIconSwitcher.switchToPreset(AppAppIconPreset.origin));
-    }
+    unawaited(
+      AppIconSwitcher.switchToPreset(
+        _dependencies.settingsController.iconPreset,
+      ),
+    );
     await _dependencies.accountStore.initialize();
     await _dependencies.updateChecker.initialize();
     final elapsed = DateTime.now().difference(_launchStartedAt);

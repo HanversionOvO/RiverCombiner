@@ -72,6 +72,7 @@ class MineSettingsPageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isIPhone = _isIPhoneDevice(context);
     final resolvedActions = actions ?? const <MineSettingsToolbarAction>[];
     final adaptiveActions = resolvedActions
         .where((action) => action.onPressed != null)
@@ -81,13 +82,14 @@ class MineSettingsPageScaffold extends StatelessWidget {
     if (wrapBodyWithSafeArea) {
       resolvedBody = SafeArea(top: false, child: resolvedBody);
     }
-    if (backgroundColor != null) {
+    if (!isIPhone && backgroundColor != null) {
       resolvedBody = ColoredBox(color: backgroundColor!, child: resolvedBody);
     }
 
-    if (_isIPhoneDevice(context)) {
+    if (isIPhone) {
       final topToolbarPlaceholder = MediaQuery.paddingOf(context).top + 44;
       return AdaptiveScaffold(
+        extendBodyBehindAppBar: true,
         appBar: AdaptiveAppBar(
           title: title,
           useNativeToolbar: true,
