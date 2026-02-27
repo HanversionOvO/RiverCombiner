@@ -181,13 +181,22 @@ struct RiverHomeWidget: Widget {
   let kind = "RiverHomeWidget"
 
   var body: some WidgetConfiguration {
-    StaticConfiguration(kind: kind, provider: RiverWidgetProvider()) { entry in
-      RiverHomeWidgetEntryView(entry: entry)
+    if #available(iOSApplicationExtension 17.0, *) {
+      StaticConfiguration(kind: kind, provider: RiverWidgetProvider()) { entry in
+        RiverHomeWidgetEntryView(entry: entry)
+      }
+      .configurationDisplayName("聚河畔")
+      .description("查看最新发表、最新回复或热门帖子")
+      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+      .contentMarginsDisabled()
+    } else {
+      StaticConfiguration(kind: kind, provider: RiverWidgetProvider()) { entry in
+        RiverHomeWidgetEntryView(entry: entry)
+      }
+      .configurationDisplayName("聚河畔")
+      .description("查看最新发表、最新回复或热门帖子")
+      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
-    .configurationDisplayName("聚河畔")
-    .description("查看最新发表、最新回复或热门帖子")
-    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-    .riverContentMarginsDisabledIfAvailable()
   }
 }
 
@@ -226,16 +235,5 @@ private extension Color {
     let g = Double((hex >> 8) & 0xFF) / 255.0
     let b = Double(hex & 0xFF) / 255.0
     self = Color(.sRGB, red: r, green: g, blue: b, opacity: 1)
-  }
-}
-
-private extension WidgetConfiguration {
-  @WidgetConfigurationBuilder
-  func riverContentMarginsDisabledIfAvailable() -> some WidgetConfiguration {
-    if #available(iOSApplicationExtension 17.0, *) {
-      self.contentMarginsDisabled()
-    } else {
-      self
-    }
   }
 }
