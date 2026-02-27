@@ -62,17 +62,45 @@ extension on _SearchMode {
   }
 }
 
+class SearchPageController {
+  _SearchPageState? _state;
+
+  void _attach(_SearchPageState state) {
+    _state = state;
+  }
+
+  void _detach(_SearchPageState state) {
+    if (_state == state) {
+      _state = null;
+    }
+  }
+
+  void onNativeSearchQueryChanged(String query) {
+    _state?._applyNativeSearchQuery(query);
+  }
+
+  Future<void> onNativeSearchSubmitted(String query) async {
+    await _state?._submitNativeSearch(query);
+  }
+
+  void onNativeSearchCancelled() {
+    _state?._cancelNativeSearch();
+  }
+}
+
 class SearchPage extends StatefulWidget {
   const SearchPage({
     super.key,
     required this.dependencies,
     this.initialMode = SearchPageInitialMode.posts,
     this.showEntryActionIcon = true,
+    this.controller,
   });
 
   final AppDependencies dependencies;
   final SearchPageInitialMode initialMode;
   final bool showEntryActionIcon;
+  final SearchPageController? controller;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -142,9 +170,35 @@ class _SearchPageState extends State<SearchPage> {
   Timer? _suggestionDebounce;
   final Set<String> _installingMiniAppIds = <String>{};
 
+  void _applyNativeSearchQuery(String raw) {
+    final query = raw;
+    if (_keywordController.text != query) {
+      _keywordController.value = TextEditingValue(
+        text: query,
+        selection: TextSelection.collapsed(offset: query.length),
+      );
+    }
+    _onKeywordInputChanged(query);
+  }
+
+  Future<void> _submitNativeSearch(String raw) async {
+    _applyNativeSearchQuery(raw);
+    await _runSearch(reset: true);
+  }
+
+  void _cancelNativeSearch() {
+    _keywordFocusNode.unfocus();
+    _suggestionDebounce?.cancel();
+    _clearSuggestionState();
+    if (_keywordController.text.trim().isEmpty) {
+      _clearKeywordInput();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    widget.controller?._attach(this);
     _searchMode = switch (widget.initialMode) {
       SearchPageInitialMode.posts => _SearchMode.posts,
       SearchPageInitialMode.users => _SearchMode.users,
@@ -168,6 +222,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   void dispose() {
+    widget.controller?._detach(this);
     widget.dependencies.accountStore.removeListener(_onAccountStoreChanged);
     _miniAppsChangedSubscription?.cancel();
     _scrollController.removeListener(_onScroll);

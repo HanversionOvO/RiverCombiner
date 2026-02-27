@@ -86,16 +86,18 @@ class MineSettingsPageScaffold extends StatelessWidget {
     }
 
     if (_isIPhoneDevice(context)) {
-      final topToolbarInset = MediaQuery.paddingOf(context).top + 44;
+      final topToolbarPlaceholder = MediaQuery.paddingOf(context).top + 44;
       return AdaptiveScaffold(
         appBar: AdaptiveAppBar(
           title: title,
           useNativeToolbar: true,
           actions: adaptiveActions,
         ),
-        body: Padding(
-          padding: EdgeInsets.only(top: topToolbarInset),
-          child: resolvedBody,
+        body: Column(
+          children: [
+            SizedBox(height: topToolbarPlaceholder),
+            Expanded(child: resolvedBody),
+          ],
         ),
       );
     }
