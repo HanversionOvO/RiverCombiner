@@ -357,6 +357,7 @@ class _MinePageState extends State<MinePage> {
       riverPageRoute<void>(
         builder: (_) => AboutPage(
           settingsController: widget.dependencies.settingsController,
+          dependencies: widget.dependencies,
         ),
       ),
     );
@@ -754,7 +755,7 @@ class _MinePageState extends State<MinePage> {
                               const _SettingsDivider(),
                               _SettingsTile(
                                 icon: Icons.info_outline_rounded,
-                                title: '关于 River',
+                                title: '关于 聚河畔',
                                 subtitle: '应用信息与项目说明',
                                 heroTagPrefix: 'mine_settings_about',
                                 onTap: _openAboutPage,
