@@ -556,6 +556,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
 
   Widget _buildBottomToolbar(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final extraInset = bottomInset > 0 ? 0.0 : widget.bottomToolbarExtraInset;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return AnimatedContainer(
@@ -579,6 +580,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: SafeArea(
         top: false,
+        minimum: EdgeInsets.only(bottom: extraInset),
         child: Row(
           children: [
             _ToolButton(

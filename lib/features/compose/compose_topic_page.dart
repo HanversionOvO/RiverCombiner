@@ -29,6 +29,7 @@ class ComposeTopicPage extends StatefulWidget {
   const ComposeTopicPage({
     super.key,
     required this.dependencies,
+    this.bottomToolbarExtraInset = 0,
     this.initialTitle,
     this.initialMarkdown,
     this.initialEnableRiverCompose,
@@ -38,6 +39,7 @@ class ComposeTopicPage extends StatefulWidget {
   });
 
   final AppDependencies dependencies;
+  final double bottomToolbarExtraInset;
   final String? initialTitle;
   final String? initialMarkdown;
   final bool? initialEnableRiverCompose;

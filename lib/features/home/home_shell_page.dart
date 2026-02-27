@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,20 +30,17 @@ class _HomeShellPageState extends State<HomeShellPage> {
   DateTime? _lastPostsTabTapAt;
   final PostsPageController _postsPageController = PostsPageController();
 
-  late final List<Widget> _pages = <Widget>[
-    PostsPage(
-      dependencies: widget.dependencies,
-      controller: _postsPageController,
-      onSecondFloorVisibilityChanged: _onPostsSecondFloorVisibilityChanged,
-      onSecondFloorProgressChanged: _onPostsSecondFloorProgressChanged,
-    ),
-    ComposeTopicPage(dependencies: widget.dependencies),
-    NotificationsPage(
-      dependencies: widget.dependencies,
-      onUnreadCountChanged: _onUnreadCountChanged,
-    ),
-    MinePage(dependencies: widget.dependencies),
-  ];
+  late final PostsPage _postsPage = PostsPage(
+    dependencies: widget.dependencies,
+    controller: _postsPageController,
+    onSecondFloorVisibilityChanged: _onPostsSecondFloorVisibilityChanged,
+    onSecondFloorProgressChanged: _onPostsSecondFloorProgressChanged,
+  );
+  late final NotificationsPage _notificationsPage = NotificationsPage(
+    dependencies: widget.dependencies,
+    onUnreadCountChanged: _onUnreadCountChanged,
+  );
+  late final MinePage _minePage = MinePage(dependencies: widget.dependencies);
 
   void _onUnreadCountChanged(int value) {
     if (!mounted || value == _notificationsUnreadCount) {
@@ -105,18 +103,23 @@ class _HomeShellPageState extends State<HomeShellPage> {
   @override
   Widget build(BuildContext context) {
     final isIPhone = _isIPhoneDevice(context);
+    final pages = _buildPages(isIPhone: isIPhone);
     final secondFloorProgress = _selectedTabIndex == 0
         ? _postsSecondFloorProgress
         : 0.0;
 
     if (isIPhone) {
-      return _buildIPhoneAdaptiveScaffold(context, secondFloorProgress);
+      return _buildIPhoneShell(
+        context: context,
+        pages: pages,
+        secondFloorProgress: secondFloorProgress,
+      );
     }
 
     final bottomOpacity = (1 - secondFloorProgress).clamp(0.0, 1.0);
     final bottomSizeFactor = (1 - secondFloorProgress).clamp(0.0, 1.0);
     return Scaffold(
-      body: IndexedStack(index: _selectedTabIndex, children: _pages),
+      body: IndexedStack(index: _selectedTabIndex, children: pages),
       bottomNavigationBar: ClipRect(
         child: Align(
           alignment: Alignment.topCenter,
@@ -140,76 +143,115 @@ class _HomeShellPageState extends State<HomeShellPage> {
     return MediaQuery.sizeOf(context).shortestSide < 600;
   }
 
-  Widget _buildIPhoneAdaptiveScaffold(
-    BuildContext context,
-    double secondFloorProgress,
-  ) {
-    final shouldHideBottomBar = secondFloorProgress > 0.001;
+  List<Widget> _buildPages({required bool isIPhone}) {
+    final composeBottomInset = isIPhone && PlatformInfo.isIOS26OrHigher()
+        ? 56.0
+        : 0.0;
+    return <Widget>[
+      _postsPage,
+      ComposeTopicPage(
+        dependencies: widget.dependencies,
+        bottomToolbarExtraInset: composeBottomInset,
+      ),
+      _notificationsPage,
+      _minePage,
+    ];
+  }
 
-    return AdaptiveScaffold(
-      enableBlur: true,
-      minimizeBehavior: TabBarMinimizeBehavior.automatic,
-      body: IndexedStack(
-        index: _selectedTabIndex,
+  Widget _buildIPhoneShell({
+    required BuildContext context,
+    required List<Widget> pages,
+    required double secondFloorProgress,
+  }) {
+    final bottomOpacity = (1 - secondFloorProgress).clamp(0.0, 1.0);
+    final bottomSizeFactor = (1 - secondFloorProgress).clamp(0.0, 1.0);
+    return Scaffold(
+      body: Stack(
         children: <Widget>[
-          _pages[0],
-          _buildIPhoneComposePage(_pages[1], context),
-          _pages[2],
-          _pages[3],
+          Positioned.fill(
+            child: IndexedStack(index: _selectedTabIndex, children: pages),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                heightFactor: bottomSizeFactor,
+                child: Opacity(
+                  opacity: bottomOpacity,
+                  child: IgnorePointer(
+                    ignoring: secondFloorProgress > 0.001,
+                    child: _buildIPhoneTabBar(context),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
-      bottomNavigationBar: shouldHideBottomBar ? null : _buildIPhoneTabBar(),
     );
   }
 
-  Widget _buildIPhoneComposePage(Widget page, BuildContext context) {
-    final shouldReserveBottomSpace = PlatformInfo.isIOS26OrHigher();
-    if (!shouldReserveBottomSpace) {
-      return page;
-    }
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: _iPhoneNativeTabBarReservedHeight(context),
+  List<AdaptiveNavigationDestination> _iPhoneDestinations() {
+    return <AdaptiveNavigationDestination>[
+      const AdaptiveNavigationDestination(
+        icon: 'bubble.left.and.bubble.right',
+        selectedIcon: 'bubble.left.and.bubble.right.fill',
+        label: '\u5e16\u5b50',
       ),
-      child: page,
-    );
+      const AdaptiveNavigationDestination(
+        icon: 'square.and.pencil',
+        selectedIcon: 'square.and.pencil',
+        label: '\u53d1\u5e16',
+      ),
+      AdaptiveNavigationDestination(
+        icon: 'bell',
+        selectedIcon: 'bell.fill',
+        label: '\u901a\u77e5',
+        badgeCount: _notificationsUnreadCount > 99
+            ? 99
+            : _notificationsUnreadCount,
+      ),
+      const AdaptiveNavigationDestination(
+        icon: 'person',
+        selectedIcon: 'person.fill',
+        label: '\u6211\u7684',
+      ),
+    ];
   }
 
-  double _iPhoneNativeTabBarReservedHeight(BuildContext context) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-    return bottomInset + 56;
-  }
+  Widget _buildIPhoneTabBar(BuildContext context) {
+    if (PlatformInfo.isIOS26OrHigher()) {
+      return IOS26NativeTabBar(
+        destinations: _iPhoneDestinations(),
+        selectedIndex: _selectedTabIndex,
+        onTap: _onDestinationSelected,
+        tint: CupertinoTheme.of(context).primaryColor,
+        minimizeBehavior: TabBarMinimizeBehavior.automatic,
+      );
+    }
 
-  AdaptiveBottomNavigationBar _buildIPhoneTabBar() {
-    return AdaptiveBottomNavigationBar(
-      useNativeBottomBar: true,
-      selectedIndex: _selectedTabIndex,
+    final destinations = _iPhoneDestinations();
+    return CupertinoTabBar(
+      currentIndex: _selectedTabIndex,
       onTap: _onDestinationSelected,
-      items: <AdaptiveNavigationDestination>[
-        const AdaptiveNavigationDestination(
-          icon: 'bubble.left.and.bubble.right',
-          selectedIcon: 'bubble.left.and.bubble.right.fill',
-          label: '\u5e16\u5b50',
-        ),
-        const AdaptiveNavigationDestination(
-          icon: 'square.and.pencil',
-          selectedIcon: 'square.and.pencil',
-          label: '\u53d1\u5e16',
-        ),
-        AdaptiveNavigationDestination(
-          icon: 'bell',
-          selectedIcon: 'bell.fill',
-          label: '\u901a\u77e5',
-          badgeCount: _notificationsUnreadCount > 99
-              ? 99
-              : _notificationsUnreadCount,
-        ),
-        const AdaptiveNavigationDestination(
-          icon: 'person',
-          selectedIcon: 'person.fill',
-          label: '\u6211\u7684',
-        ),
-      ],
+      items: destinations
+          .map((destination) {
+            final icon = destination.icon is String
+                ? CupertinoIcons.circle
+                : destination.icon as IconData;
+            final selectedIcon = destination.selectedIcon is String
+                ? CupertinoIcons.circle_fill
+                : destination.selectedIcon as IconData?;
+            return BottomNavigationBarItem(
+              icon: Icon(icon),
+              activeIcon: Icon(selectedIcon ?? icon),
+              label: destination.label,
+            );
+          })
+          .toList(growable: false),
     );
   }
 
