@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class MineSettingsAppBar extends StatelessWidget
@@ -148,6 +150,18 @@ class MineSettingsAppBar extends StatelessWidget
   }
 
   Widget _buildBackButton(BuildContext context) {
+    if (_isIPhone(context)) {
+      return AdaptiveButton.sfSymbol(
+        onPressed: () => Navigator.of(context).maybePop(),
+        sfSymbol: const SFSymbol('chevron.backward', size: 17),
+        style: AdaptiveButtonStyle.glass,
+        size: AdaptiveButtonSize.medium,
+        minSize: const Size(40, 40),
+        padding: EdgeInsets.zero,
+        useSmoothRectangleBorder: false,
+      );
+    }
+
     final theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
@@ -174,5 +188,12 @@ class MineSettingsAppBar extends StatelessWidget
         ),
       ),
     );
+  }
+
+  bool _isIPhone(BuildContext context) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    return MediaQuery.sizeOf(context).shortestSide < 600;
   }
 }
