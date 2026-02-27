@@ -111,6 +111,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   bool _selectionMode = false;
   bool _composerHasText = false;
   int _newMessageHintCount = 0;
+  bool _restoringOlderScroll = false;
+  DateTime _olderLoadCooldownUntil = DateTime.fromMillisecondsSinceEpoch(0);
   RiverSideChatMessageItem? _replyingMessage;
   double _composerDockHeight = 112;
   int? _pressedMessageId;
@@ -180,13 +182,19 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       }
     }
 
-    if (_loadingInitial || _loadingOlder || !_hasMorePast) {
+    if (_loadingInitial ||
+        _loadingOlder ||
+        _restoringOlderScroll ||
+        !_hasMorePast) {
       return;
     }
     if (!_scrollController.hasClients) {
       return;
     }
-    if (_scrollController.offset <= 120) {
+    if (DateTime.now().isBefore(_olderLoadCooldownUntil)) {
+      return;
+    }
+    if (_scrollController.offset <= 80) {
       _loadOlderMessages();
     }
   }
@@ -583,6 +591,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (_realtimeSyncing || !mounted) {
       return;
     }
+    if (_loadingOlder || _restoringOlderScroll) {
+      _realtimeSyncPending = true;
+      return;
+    }
     final cookie = _activeCookieHeader();
     if (cookie == null || cookie.trim().isEmpty) {
       return;
@@ -837,8 +849,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         _loadingOlder = false;
       });
 
+      _restoringOlderScroll = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_scrollController.hasClients) {
+          _restoringOlderScroll = false;
+          _olderLoadCooldownUntil = DateTime.now().add(
+            const Duration(milliseconds: 240),
+          );
           return;
         }
         final afterMax = _scrollController.position.maxScrollExtent;
@@ -850,6 +867,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             _scrollController.position.maxScrollExtent,
           ),
         );
+        _restoringOlderScroll = false;
+        _olderLoadCooldownUntil = DateTime.now().add(
+          const Duration(milliseconds: 240),
+        );
+        if (_realtimeSyncPending) {
+          _scheduleRealtimeSync();
+        }
       });
     } on RiverSideApiException catch (error) {
       if (!mounted) {
@@ -858,6 +882,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       setState(() {
         _loadingOlder = false;
       });
+      _restoringOlderScroll = false;
+      _olderLoadCooldownUntil = DateTime.now().add(
+        const Duration(milliseconds: 240),
+      );
       ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
@@ -866,6 +894,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       setState(() {
         _loadingOlder = false;
       });
+      _restoringOlderScroll = false;
+      _olderLoadCooldownUntil = DateTime.now().add(
+        const Duration(milliseconds: 240),
+      );
       ScaffoldMessenger.of(context).showRiverSnackBar(_labelLoadFailed);
     }
   }

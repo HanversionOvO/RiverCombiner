@@ -209,36 +209,43 @@ extension _NotificationsPageView on _NotificationsPageState {
       0,
       (sum, i) => sum + i.unreadCount,
     );
+    final accent = widget.dependencies.settingsController.themeSeedColor;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
-      child: IOS26SegmentedControl(
-        labels: [
-          _buildAdaptiveTabLabel('通知', unreadNotifications),
-          _buildAdaptiveTabLabel('频道', unreadChannels),
-          _buildAdaptiveTabLabel('私信', unreadDirect),
+      height: 40,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.28),
+        ),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        dividerColor: Colors.transparent,
+        indicator: BoxDecoration(
+          color: accent,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.32),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: theme.colorScheme.onPrimary,
+        unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
+        tabs: [
+          _buildTabItem('通知', unreadNotifications),
+          _buildTabItem('频道', unreadChannels),
+          _buildTabItem('私信', unreadDirect),
         ],
-        selectedIndex: _tabController.index,
-        onValueChanged: (index) {
-          if (index == _tabController.index) {
-            return;
-          }
-          _tabController.animateTo(index);
-          if (mounted) {
-            _setState(() {});
-          }
-          _syncBackToTopVisibility();
-        },
-        color: theme.colorScheme.primary,
-        height: 40,
       ),
     );
-  }
-
-  String _buildAdaptiveTabLabel(String label, int count) {
-    if (count <= 0) {
-      return label;
-    }
-    return '$label •';
   }
 
   Widget _buildTabItem(String label, int count) {

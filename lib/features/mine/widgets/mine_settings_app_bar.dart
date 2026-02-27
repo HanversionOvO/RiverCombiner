@@ -159,20 +159,8 @@ class MineSettingsAppBar extends StatelessWidget
 
   Widget _buildBackButton(BuildContext context) {
     if (_isIPhone(context)) {
-      return Center(
-        child: SizedBox.square(
-          dimension: 44,
-          child: AdaptiveButton.sfSymbol(
-            onPressed: () => Navigator.of(context).maybePop(),
-            sfSymbol: const SFSymbol('chevron.backward', size: 17),
-            style: AdaptiveButtonStyle.glass,
-            size: AdaptiveButtonSize.large,
-            minSize: const Size(44, 44),
-            padding: EdgeInsets.zero,
-            borderRadius: const BorderRadius.all(Radius.circular(999)),
-            useSmoothRectangleBorder: false,
-          ),
-        ),
+      return _IPhoneLiquidBackButton(
+        onPressed: () => Navigator.of(context).maybePop(),
       );
     }
 
@@ -209,5 +197,90 @@ class MineSettingsAppBar extends StatelessWidget
       return false;
     }
     return MediaQuery.sizeOf(context).shortestSide < 600;
+  }
+}
+
+class _IPhoneLiquidBackButton extends StatelessWidget {
+  const _IPhoneLiquidBackButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final routeAnimation = ModalRoute.of(context)?.animation;
+    if (routeAnimation == null) {
+      return _buildNativeButton();
+    }
+    return AnimatedBuilder(
+      animation: routeAnimation,
+      builder: (context, _) {
+        final value = routeAnimation.value;
+        final isTransitioning = value > 0 && value < 1;
+        return isTransitioning
+            ? _buildFallbackGlassButton(context)
+            : _buildNativeButton();
+      },
+    );
+  }
+
+  Widget _buildNativeButton() {
+    return Center(
+      child: SizedBox.square(
+        dimension: 44,
+        child: AdaptiveButton.sfSymbol(
+          onPressed: onPressed,
+          sfSymbol: const SFSymbol('chevron.backward', size: 17),
+          style: AdaptiveButtonStyle.glass,
+          size: AdaptiveButtonSize.large,
+          minSize: const Size(44, 44),
+          padding: EdgeInsets.zero,
+          borderRadius: const BorderRadius.all(Radius.circular(999)),
+          useSmoothRectangleBorder: false,
+          useNative: true,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackGlassButton(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: SizedBox.square(
+        dimension: 44,
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onPressed,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: const SizedBox.expand(),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: theme.colorScheme.surface.withValues(alpha: 0.24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.42),
+                      width: 0.9,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

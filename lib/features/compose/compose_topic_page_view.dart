@@ -114,6 +114,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
   Widget _buildTopBar(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final accent = widget.dependencies.settingsController.themeSeedColor;
     final t = Curves.easeOutCubic.transform(_topBarFactor).clamp(0.0, 1.0);
     const titleSize = 21.0;
     final subtitleVisibility = (1.0 - t).clamp(0.0, 1.0);
@@ -219,9 +220,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                                 onPressed: _publishing ? null : _publishTopic,
                                 enabled: !_publishing,
                                 style: AdaptiveButtonStyle.prominentGlass,
-                                color: _publishing
-                                    ? Colors.grey
-                                    : colorScheme.primary,
+                                color: _publishing ? Colors.grey : accent,
                                 size: AdaptiveButtonSize.large,
                                 minSize: const Size(82, 44),
                                 padding: const EdgeInsets.symmetric(
@@ -232,6 +231,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                                   Radius.circular(999),
                                 ),
                                 useSmoothRectangleBorder: false,
+                                useNative: false,
                                 child: _publishing
                                     ? const SizedBox(
                                         width: 18,

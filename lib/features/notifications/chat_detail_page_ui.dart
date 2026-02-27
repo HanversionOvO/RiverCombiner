@@ -283,66 +283,61 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
               ],
             ),
           ),
-          child: RefreshIndicator(
-            onRefresh: () => _loadInitial(clearExisting: false),
-            child: _messages.isEmpty
-                ? ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(top: 220),
-                    children: const [
-                      Center(
-                        child: Text(_ChatDetailPageState._labelNoMessages),
-                      ),
-                    ],
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.fromLTRB(10, 10, 10, listBottomPadding),
-                    itemCount: _messages.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return _buildLoadMoreIndicator(context);
-                      }
-                      final messageIndex = index - 1;
-                      final item = _messages[messageIndex];
-                      final previous = messageIndex > 0
-                          ? _messages[messageIndex - 1]
-                          : null;
-                      final next = messageIndex + 1 < _messages.length
-                          ? _messages[messageIndex + 1]
-                          : null;
-                      final isMine =
-                          item.username.toLowerCase() == activeUsername &&
-                          activeUsername.isNotEmpty;
-                      final showDateDivider = !_isSameDay(
-                        previous?.createdAt,
-                        item.createdAt,
-                      );
-                      final showAvatar =
-                          !isMine && _shouldShowAvatarByNext(item, next);
-                      final showDisplayName =
-                          !isMine && _shouldShowDisplayName(previous, item);
+          child: _messages.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(top: 220),
+                  children: const [
+                    Center(child: Text(_ChatDetailPageState._labelNoMessages)),
+                  ],
+                )
+              : ListView.builder(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(10, 10, 10, listBottomPadding),
+                  itemCount: _messages.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return _buildLoadMoreIndicator(context);
+                    }
+                    final messageIndex = index - 1;
+                    final item = _messages[messageIndex];
+                    final previous = messageIndex > 0
+                        ? _messages[messageIndex - 1]
+                        : null;
+                    final next = messageIndex + 1 < _messages.length
+                        ? _messages[messageIndex + 1]
+                        : null;
+                    final isMine =
+                        item.username.toLowerCase() == activeUsername &&
+                        activeUsername.isNotEmpty;
+                    final showDateDivider = !_isSameDay(
+                      previous?.createdAt,
+                      item.createdAt,
+                    );
+                    final showAvatar =
+                        !isMine && _shouldShowAvatarByNext(item, next);
+                    final showDisplayName =
+                        !isMine && _shouldShowDisplayName(previous, item);
 
-                      return Column(
-                        children: [
-                          if (showDateDivider)
-                            _buildDateDivider(context, item.createdAt),
-                          KeyedSubtree(
-                            key: _messageKeyFor(item.id),
-                            child: _buildMessageBubble(
-                              context: context,
-                              item: item,
-                              isMine: isMine,
-                              showAvatar: showAvatar,
-                              showDisplayName: showDisplayName,
-                            ),
+                    return Column(
+                      children: [
+                        if (showDateDivider)
+                          _buildDateDivider(context, item.createdAt),
+                        KeyedSubtree(
+                          key: _messageKeyFor(item.id),
+                          child: _buildMessageBubble(
+                            context: context,
+                            item: item,
+                            isMine: isMine,
+                            showAvatar: showAvatar,
+                            showDisplayName: showDisplayName,
                           ),
-                        ],
-                      );
-                    },
-                  ),
-          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
         ),
         if (!_selectionMode)
           Positioned(

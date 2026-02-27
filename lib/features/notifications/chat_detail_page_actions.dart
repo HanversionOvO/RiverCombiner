@@ -101,14 +101,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       byId[item.id] = item;
     }
     final merged = byId.values.toList(growable: false)
-      ..sort((a, b) {
-        final ta = a.createdAt?.millisecondsSinceEpoch ?? 0;
-        final tb = b.createdAt?.millisecondsSinceEpoch ?? 0;
-        if (ta != tb) {
-          return ta.compareTo(tb);
-        }
-        return a.id.compareTo(b.id);
-      });
+      ..sort((a, b) => a.id.compareTo(b.id));
     return merged;
   }
 
