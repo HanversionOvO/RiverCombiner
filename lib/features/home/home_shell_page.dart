@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:river/app/app_dependencies.dart';
@@ -102,6 +105,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isIPhone = _isIPhoneDevice(context);
     final secondFloorProgress = _selectedTabIndex == 0
         ? _postsSecondFloorProgress
         : 0.0;
@@ -117,11 +121,112 @@ class _HomeShellPageState extends State<HomeShellPage> {
             opacity: bottomOpacity,
             child: IgnorePointer(
               ignoring: secondFloorProgress > 0.001,
-              child: NavigationBar(
-                selectedIndex: _selectedTabIndex,
-                onDestinationSelected: _onDestinationSelected,
-                destinations: <NavigationDestination>[
-                  NavigationDestination(
+              child: isIPhone
+                  ? _buildIPhoneLiquidTabBar(context)
+                  : _buildMaterialTabBar(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _isIPhoneDevice(BuildContext context) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    return MediaQuery.sizeOf(context).shortestSide < 600;
+  }
+
+  Widget _buildMaterialTabBar() {
+    return NavigationBar(
+      selectedIndex: _selectedTabIndex,
+      onDestinationSelected: _onDestinationSelected,
+      destinations: <NavigationDestination>[
+        NavigationDestination(
+          icon: _AnimatedBottomNavIcon(
+            selected: _selectedTabIndex == 0,
+            outlinedIcon: Icons.forum_outlined,
+            filledIcon: Icons.forum,
+            motionStyle: _NavIconMotionStyle.posts,
+          ),
+          label: '\u5e16\u5b50',
+        ),
+        NavigationDestination(
+          icon: _AnimatedBottomNavIcon(
+            selected: _selectedTabIndex == 1,
+            outlinedIcon: Icons.edit_note_outlined,
+            filledIcon: Icons.edit_note,
+            motionStyle: _NavIconMotionStyle.compose,
+          ),
+          label: '\u53d1\u5e16',
+        ),
+        NavigationDestination(
+          icon: _AnimatedBottomNavIcon(
+            selected: _selectedTabIndex == 2,
+            outlinedIcon: Icons.notifications_none_outlined,
+            filledIcon: Icons.notifications,
+            badgeCount: _notificationsUnreadCount,
+            motionStyle: _NavIconMotionStyle.notifications,
+          ),
+          label: '\u901a\u77e5',
+        ),
+        NavigationDestination(
+          icon: _AnimatedBottomNavIcon(
+            selected: _selectedTabIndex == 3,
+            outlinedIcon: Icons.person_outline,
+            filledIcon: Icons.person,
+            motionStyle: _NavIconMotionStyle.mine,
+          ),
+          label: '\u6211\u7684',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIPhoneLiquidTabBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: <Color>[
+                  colorScheme.surface.withValues(alpha: 0.68),
+                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.48),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 0.8,
+              ),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              minimum: const EdgeInsets.only(bottom: 2),
+              child: CupertinoTabBar(
+                currentIndex: _selectedTabIndex,
+                onTap: _onDestinationSelected,
+                backgroundColor: Colors.transparent,
+                border: null,
+                activeColor: colorScheme.primary,
+                inactiveColor: colorScheme.onSurfaceVariant,
+                items: <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
                     icon: _AnimatedBottomNavIcon(
                       selected: _selectedTabIndex == 0,
                       outlinedIcon: Icons.forum_outlined,
@@ -130,7 +235,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
                     ),
                     label: '\u5e16\u5b50',
                   ),
-                  NavigationDestination(
+                  BottomNavigationBarItem(
                     icon: _AnimatedBottomNavIcon(
                       selected: _selectedTabIndex == 1,
                       outlinedIcon: Icons.edit_note_outlined,
@@ -139,7 +244,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
                     ),
                     label: '\u53d1\u5e16',
                   ),
-                  NavigationDestination(
+                  BottomNavigationBarItem(
                     icon: _AnimatedBottomNavIcon(
                       selected: _selectedTabIndex == 2,
                       outlinedIcon: Icons.notifications_none_outlined,
@@ -149,7 +254,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
                     ),
                     label: '\u901a\u77e5',
                   ),
-                  NavigationDestination(
+                  BottomNavigationBarItem(
                     icon: _AnimatedBottomNavIcon(
                       selected: _selectedTabIndex == 3,
                       outlinedIcon: Icons.person_outline,
