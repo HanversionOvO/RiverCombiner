@@ -216,40 +216,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                               ),
                         const SizedBox(width: 8),
                         _isIPhoneDevice(context)
-                            ? AdaptiveButton.child(
-                                onPressed: _publishing ? null : _publishTopic,
-                                enabled: !_publishing,
-                                style: AdaptiveButtonStyle.prominentGlass,
-                                color: _publishing ? Colors.grey : accent,
-                                size: AdaptiveButtonSize.large,
-                                minSize: const Size(82, 44),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 0,
-                                ),
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(999),
-                                ),
-                                useSmoothRectangleBorder: false,
-                                useNative: false,
-                                child: _publishing
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Text(
-                                        '发布',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                              )
+                            ? _buildIPhoneNativePublishButton(accent: accent)
                             : _AnimatedScaleButton(
                                 onTap: _publishing ? null : _publishTopic,
                                 child: Container(
@@ -308,6 +275,44 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildIPhoneNativePublishButton({required Color accent}) {
+    final baseColor = _publishing ? Colors.grey : accent;
+    final foreground =
+        ThemeData.estimateBrightnessForColor(baseColor) == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+    return AdaptiveButton.child(
+      key: ValueKey<int>(baseColor.toARGB32() ^ (_publishing ? 1 : 0)),
+      onPressed: _publishing ? null : _publishTopic,
+      enabled: !_publishing,
+      style: AdaptiveButtonStyle.prominentGlass,
+      color: baseColor,
+      size: AdaptiveButtonSize.large,
+      minSize: const Size(82, 44),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 0),
+      borderRadius: const BorderRadius.all(Radius.circular(999)),
+      useSmoothRectangleBorder: false,
+      useNative: true,
+      child: _publishing
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Text(
+              '发布',
+              style: TextStyle(
+                color: foreground,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
     );
   }
 
@@ -610,6 +615,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
 
   Widget _buildBottomToolbar(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardVisible = bottomInset > 0;
     final extraInset = bottomInset > 0 ? 0.0 : widget.bottomToolbarExtraInset;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -656,6 +662,14 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
               label: '引用',
               onTap: _openEditor,
             ),
+            if (keyboardVisible) ...[
+              const SizedBox(width: 8),
+              _ToolButton(
+                icon: Icons.keyboard_hide_rounded,
+                label: '收起键盘',
+                onTap: _dismissComposeKeyboard,
+              ),
+            ],
             const Spacer(),
             TextButton.icon(
               onPressed: _openEditor,
@@ -676,6 +690,13 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
         ),
       ),
     );
+  }
+
+  void _dismissComposeKeyboard() {
+    HapticFeedback.lightImpact();
+    FocusManager.instance.primaryFocus?.unfocus();
+    _titleFocusNode.unfocus();
+    SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
   }
 }
 

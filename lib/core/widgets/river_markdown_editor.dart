@@ -460,6 +460,13 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     );
   }
 
+  void _dismissKeyboard() {
+    HapticFeedback.lightImpact();
+    FocusManager.instance.primaryFocus?.unfocus();
+    _focusNode.unfocus();
+    SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+  }
+
   List<_AiToolAction> _buildAiToolActions() {
     final actions = <_AiToolAction>[
       const _AiToolAction(
@@ -755,6 +762,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardVisible = bottomInset > 0;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final resolvedCollapsedHeight = widget.maxHeight > 0
         ? widget.maxHeight
@@ -1094,8 +1102,10 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
                   enableAi:
                       widget.onAiGenerateStream != null ||
                       widget.onAiGenerate != null,
+                  showKeyboardDismiss: keyboardVisible,
                   onImageTap: _pickAndUploadImage,
                   onEmojiTap: _showEmojiPicker,
+                  onKeyboardDismissTap: _dismissKeyboard,
                   onAiTap: _openAiTools,
                   onBoldTap: () => _applyFormat('**', '**', 'bold'),
                   onItalicTap: () => _applyFormat('*', '*', 'italic'),
@@ -1192,8 +1202,10 @@ class _EditorToolbar extends StatelessWidget {
     required this.uploadingImage,
     required this.generatingAi,
     required this.enableAi,
+    required this.showKeyboardDismiss,
     required this.onImageTap,
     required this.onEmojiTap,
+    required this.onKeyboardDismissTap,
     required this.onAiTap,
     required this.onBoldTap,
     required this.onItalicTap,
@@ -1205,8 +1217,10 @@ class _EditorToolbar extends StatelessWidget {
   final bool uploadingImage;
   final bool generatingAi;
   final bool enableAi;
+  final bool showKeyboardDismiss;
   final VoidCallback onImageTap;
   final VoidCallback onEmojiTap;
+  final VoidCallback onKeyboardDismissTap;
   final VoidCallback onAiTap;
   final VoidCallback onBoldTap;
   final VoidCallback onItalicTap;
@@ -1251,6 +1265,13 @@ class _EditorToolbar extends StatelessWidget {
                 icon: Icons.sentiment_satisfied_alt_outlined,
                 onTap: onEmojiTap,
               ),
+              if (showKeyboardDismiss) ...[
+                const SizedBox(width: 6),
+                _ToolbarAction(
+                  icon: Icons.keyboard_hide_rounded,
+                  onTap: onKeyboardDismissTap,
+                ),
+              ],
               if (enableAi) ...[
                 const SizedBox(width: 6),
                 _ToolbarAiAction(busy: generatingAi, onTap: onAiTap),
