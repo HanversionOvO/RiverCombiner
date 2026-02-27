@@ -177,26 +177,42 @@ struct RiverHomeWidgetEntryView: View {
 }
 
 @main
-struct RiverHomeWidget: Widget {
+struct RiverHomeWidgetBundle: WidgetBundle {
+  @WidgetBundleBuilder
+  var body: some Widget {
+    if #available(iOSApplicationExtension 17.0, *) {
+      RiverHomeWidgetModern()
+    } else {
+      RiverHomeWidgetLegacy()
+    }
+  }
+}
+
+@available(iOSApplicationExtension 17.0, *)
+struct RiverHomeWidgetModern: Widget {
   let kind = "RiverHomeWidget"
 
   var body: some WidgetConfiguration {
-    if #available(iOSApplicationExtension 17.0, *) {
-      StaticConfiguration(kind: kind, provider: RiverWidgetProvider()) { entry in
-        RiverHomeWidgetEntryView(entry: entry)
-      }
-      .configurationDisplayName("聚河畔")
-      .description("查看最新发表、最新回复或热门帖子")
-      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-      .contentMarginsDisabled()
-    } else {
-      StaticConfiguration(kind: kind, provider: RiverWidgetProvider()) { entry in
-        RiverHomeWidgetEntryView(entry: entry)
-      }
-      .configurationDisplayName("聚河畔")
-      .description("查看最新发表、最新回复或热门帖子")
-      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    StaticConfiguration(kind: kind, provider: RiverWidgetProvider()) { entry in
+      RiverHomeWidgetEntryView(entry: entry)
     }
+    .configurationDisplayName("聚河畔")
+    .description("查看最新发表、最新回复或热门帖子")
+    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    .contentMarginsDisabled()
+  }
+}
+
+struct RiverHomeWidgetLegacy: Widget {
+  let kind = "RiverHomeWidget"
+
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: RiverWidgetProvider()) { entry in
+      RiverHomeWidgetEntryView(entry: entry)
+    }
+    .configurationDisplayName("聚河畔")
+    .description("查看最新发表、最新回复或热门帖子")
+    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
   }
 }
 
