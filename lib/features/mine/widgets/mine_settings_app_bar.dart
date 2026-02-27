@@ -27,6 +27,7 @@ class MineSettingsAppBar extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final enableHero = !_isIPhone(context);
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -41,6 +42,7 @@ class MineSettingsAppBar extends StatelessWidget
       title: Row(
         children: [
           _maybeHero(
+            enabled: enableHero,
             tag: _tag('icon'),
             child: Container(
               width: 34,
@@ -63,6 +65,7 @@ class MineSettingsAppBar extends StatelessWidget
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _maybeHero(
+                  enabled: enableHero,
                   tag: _tag('title'),
                   child: Material(
                     type: MaterialType.transparency,
@@ -78,6 +81,7 @@ class MineSettingsAppBar extends StatelessWidget
                   ),
                 ),
                 _maybeHero(
+                  enabled: enableHero,
                   tag: _tag('subtitle'),
                   child: Material(
                     type: MaterialType.transparency,
@@ -142,8 +146,12 @@ class MineSettingsAppBar extends StatelessWidget
     return '${heroTagPrefix!}__$suffix';
   }
 
-  Widget _maybeHero({required String? tag, required Widget child}) {
-    if (tag == null) {
+  Widget _maybeHero({
+    required bool enabled,
+    required String? tag,
+    required Widget child,
+  }) {
+    if (!enabled || tag == null) {
       return child;
     }
     return Hero(tag: tag, child: child);
@@ -151,15 +159,20 @@ class MineSettingsAppBar extends StatelessWidget
 
   Widget _buildBackButton(BuildContext context) {
     if (_isIPhone(context)) {
-      return AdaptiveButton.sfSymbol(
-        onPressed: () => Navigator.of(context).maybePop(),
-        sfSymbol: const SFSymbol('chevron.backward', size: 17),
-        style: AdaptiveButtonStyle.glass,
-        size: AdaptiveButtonSize.large,
-        minSize: const Size(44, 44),
-        padding: EdgeInsets.zero,
-        borderRadius: BorderRadius.all(Radius.circular(999)),
-        useSmoothRectangleBorder: false,
+      return Center(
+        child: SizedBox.square(
+          dimension: 44,
+          child: AdaptiveButton.sfSymbol(
+            onPressed: () => Navigator.of(context).maybePop(),
+            sfSymbol: const SFSymbol('chevron.backward', size: 17),
+            style: AdaptiveButtonStyle.glass,
+            size: AdaptiveButtonSize.large,
+            minSize: const Size(44, 44),
+            padding: EdgeInsets.zero,
+            borderRadius: const BorderRadius.all(Radius.circular(999)),
+            useSmoothRectangleBorder: false,
+          ),
+        ),
       );
     }
 

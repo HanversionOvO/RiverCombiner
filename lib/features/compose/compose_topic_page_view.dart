@@ -189,62 +189,116 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton.filledTonal(
-                          onPressed: _previewTopic,
-                          icon: const Icon(Icons.visibility_outlined),
-                          tooltip: '预览',
-                        ),
-                        const SizedBox(width: 8),
-                        _AnimatedScaleButton(
-                          onTap: _publishing ? null : _publishTopic,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: _publishing
-                                    ? [Colors.grey, Colors.grey]
-                                    : [
-                                        colorScheme.primary,
-                                        colorScheme.tertiary,
-                                      ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(30),
-                              boxShadow: _publishing
-                                  ? []
-                                  : [
-                                      BoxShadow(
-                                        color: colorScheme.primary.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                            ),
-                            child: _publishing
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
+                        _isIPhoneDevice(context)
+                            ? Tooltip(
+                                message: '预览',
+                                child: SizedBox.square(
+                                  dimension: 44,
+                                  child: AdaptiveButton.sfSymbol(
+                                    onPressed: _previewTopic,
+                                    sfSymbol: const SFSymbol('eye', size: 18),
+                                    style: AdaptiveButtonStyle.glass,
+                                    size: AdaptiveButtonSize.large,
+                                    minSize: const Size(44, 44),
+                                    padding: EdgeInsets.zero,
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(999),
                                     ),
-                                  )
-                                : const Text(
-                                    '发布',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
+                                    useSmoothRectangleBorder: false,
                                   ),
-                          ),
-                        ),
+                                ),
+                              )
+                            : IconButton.filledTonal(
+                                onPressed: _previewTopic,
+                                icon: const Icon(Icons.visibility_outlined),
+                                tooltip: '预览',
+                              ),
+                        const SizedBox(width: 8),
+                        _isIPhoneDevice(context)
+                            ? AdaptiveButton.child(
+                                onPressed: _publishing ? null : _publishTopic,
+                                enabled: !_publishing,
+                                style: AdaptiveButtonStyle.prominentGlass,
+                                color: _publishing
+                                    ? Colors.grey
+                                    : colorScheme.primary,
+                                size: AdaptiveButtonSize.large,
+                                minSize: const Size(82, 44),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 0,
+                                ),
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(999),
+                                ),
+                                useSmoothRectangleBorder: false,
+                                child: _publishing
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text(
+                                        '发布',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                              )
+                            : _AnimatedScaleButton(
+                                onTap: _publishing ? null : _publishTopic,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: _publishing
+                                          ? [Colors.grey, Colors.grey]
+                                          : [
+                                              colorScheme.primary,
+                                              colorScheme.tertiary,
+                                            ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(30),
+                                    boxShadow: _publishing
+                                        ? []
+                                        : [
+                                            BoxShadow(
+                                              color: colorScheme.primary
+                                                  .withValues(alpha: 0.3),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                  ),
+                                  child: _publishing
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Text(
+                                          '发布',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                ),
+                              ),
                       ],
                     ),
                   ),

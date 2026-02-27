@@ -101,13 +101,38 @@ extension _NotificationsPageView on _NotificationsPageState {
                         ),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: IconButton.filledTonal(
-                            onPressed: unreadNotifications > 0
-                                ? _markAllNotificationItemsAsRead
-                                : null,
-                            tooltip: '全部已读',
-                            icon: const Icon(Icons.done_all_rounded),
-                          ),
+                          child: _isIPhoneDevice(context)
+                              ? Tooltip(
+                                  message: '全部已读',
+                                  child: SizedBox.square(
+                                    dimension: 44,
+                                    child: AdaptiveButton.sfSymbol(
+                                      onPressed: unreadNotifications > 0
+                                          ? _markAllNotificationItemsAsRead
+                                          : null,
+                                      enabled: unreadNotifications > 0,
+                                      sfSymbol: const SFSymbol(
+                                        'checkmark.circle',
+                                        size: 18,
+                                      ),
+                                      style: AdaptiveButtonStyle.glass,
+                                      size: AdaptiveButtonSize.large,
+                                      minSize: const Size(44, 44),
+                                      padding: EdgeInsets.zero,
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(999),
+                                      ),
+                                      useSmoothRectangleBorder: false,
+                                    ),
+                                  ),
+                                )
+                              : IconButton.filledTonal(
+                                  onPressed: unreadNotifications > 0
+                                      ? _markAllNotificationItemsAsRead
+                                      : null,
+                                  tooltip: '全部已读',
+                                  icon: const Icon(Icons.done_all_rounded),
+                                ),
                         ),
                       ],
                     ),
@@ -186,7 +211,7 @@ extension _NotificationsPageView on _NotificationsPageState {
     );
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
-      child: AdaptiveSegmentedControl(
+      child: IOS26SegmentedControl(
         labels: [
           _buildAdaptiveTabLabel('通知', unreadNotifications),
           _buildAdaptiveTabLabel('频道', unreadChannels),

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:river/app/app_dependencies.dart';
@@ -14,6 +16,7 @@ import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_profile_models.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/qing/qing_emoji_catalog.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/core/widgets/riverside_category_picker_sheet.dart';
 import 'package:river/core/widgets/river_markdown_editor.dart';
 import 'package:river/features/compose/compose_topic_preview_page.dart';
@@ -192,6 +195,13 @@ class _ComposeTopicPageState extends State<ComposeTopicPage>
   void _mutateState(VoidCallback action) {
     if (!mounted) return;
     setState(action);
+  }
+
+  bool _isIPhoneDevice(BuildContext context) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    return MediaQuery.sizeOf(context).shortestSide < 600;
   }
 
   @override
