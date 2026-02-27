@@ -145,7 +145,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
 
   List<Widget> _buildPages({required bool isIPhone}) {
     final composeBottomInset = isIPhone && PlatformInfo.isIOS26OrHigher()
-        ? 56.0
+        ? 78.0
         : 0.0;
     return <Widget>[
       _postsPage,
