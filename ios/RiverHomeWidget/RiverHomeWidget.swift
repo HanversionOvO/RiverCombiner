@@ -78,25 +78,16 @@ struct RiverHomeWidgetEntryView: View {
   @Environment(\.widgetFamily) private var family
 
   var body: some View {
-    ZStack {
-      LinearGradient(
-        colors: [
-          Color(hex: 0xFF162843),
-          Color(hex: 0xFF101B2F),
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-      )
-      VStack(alignment: .leading, spacing: 10) {
-        header
-        titleText
-        if family != .systemSmall {
-          excerptText
-        }
-        footer
+    VStack(alignment: .leading, spacing: 10) {
+      header
+      titleText
+      if family != .systemSmall {
+        excerptText
       }
-      .padding(family == .systemLarge ? 18 : 14)
+      footer
     }
+    .padding(family == .systemLarge ? 18 : 14)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     .widgetURL(launchURL())
     .modifier(RiverWidgetBackgroundModifier())
   }
@@ -196,18 +187,28 @@ struct RiverHomeWidget: Widget {
     .configurationDisplayName("聚河畔")
     .description("查看最新发表、最新回复或热门帖子")
     .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    .riverContentMarginsDisabledIfAvailable()
   }
 }
 
 private struct RiverWidgetBackgroundModifier: ViewModifier {
   func body(content: Content) -> some View {
     if #available(iOSApplicationExtension 17.0, *) {
-      content.containerBackground(for: .widget) {
-        Color.clear
-      }
+      content.containerBackground(for: .widget) { widgetGradientBackground }
     } else {
-      content
+      content.background(widgetGradientBackground)
     }
+  }
+
+  private var widgetGradientBackground: some View {
+    LinearGradient(
+      colors: [
+        Color(hex: 0xFF162843),
+        Color(hex: 0xFF101B2F),
+      ],
+      startPoint: .topLeading,
+      endPoint: .bottomTrailing
+    )
   }
 }
 
@@ -225,5 +226,16 @@ private extension Color {
     let g = Double((hex >> 8) & 0xFF) / 255.0
     let b = Double(hex & 0xFF) / 255.0
     self = Color(.sRGB, red: r, green: g, blue: b, opacity: 1)
+  }
+}
+
+private extension WidgetConfiguration {
+  @WidgetConfigurationBuilder
+  func riverContentMarginsDisabledIfAvailable() -> some WidgetConfiguration {
+    if #available(iOSApplicationExtension 17.0, *) {
+      self.contentMarginsDisabled()
+    } else {
+      self
+    }
   }
 }

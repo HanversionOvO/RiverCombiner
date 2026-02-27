@@ -61,22 +61,25 @@ class RiverHomeWidgetService {
   final AppSettingsController _settingsController;
 
   Future<void> initialize() async {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return;
-    }
-    try {
-      await HomeWidget.setAppGroupId(iOSAppGroupId);
-    } catch (_) {
-      // iOS widget extension may not be configured in every build environment.
-    }
+    await _ensureSharedStoreReady();
   }
 
   Future<void> syncLatestTopic() async {
+    await _ensureSharedStoreReady();
     final feed = _selectedFeed();
     final accent = _settingsController.themeSeedColor.toARGB32().toSigned(32);
     final cookieHeader = _activeRiverSideCookie();
 
-    await _saveSharedBaseData(feed: feed, accentColorArgb: accent);
+    try {
+      await _saveSharedBaseData(feed: feed, accentColorArgb: accent);
+    } catch (_) {
+      await _ensureSharedStoreReady();
+      try {
+        await _saveSharedBaseData(feed: feed, accentColorArgb: accent);
+      } catch (_) {
+        return;
+      }
+    }
     try {
       final topic = await _fetchFirstTopicWithFallback(
         preferredFeed: feed,
@@ -91,11 +94,26 @@ class RiverHomeWidgetService {
       await _saveErrorData(feed: feed);
     }
 
-    await HomeWidget.updateWidget(
-      name: androidProviderName,
-      qualifiedAndroidName: androidQualifiedProviderName,
-      iOSName: iOSWidgetName,
-    );
+    try {
+      await HomeWidget.updateWidget(
+        name: androidProviderName,
+        qualifiedAndroidName: androidQualifiedProviderName,
+        iOSName: iOSWidgetName,
+      );
+    } catch (_) {
+      // Ignore update errors; data may still be picked up on next widget refresh.
+    }
+  }
+
+  Future<void> _ensureSharedStoreReady() async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    try {
+      await HomeWidget.setAppGroupId(iOSAppGroupId);
+    } catch (_) {
+      // iOS widget extension may not be configured in every build environment.
+    }
   }
 
   Future<RiverSideTopicSummary?> _fetchFirstTopicWithFallback({

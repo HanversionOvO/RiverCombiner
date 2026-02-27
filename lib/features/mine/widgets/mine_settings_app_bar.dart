@@ -117,6 +117,17 @@ class MineSettingsPageScaffold extends StatelessWidget {
 
   Widget _wrapIOSBodyWithTopPlaceholder(Widget body, double placeholderHeight) {
     final topPlaceholder = SizedBox(height: placeholderHeight);
+    final injected = _injectTopPlaceholder(body, topPlaceholder);
+    if (injected != null) {
+      return injected;
+    }
+    return Padding(
+      padding: EdgeInsets.only(top: placeholderHeight),
+      child: body,
+    );
+  }
+
+  Widget? _injectTopPlaceholder(Widget body, Widget topPlaceholder) {
     if (body is ListView && body.childrenDelegate is SliverChildListDelegate) {
       final delegate = body.childrenDelegate as SliverChildListDelegate;
       return ListView(
@@ -166,10 +177,107 @@ class MineSettingsPageScaffold extends StatelessWidget {
       );
     }
 
-    return Padding(
-      padding: EdgeInsets.only(top: placeholderHeight),
-      child: body,
-    );
+    if (body is ColoredBox) {
+      final child = body.child;
+      if (child == null) {
+        return null;
+      }
+      final injected = _injectTopPlaceholder(child, topPlaceholder);
+      if (injected == null) {
+        return null;
+      }
+      return ColoredBox(color: body.color, child: injected);
+    }
+
+    if (body is DecoratedBox) {
+      final child = body.child;
+      if (child == null) {
+        return null;
+      }
+      final injected = _injectTopPlaceholder(child, topPlaceholder);
+      if (injected == null) {
+        return null;
+      }
+      return DecoratedBox(
+        decoration: body.decoration,
+        position: body.position,
+        child: injected,
+      );
+    }
+
+    if (body is Padding) {
+      final child = body.child;
+      if (child == null) {
+        return null;
+      }
+      final injected = _injectTopPlaceholder(child, topPlaceholder);
+      if (injected == null) {
+        return null;
+      }
+      return Padding(padding: body.padding, child: injected);
+    }
+
+    if (body is SafeArea) {
+      final child = body.child;
+      final injected = _injectTopPlaceholder(child, topPlaceholder);
+      if (injected == null) {
+        return null;
+      }
+      return SafeArea(
+        left: body.left,
+        top: body.top,
+        right: body.right,
+        bottom: body.bottom,
+        minimum: body.minimum,
+        maintainBottomViewPadding: body.maintainBottomViewPadding,
+        child: injected,
+      );
+    }
+
+    if (body is Stack) {
+      final children = body.children;
+      for (var i = 0; i < children.length; i++) {
+        final replaced = _replaceScrollableChild(children[i], topPlaceholder);
+        if (replaced != null) {
+          final nextChildren = List<Widget>.from(children);
+          nextChildren[i] = replaced;
+          return Stack(
+            key: body.key,
+            alignment: body.alignment,
+            textDirection: body.textDirection,
+            fit: body.fit,
+            clipBehavior: body.clipBehavior,
+            children: nextChildren,
+          );
+        }
+      }
+    }
+    return null;
+  }
+
+  Widget? _replaceScrollableChild(Widget child, Widget topPlaceholder) {
+    final injected = _injectTopPlaceholder(child, topPlaceholder);
+    if (injected != null) {
+      return injected;
+    }
+    if (child is Positioned) {
+      final positionedChild = child.child;
+      final replaced = _replaceScrollableChild(positionedChild, topPlaceholder);
+      if (replaced == null) {
+        return null;
+      }
+      return Positioned(
+        key: child.key,
+        left: child.left,
+        top: child.top,
+        right: child.right,
+        bottom: child.bottom,
+        width: child.width,
+        height: child.height,
+        child: replaced,
+      );
+    }
+    return null;
   }
 }
 
