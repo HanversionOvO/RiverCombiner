@@ -521,7 +521,7 @@ class _TopicListTabState extends State<_TopicListTab>
     return DateTime.fromMillisecondsSinceEpoch(isMillis ? value : value * 1000);
   }
 
-  void _openDetail(RiverSideTopicSummary topic) {
+  void _openDetail(BuildContext sourceContext, RiverSideTopicSummary topic) {
     final avatarHeroTag = _buildAuthorAvatarHeroTag(topic);
     final nameHeroTag = _buildAuthorNameHeroTag(topic);
     final titleHeroTag = 'title_${topic.id}';
@@ -529,7 +529,8 @@ class _TopicListTabState extends State<_TopicListTab>
         ? AccountProvider.qingShuiHePan
         : AccountProvider.riverSide;
     Navigator.of(context).push(
-      riverPageRoute(
+      DraggableRoute<void>(
+        source: sourceContext,
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: topic.id,
@@ -729,7 +730,7 @@ class _TopicListTabState extends State<_TopicListTab>
                   topic: topic,
                   displayCategoryName: _displayCategoryName(topic),
                   isHotFeed: widget.feed == RiverSideTopicFeed.hot,
-                  onTap: () => _openDetail(topic),
+                  onTap: (sourceContext) => _openDetail(sourceContext, topic),
                   onAuthorTap: () => _openAuthor(topic),
                 ),
               );
@@ -887,7 +888,7 @@ class _TopicCard extends StatelessWidget {
   final RiverSideTopicSummary topic;
   final String displayCategoryName;
   final bool isHotFeed;
-  final VoidCallback onTap;
+  final ValueChanged<BuildContext> onTap;
   final VoidCallback onAuthorTap;
 
   @override
@@ -919,7 +920,7 @@ class _TopicCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: () => onTap(context),
           splashColor: theme.colorScheme.primary.withValues(alpha: 0.08),
           highlightColor: theme.colorScheme.primary.withValues(alpha: 0.04),
           child: Padding(

@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -2876,7 +2877,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                     onTap: () async {
                                       Navigator.of(sheetContext).pop();
                                       await Navigator.of(context).push(
-                                        riverPageRoute<void>(
+                                        DraggableRoute<void>(
                                           builder: (_) => TopicDetailPage(
                                             dependencies: widget.dependencies,
                                             topicId: topic.id,

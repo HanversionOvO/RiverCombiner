@@ -10,6 +10,7 @@ import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:pro_image_editor/pro_image_editor.dart';
 import 'package:river/core/constants.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -89,6 +90,7 @@ class RiverImageViewerPage extends StatefulWidget {
 
 class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
   static const String _actionSaveOriginal = 'save_original';
+  static const String _actionEditImage = 'edit_image';
   static const String _actionRecognizeQr = 'recognize_qr';
   static const String _labelActionSheetTitle = '图片操作';
   static const String _labelActionCancel = '取消';
@@ -135,6 +137,12 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
         label: '\u4fdd\u5b58\u539f\u56fe',
         icon: Icons.download_outlined,
         onSelected: (context, selected) => _saveOriginalImage(selected),
+      ),
+      RiverImageViewerAction(
+        id: _actionEditImage,
+        label: '\u7f16\u8f91\u56fe\u7247',
+        icon: Icons.tune_rounded,
+        onSelected: (context, selected) => _editImage(selected),
       ),
       if (qrContent != null && qrContent.trim().isNotEmpty)
         RiverImageViewerAction(
@@ -450,6 +458,66 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     );
   }
 
+  Future<void> _editImage(RiverImageViewerItem item) async {
+    final uri = Uri.tryParse(item.url);
+    if (uri == null) {
+      throw StateError('\u56fe\u7247\u5730\u5740\u65e0\u6548');
+    }
+    final bytes = await _downloadImageBytes(uri, item.headers);
+    if (!mounted) {
+      return;
+    }
+    var saved = false;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProImageEditor.memory(
+          Uint8List.fromList(bytes),
+          callbacks: ProImageEditorCallbacks(
+            onImageEditingComplete: (editedBytes) async {
+              final granted = await _ensureStoragePermission();
+              if (!mounted) {
+                return;
+              }
+              if (!granted) {
+                ScaffoldMessenger.of(context).showRiverSnackBar(
+                  '\u672a\u83b7\u5f97\u76f8\u518c\u6743\u9650\uff0c\u65e0\u6cd5\u4fdd\u5b58\u56fe\u7247',
+                );
+                return;
+              }
+              final result = await ImageGallerySaverPlus.saveImage(
+                editedBytes,
+                quality: 100,
+                name: 'river_edit_${DateTime.now().millisecondsSinceEpoch}',
+              );
+              final outcome = _parseSaveResult(result);
+              if (!outcome.success) {
+                if (!mounted) {
+                  return;
+                }
+                ScaffoldMessenger.of(context).showRiverSnackBar(
+                  outcome.message ??
+                      '\u7f16\u8f91\u56fe\u7247\u4fdd\u5b58\u5931\u8d25',
+                );
+                return;
+              }
+              saved = true;
+              if (!mounted) {
+                return;
+              }
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      ),
+    );
+    if (!mounted || !saved) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showRiverSnackBar(
+      '\u7f16\u8f91\u540e\u7684\u56fe\u7247\u5df2\u4fdd\u5b58\u5230\u7cfb\u7edf\u76f8\u518c',
+    );
+  }
+
   Future<bool> _ensureStoragePermission() async {
     if (kIsWeb) {
       return false;
@@ -461,9 +529,12 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     if (defaultTargetPlatform != TargetPlatform.android) {
       return true;
     }
-    // Android 10+ can write MediaStore without storage runtime permission.
-    // Keep this non-blocking and let the plugin return a concrete failure reason.
-    return true;
+    final photos = await Permission.photos.request();
+    if (photos.isGranted || photos.isLimited) {
+      return true;
+    }
+    final storage = await Permission.storage.request();
+    return storage.isGranted;
   }
 
   String _guessImageFileName(Uri uri) {

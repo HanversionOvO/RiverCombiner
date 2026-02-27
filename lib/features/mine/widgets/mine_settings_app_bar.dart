@@ -38,10 +38,7 @@ class MineSettingsToolbarAction {
 
   Widget toMaterialAction(BuildContext context) {
     if (title != null && title!.isNotEmpty) {
-      return TextButton(
-        onPressed: onPressed,
-        child: Text(title!),
-      );
+      return TextButton(onPressed: onPressed, child: Text(title!));
     }
     return IconButton(
       tooltip: tooltip,
@@ -89,13 +86,17 @@ class MineSettingsPageScaffold extends StatelessWidget {
     }
 
     if (_isIPhoneDevice(context)) {
+      final topToolbarInset = MediaQuery.paddingOf(context).top + 44;
       return AdaptiveScaffold(
         appBar: AdaptiveAppBar(
           title: title,
           useNativeToolbar: true,
           actions: adaptiveActions,
         ),
-        body: resolvedBody,
+        body: Padding(
+          padding: EdgeInsets.only(top: topToolbarInset),
+          child: resolvedBody,
+        ),
       );
     }
 
