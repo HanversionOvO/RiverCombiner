@@ -20,6 +20,7 @@ import 'package:river/core/widgets/river_image_viewer.dart';
 import 'package:river/core/widgets/river_markdown_editor.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'chat_detail_page_actions.dart';
 part 'chat_detail_page_view.dart';
@@ -347,7 +348,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (_messages.any((item) => item.id == messageId)) {
       final ok = await ensureVisible();
       if (!ok && mounted) {
-        messenger?.showSnackBar(const SnackBar(content: Text('未找到引用消息')));
+        messenger?.showRiverSnackBar('未找到引用消息');
       }
       return;
     }
@@ -362,7 +363,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       if (_messages.any((item) => item.id == messageId)) {
         final ok = await ensureVisible();
         if (!ok && mounted) {
-          messenger?.showSnackBar(const SnackBar(content: Text('未找到引用消息')));
+          messenger?.showRiverSnackBar('未找到引用消息');
         }
         return;
       }
@@ -375,7 +376,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (!mounted) {
       return;
     }
-    messenger?.showSnackBar(const SnackBar(content: Text('目标消息尚未加载')));
+    messenger?.showRiverSnackBar('目标消息尚未加载');
   }
 
   bool _isNearBottom() {
@@ -857,9 +858,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       setState(() {
         _loadingOlder = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
         return;
@@ -867,9 +866,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       setState(() {
         _loadingOlder = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text(_labelLoadFailed)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(_labelLoadFailed);
     }
   }
 

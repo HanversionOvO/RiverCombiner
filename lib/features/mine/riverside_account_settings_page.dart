@@ -9,6 +9,7 @@ import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_search_models.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'riverside_account_settings_page_widgets.dart';
 
@@ -190,9 +191,7 @@ class _RiverSideAccountSettingsPageState
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    ScaffoldMessenger.of(context).showRiverSnackBar(message);
   }
 
   void _safeCloseDialog(BuildContext dialogContext, [Object? result]) {

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:river/core/constants.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 class AppUpdateInfo {
   const AppUpdateInfo({
@@ -362,12 +363,12 @@ Future<void> showRiverUpdateDialog({
 
   final uri = Uri.tryParse(info.downloadUrl);
   if (uri == null) {
-    messenger?.showSnackBar(const SnackBar(content: Text('更新链接无效')));
+    messenger?.showRiverSnackBar('更新链接无效');
     return;
   }
   final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!launched) {
-    messenger?.showSnackBar(const SnackBar(content: Text('无法打开更新链接')));
+    messenger?.showRiverSnackBar('无法打开更新链接');
   }
 }
 

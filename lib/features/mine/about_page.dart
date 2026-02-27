@@ -4,6 +4,7 @@ import 'package:river/app/app_dependencies.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({
@@ -53,9 +54,7 @@ class _AboutPageState extends State<AboutPage> {
     _lastDevTapAt = now;
 
     if (widget.settingsController.developerModeEnabled) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('开发者模式已开启')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('开发者模式已开启');
       return;
     }
 
@@ -69,16 +68,12 @@ class _AboutPageState extends State<AboutPage> {
     if (remain <= 0) {
       widget.settingsController.updateDeveloperModeEnabled(true);
       _devTapCount = 0;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('开发者模式已开启')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('开发者模式已开启');
       return;
     }
 
     if (remain <= 4) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('再点击 $remain 次开启开发者模式')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('再点击 $remain 次开启开发者模式');
     }
   }
 

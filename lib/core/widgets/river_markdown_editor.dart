@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 typedef RiverMarkdownSubmitCallback = Future<bool> Function(String markdown);
 typedef RiverMarkdownImageUploadCallback =
@@ -735,12 +736,9 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   }
 
   void _showSnack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
+    ScaffoldMessenger.of(context).showRiverSnackBar(
+      msg,
+      tone: isError ? RiverSnackBarTone.error : RiverSnackBarTone.normal,
     );
   }
 

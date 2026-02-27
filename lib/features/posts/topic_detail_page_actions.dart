@@ -471,9 +471,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showRiverSnackBar(message);
   }
 
   String _normalizeRiverSourceMarkdownForCrossPost(String source) {
@@ -1141,9 +1139,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
           cookieHeader: cookie,
         );
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('草稿已删除')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('草稿已删除');
     }
     return true;
   }
@@ -1223,11 +1219,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     }
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReplyNeedLogin);
       return false;
     }
 
@@ -1253,9 +1247,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       _mutateState(() {
         _appendPublishedReply(created);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_TopicDetailPageState._labelReplySuccess)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReplySuccess);
 
       if (topicId == (_detail?.topicId ?? -1)) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1273,17 +1267,15 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
       return false;
     } catch (_) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u56de\u590d\u53d1\u9001\u5931\u8d25')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar('\u56de\u590d\u53d1\u9001\u5931\u8d25');
       return false;
     }
   }
@@ -1295,9 +1287,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
   }) async {
     final auth = _activeQingAuth();
     if (auth == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_loginRequiredLabel)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(_loginRequiredLabel);
       return false;
     }
 
@@ -1339,9 +1329,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
         return false;
       }
       _qingUploadedImagesByUrl.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_TopicDetailPageState._labelReplySuccess)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReplySuccess);
       // Keep behavior aligned with RiverSide: return success quickly so editor
       // can close immediately, then refresh list asynchronously.
       unawaited(_refreshQingAfterReplyPosted());
@@ -1350,17 +1340,13 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
       return false;
     } catch (_) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('回复发送失败')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('回复发送失败');
       return false;
     }
   }
@@ -1379,9 +1365,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('评论刷新失败，请手动下拉刷新')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('评论刷新失败，请手动下拉刷新');
     }
   }
 
@@ -1816,11 +1800,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f'),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showRiverSnackBar('\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f');
   }
 
   void _replacePostInState(RiverSideTopicPostDetail updated) {
@@ -1867,11 +1849,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
   }) async {
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReplyNeedLogin);
       return false;
     }
 
@@ -1890,27 +1870,23 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       _mutateState(() {
         _replacePostInState(edited);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelEditCommentSuccess),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelEditCommentSuccess);
       return true;
     } on RiverSideApiException catch (error) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
       return false;
     } catch (_) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u7f16\u8f91\u8bc4\u8bba\u5931\u8d25')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar('\u7f16\u8f91\u8bc4\u8bba\u5931\u8d25');
       return false;
     }
   }
@@ -1921,11 +1897,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     }
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReplyNeedLogin);
       return;
     }
 
@@ -2027,11 +2001,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     }
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReplyNeedLogin);
       return;
     }
 
@@ -2061,25 +2033,21 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       _mutateState(() {
         _removePostFromState(post);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelDeleteCommentSuccess),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelDeleteCommentSuccess);
     } on RiverSideApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
+    } catch (_) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u5220\u9664\u8bc4\u8bba\u5931\u8d25')),
-      );
+      ).showRiverSnackBar('\u5220\u9664\u8bc4\u8bba\u5931\u8d25');
     }
   }
 
@@ -2089,11 +2057,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     }
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReplyNeedLogin);
       return;
     }
 
@@ -2120,26 +2086,22 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelDeleteMainPostSuccess),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelDeleteMainPostSuccess);
       Navigator.of(context).pop(true);
     } on RiverSideApiException catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u5220\u9664\u4e3b\u8d34\u5931\u8d25')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar('\u5220\u9664\u4e3b\u8d34\u5931\u8d25');
     }
   }
 

@@ -11,6 +11,7 @@ import 'package:river/features/login/riverside_external_fallback_page.dart';
 import 'package:river/features/login/riverside_login_flow_mode.dart';
 import 'package:river/features/login/riverside_session_reader.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 class RiverSideLoginWebViewPage extends StatefulWidget {
   const RiverSideLoginWebViewPage({
@@ -69,9 +70,9 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
             if (error.isForMainFrame != true || !mounted) {
               return;
             }
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('WebView 加载失败，已切换账号密码登录')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showRiverSnackBar('WebView 加载失败，已切换账号密码登录');
             unawaited(_switchToCredentialLogin());
           },
         ),
@@ -138,9 +139,7 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('账号密码登录成功，已添加账号。')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('账号密码登录成功，已添加账号。');
       Navigator.of(context).pop(profile);
     } finally {
       _openingExternalFallback = false;
@@ -199,9 +198,7 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
 
     if (widget.flowMode == RiverSideLoginFlowMode.addAccount) {
       if (profile == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已检测登录，但未解析到账号信息，请重试。')));
+        ScaffoldMessenger.of(context).showRiverSnackBar('已检测登录，但未解析到账号信息，请重试。');
         return;
       }
       _completedFlow = true;

@@ -25,6 +25,7 @@ import 'package:river/features/mine/riverside_profile_page.dart';
 import 'package:river/features/mine/server_settings_page.dart';
 import 'package:river/features/mine/storage_settings_page.dart'; // 引入新页面
 import 'package:river/core/navigation/river_page_route.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'mine_page_widgets.dart';
 
@@ -417,7 +418,7 @@ class _MinePageState extends State<MinePage> {
 
   void _showMessage(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showRiverSnackBar(msg);
   }
 
   void _toggleAvatarCardVisual() {

@@ -4,6 +4,7 @@ import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/platform/app_icon_switcher.dart';
 import 'package:river/core/platform/system_fonts_bridge.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'appearance_settings_widgets.dart';
 
@@ -225,12 +226,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     if (!mounted || applied) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('当前平台暂不支持即时切换图标，已保存你的选择'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context).showRiverSnackBar('当前平台暂不支持即时切换图标，已保存你的选择');
   }
 
   String _fontDisplayName(String? family) {

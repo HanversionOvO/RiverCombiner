@@ -66,9 +66,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
           cookieHeader: cookie,
         );
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('草稿已删除')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('草稿已删除');
     }
     return true;
   }
@@ -1906,21 +1904,9 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
   }
 
   void _showToast(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: isError
-            ? Theme.of(context).colorScheme.error
-            : const Color(0xFF333333),
-        elevation: 0,
-        margin: const EdgeInsets.only(bottom: 80, left: 20, right: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      ),
+    ScaffoldMessenger.of(context).showRiverSnackBar(
+      message,
+      tone: isError ? RiverSnackBarTone.error : RiverSnackBarTone.normal,
     );
   }
 }

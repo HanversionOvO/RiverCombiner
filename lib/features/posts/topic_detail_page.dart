@@ -38,6 +38,7 @@ import 'package:screenshot_callback/screenshot_callback.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'topic_detail_comment_detail_page.dart';
 part 'topic_detail_comment_detail_actions.dart';
@@ -485,9 +486,9 @@ class _TopicDetailPageState extends State<TopicDetailPage>
               );
             } catch (_) {
               if (mounted) {
-                ScaffoldMessenger.maybeOf(hostContext)?.showSnackBar(
-                  const SnackBar(content: Text(_labelSharePosterFailed)),
-                );
+                ScaffoldMessenger.maybeOf(
+                  hostContext,
+                )?.showRiverSnackBar(_labelSharePosterFailed);
               }
             } finally {
               try {
@@ -639,11 +640,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                     }
                                     ScaffoldMessenger.maybeOf(
                                       hostContext,
-                                    )?.showSnackBar(
-                                      const SnackBar(
-                                        content: Text(_labelTopicLinkCopied),
-                                      ),
-                                    );
+                                    )?.showRiverSnackBar(_labelTopicLinkCopied);
                                   },
                                   icon: const Icon(Icons.link_rounded),
                                   label: Text(_labelCopyTopicLinkButton),
@@ -1731,11 +1728,9 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                 final detailTopicId = _detail?.topicId;
                                 if (detailTopicId == null ||
                                     quote.ref.topicId != detailTopicId) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(_labelCrossTopicQuote),
-                                    ),
-                                  );
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).showRiverSnackBar(_labelCrossTopicQuote);
                                   return;
                                 }
                                 await _openReplyComposer(
@@ -1869,16 +1864,14 @@ class _TopicDetailPageState extends State<TopicDetailPage>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text(_labelAiSummaryLoadFailed)));
+      ).showRiverSnackBar(_labelAiSummaryLoadFailed);
     } finally {
       if (mounted) {
         _mutateState(() {
@@ -2676,11 +2669,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                         ? () {
                                             ScaffoldMessenger.of(
                                               context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('清水河畔评论详情暂未接入'),
-                                              ),
-                                            );
+                                            ).showRiverSnackBar('清水河畔评论详情暂未接入');
                                           }
                                         : () => _openCommentDetail(post),
                                     onLongPress: () =>

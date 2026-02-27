@@ -5,6 +5,7 @@ import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
 import 'package:river/core/storage/app_cache_service.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'storage_settings_widgets.dart';
 
@@ -261,9 +262,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
   }
 
   void _showDone(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
-    );
+    ScaffoldMessenger.of(context).showRiverSnackBar(text);
   }
 
   IconData _categoryIcon(String id) {

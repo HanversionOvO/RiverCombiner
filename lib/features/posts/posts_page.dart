@@ -31,6 +31,7 @@ import 'package:river/features/search/search_page.dart';
 import 'package:river/core/widgets/riverside_category_picker_sheet.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 // -----------------------------------------------------------------------------
 
@@ -1879,9 +1880,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar(message);
       return;
     }
 
@@ -2988,12 +2987,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请先在“我的 - AI设置”中完成配置'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar('请先在“我的 - AI设置”中完成配置');
       return;
     }
     setState(() {
@@ -3005,12 +2999,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('AI总结失败：$error'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar('AI总结失败：$error');
     } finally {
       if (mounted) {
         setState(() {
@@ -3417,12 +3406,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       setState(() {
         _miniApps = merged;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('已添加 ${installed.name}'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar('已添加 ${installed.name}');
     } catch (error) {
       if (!mounted) {
         return;
@@ -3432,12 +3416,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
           raw.toLowerCase().contains('connection closed while receiving data')
           ? '\n请检查小程序服务器是否稳定在线，并重试。'
           : '';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('添加小程序失败：$raw$hint'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar('添加小程序失败：$raw$hint');
     } finally {
       if (mounted) {
         setState(() {
@@ -3882,12 +3861,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('暂无可管理的小程序'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar('暂无可管理的小程序');
       return;
     }
 
@@ -4168,12 +4142,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
         _miniApps.where((item) => item.id != app.id),
       );
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('已删除 ${app.name}'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context).showRiverSnackBar('已删除 ${app.name}');
   }
 
   Future<void> _openMiniApp(RiverMiniAppEntry app) async {
@@ -4184,12 +4153,9 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('该小程序需要先登录 RiverSide 账号'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showRiverSnackBar('该小程序需要先登录 RiverSide 账号');
         return;
       }
     }

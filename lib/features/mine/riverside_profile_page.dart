@@ -13,6 +13,7 @@ import 'package:river/features/mine/riverside_profile_webview_page.dart';
 import 'package:river/features/notifications/chat_detail_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'riverside_profile_page_widgets.dart';
 
@@ -401,9 +402,7 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
       if (!mounted) return;
 
       if (!support.canUseEmbeddedWebView) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('当前设备不支持内置 WebView')));
+        ScaffoldMessenger.of(context).showRiverSnackBar('当前设备不支持内置 WebView');
         return;
       }
 
@@ -418,9 +417,7 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
       );
     } on RiverSideApiException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } finally {
       if (mounted) setState(() => _openingDetailedProfile = false);
     }
@@ -444,9 +441,7 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
 
   void _showErrorSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showRiverSnackBar(message);
   }
 
   Future<void> _syncRelationshipState({

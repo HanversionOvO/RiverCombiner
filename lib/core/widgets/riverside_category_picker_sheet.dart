@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:river/core/categories/riverside_category_utils.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 typedef RiverSideCategoryLoader =
     Future<List<RiverSideCategoryOption>> Function({bool forceRefresh});
@@ -51,9 +52,7 @@ class _RiverSideCategoryPickerSheetState
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('刷新板块失败，请稍后重试')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('刷新板块失败，请稍后重试');
     } finally {
       if (mounted) {
         setState(() => _refreshing = false);
@@ -268,8 +267,8 @@ class _BoardGroupCard extends StatelessWidget {
                       color: !isParentSelectable
                           ? theme.colorScheme.onSurfaceVariant
                           : (isParentSelected
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurface),
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface),
                     ),
                   ),
                 ),

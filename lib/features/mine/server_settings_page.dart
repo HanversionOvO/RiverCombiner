@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/config/server_config.dart';
 import 'package:river/core/update/app_update_checker.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
 class ServerSettingsPage extends StatefulWidget {
@@ -73,7 +74,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
       _baseUrlController.text = normalized;
       _showMessage('主域名已更新');
     } catch (error) {
-      _showMessage('主域名校验失败：$error');
+      _showMessage('主域名校验失败：$error', isError: true);
     } finally {
       if (mounted) {
         setState(() => _savingBaseUrl = false);
@@ -97,7 +98,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
       await widget.updateChecker.checkForUpdates(force: true);
       _showMessage('更新源已更新');
     } catch (error) {
-      _showMessage('更新源校验失败：$error');
+      _showMessage('更新源校验失败：$error', isError: true);
     } finally {
       if (mounted) {
         setState(() => _savingUpdateUrl = false);
@@ -125,7 +126,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
       _qingShuiHePanBaseUrlController.text = normalized;
       _showMessage('清水河畔主域名已更新');
     } catch (error) {
-      _showMessage('清水河畔主域名校验失败：$error');
+      _showMessage('清水河畔主域名校验失败：$error', isError: true);
     } finally {
       if (mounted) {
         setState(() => _savingQingBaseUrl = false);
@@ -159,7 +160,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
       _miniAppsUrlController.text = normalized;
       _showMessage('小程序清单链接已更新');
     } catch (error) {
-      _showMessage('小程序清单校验失败：$error');
+      _showMessage('小程序清单校验失败：$error', isError: true);
     } finally {
       if (mounted) {
         setState(() => _savingMiniAppsUrl = false);
@@ -247,12 +248,13 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
     throw const FormatException('缺少小程序列表字段（apps/data）');
   }
 
-  void _showMessage(String text) {
+  void _showMessage(String text, {bool isError = false}) {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text), behavior: SnackBarBehavior.floating),
+    ScaffoldMessenger.of(context).showRiverSnackBar(
+      text,
+      tone: isError ? RiverSnackBarTone.error : RiverSnackBarTone.normal,
     );
   }
 

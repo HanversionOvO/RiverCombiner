@@ -22,6 +22,7 @@ import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/features/mine/riverside_profile_page.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 class MineQrScanPage extends StatefulWidget {
   const MineQrScanPage({
@@ -98,12 +99,9 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
           final nowTip = DateTime.now();
           if (nowTip.difference(_lastOrbitResolveFailTipAt).inSeconds >= 3) {
             _lastOrbitResolveFailTipAt = nowTip;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('已识别小程序码图形，但平台解析失败。请确认服务器地址一致并刷新小程序码后重试'),
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 2),
-              ),
+            ScaffoldMessenger.of(context).showRiverSnackBar(
+              '已识别小程序码图形，但平台解析失败。请确认服务器地址一致并刷新小程序码后重试',
+              duration: const Duration(seconds: 2),
             );
           }
         }
@@ -146,12 +144,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
         await _openMiniAppByCode(miniAppCode);
       } catch (error) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('打开小程序失败：$error'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          ScaffoldMessenger.of(context).showRiverSnackBar('打开小程序失败：$error');
         }
       } finally {
         if (mounted) {
@@ -167,12 +160,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
     final parsed = _parseIdentityPayload(rawValue);
     if (parsed == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('未识别到可用身份二维码'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).showRiverSnackBar('未识别到可用身份二维码');
       }
       return;
     }
@@ -231,12 +219,9 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
           return;
         }
         if (orbitTry.decoded) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('已识别小程序码图形，但平台解析失败。请确认服务器地址一致并刷新小程序码后重试'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showRiverSnackBar('已识别小程序码图形，但平台解析失败。请确认服务器地址一致并刷新小程序码后重试');
           return;
         }
         final miniAppCode = RiverMiniAppCodeImageCodec.decodeFromImageBytes(
@@ -249,12 +234,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
           await _handleRawResult(miniAppCode.trim());
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('未在图片中识别到二维码/小程序码'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).showRiverSnackBar('未在图片中识别到二维码/小程序码');
         return;
       }
       await _handleRawResult(rawValue);
@@ -262,12 +242,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('读取图库二维码失败，请重试'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar('读取图库二维码失败，请重试');
     } finally {
       if (mounted) {
         setState(() {
@@ -634,12 +609,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
     }
 
     if (target == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('该小程序未上架或不可搜索，无法打开'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar('该小程序未上架或不可搜索，无法打开');
       return;
     }
 
@@ -740,9 +710,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
       final label = identity.provider == AccountProvider.riverSide
           ? '请先登录 RiverSide 账号'
           : '请先登录清水河畔账号';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(label), behavior: SnackBarBehavior.floating),
-      );
+      ScaffoldMessenger.of(context).showRiverSnackBar(label);
       return;
     }
     final account = UserAccount(
@@ -1002,12 +970,7 @@ class _MineIdentityQrPageState extends State<MineIdentityQrPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('身份链接已复制'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context).showRiverSnackBar('身份链接已复制');
   }
 
   @override

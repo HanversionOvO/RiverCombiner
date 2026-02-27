@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/ai/river_ai_service.dart';
 import 'package:river/core/config/server_config.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
 class AiSettingsPage extends StatefulWidget {
@@ -34,7 +35,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     _baseUrlController = TextEditingController(text: settings.aiBaseUrl);
     _modelController = TextEditingController(text: settings.aiModel);
     _apiKeyController = TextEditingController(text: settings.aiApiKey);
-    _systemPromptController = TextEditingController(text: settings.aiSystemPrompt);
+    _systemPromptController = TextEditingController(
+      text: settings.aiSystemPrompt,
+    );
   }
 
   @override
@@ -121,12 +124,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(text),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
+    ScaffoldMessenger.of(context).showRiverSnackBar(
+      text,
+      tone: isError ? RiverSnackBarTone.error : RiverSnackBarTone.normal,
     );
   }
 

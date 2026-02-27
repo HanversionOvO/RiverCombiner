@@ -10,6 +10,7 @@ import 'package:river/features/mine/platform_profile_repository.dart';
 import 'package:river/features/mine/riverside_profile_action_bar.dart';
 import 'package:river/features/mine/riverside_profile_page.dart';
 import 'package:river/features/notifications/chat_detail_page.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 Future<void> showRiverSideUserProfileSheet({
   required BuildContext context,
@@ -165,7 +166,9 @@ UserAccount _resolveAccount({
         username.isNotEmpty &&
         account.username.toLowerCase() == username.toLowerCase();
     final matchedByUserId =
-        (userId ?? 0) > 0 && (account.userId ?? 0) > 0 && account.userId == userId;
+        (userId ?? 0) > 0 &&
+        (account.userId ?? 0) > 0 &&
+        account.userId == userId;
     if (matchedByUsername || matchedByUserId) {
       return account.copyWith(
         userId: userId ?? account.userId,
@@ -363,9 +366,7 @@ class _RiverSideUserProfileSheetState
 
   void _showErrorSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showRiverSnackBar(message);
   }
 
   Future<void> _syncRelationshipState({

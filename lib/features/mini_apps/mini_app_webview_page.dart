@@ -24,6 +24,7 @@ import 'package:river/features/mine/mine_qr_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 ImageProvider<Object>? _miniAppIconProvider(String raw) {
   final value = raw.trim();
@@ -128,9 +129,9 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
             if (!mounted) {
               return;
             }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('小程序加载失败：${error.description}')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showRiverSnackBar('小程序加载失败：${error.description}');
           },
           onNavigationRequest: (_) => NavigationDecision.navigate,
         ),
@@ -1068,11 +1069,9 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     if (mounted) {
       final messenger = ScaffoldMessenger.of(context);
       messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(text),
-          duration: Duration(milliseconds: durationMs.clamp(800, 5000).toInt()),
-        ),
+      messenger.showRiverSnackBar(
+        text,
+        duration: Duration(milliseconds: durationMs.clamp(800, 5000).toInt()),
       );
     }
     return <String, dynamic>{'success': true};

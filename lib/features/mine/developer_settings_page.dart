@@ -7,6 +7,7 @@ import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_models.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 class DeveloperSettingsPage extends StatefulWidget {
   const DeveloperSettingsPage({super.key, required this.dependencies});
@@ -36,9 +37,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
 
     widget.dependencies.settingsController.updateDeveloperModeEnabled(false);
     Navigator.of(context).maybePop();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('已退出开发者模式')));
+    ScaffoldMessenger.of(context).showRiverSnackBar('已退出开发者模式');
   }
 
   Future<void> _openInstallLocalMiniAppSheet() async {
@@ -76,13 +75,11 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
           if (path.isEmpty) {
             ScaffoldMessenger.of(
               sheetContext,
-            ).showSnackBar(const SnackBar(content: Text('无法读取所选文件路径，请重新选择')));
+            ).showRiverSnackBar('无法读取所选文件路径，请重新选择');
             return;
           }
           if (!path.toLowerCase().endsWith('.zip')) {
-            ScaffoldMessenger.of(
-              sheetContext,
-            ).showSnackBar(const SnackBar(content: Text('请选择ZIP文件')));
+            ScaffoldMessenger.of(sheetContext).showRiverSnackBar('请选择ZIP文件');
             return;
           }
 
@@ -91,9 +88,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
             if (!mounted || !sheetContext.mounted) {
               return;
             }
-            ScaffoldMessenger.of(
-              sheetContext,
-            ).showSnackBar(const SnackBar(content: Text('所选文件不存在')));
+            ScaffoldMessenger.of(sheetContext).showRiverSnackBar('所选文件不存在');
             return;
           }
           final bytes = await file.length();
@@ -111,9 +106,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
         Future<void> handleInstall(StateSetter setModalState) async {
           final zipPath = selectedZipPath?.trim() ?? '';
           if (zipPath.isEmpty) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('请先选择本地ZIP包')));
+            ScaffoldMessenger.of(context).showRiverSnackBar('请先选择本地ZIP包');
             return;
           }
 
@@ -154,15 +147,13 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
             Navigator.of(sheetContext).pop();
             ScaffoldMessenger.of(
               context,
-            ).showSnackBar(SnackBar(content: Text('安装成功：${installed.name}')));
+            ).showRiverSnackBar('安装成功：${installed.name}');
           } catch (error) {
             if (mounted && sheetContext.mounted) {
               setModalState(() {
                 installing = false;
               });
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('安装失败：$error')));
+              ScaffoldMessenger.of(context).showRiverSnackBar('安装失败：$error');
             }
           }
         }

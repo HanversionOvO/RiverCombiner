@@ -13,6 +13,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:river/core/constants.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'river_image_viewer_components.dart';
 
@@ -161,9 +162,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
       final message = error is StateError
           ? error.message.toString()
           : '\u64cd\u4f5c\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(message);
     }
   }
 
@@ -378,9 +377,9 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                               if (!mounted) {
                                 return;
                               }
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text(_labelCopied)),
-                              );
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showRiverSnackBar(_labelCopied);
                             },
                             icon: const Icon(Icons.copy_rounded),
                             label: const Text(_labelQrCopy),
@@ -427,9 +426,9 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
         '\u672a\u83b7\u5f97\u76f8\u518c\u6743\u9650\uff0c\u65e0\u6cd5\u4fdd\u5b58\u56fe\u7247',
       );
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('\u6b63\u5728\u4fdd\u5b58\u539f\u56fe...')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showRiverSnackBar('\u6b63\u5728\u4fdd\u5b58\u539f\u56fe...');
     final bytes = await _downloadImageBytes(uri, item.headers);
     final name = _guessImageFileName(uri);
     final result = await ImageGallerySaverPlus.saveImage(
@@ -446,12 +445,8 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          '\u539f\u56fe\u5df2\u4fdd\u5b58\u5230\u7cfb\u7edf\u76f8\u518c',
-        ),
-      ),
+    ScaffoldMessenger.of(context).showRiverSnackBar(
+      '\u539f\u56fe\u5df2\u4fdd\u5b58\u5230\u7cfb\u7edf\u76f8\u518c',
     );
   }
 

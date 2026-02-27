@@ -974,8 +974,6 @@ extension _SearchPageActions on _SearchPageState {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showRiverSnackBar(message);
   }
 }

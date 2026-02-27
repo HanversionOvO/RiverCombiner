@@ -34,11 +34,9 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
   Future<void> _onReactPressed(RiverSideTopicPostDetail post) async {
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelReactionNotReady),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReactionNotReady);
       return;
     }
 
@@ -101,9 +99,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
       _mutateState(() {
         _pendingReactionHeroByPostId.remove(post.id);
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
         return;
@@ -111,9 +107,9 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
       _mutateState(() {
         _pendingReactionHeroByPostId.remove(post.id);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u70b9\u8d5e\u64cd\u4f5c\u5931\u8d25')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar('\u70b9\u8d5e\u64cd\u4f5c\u5931\u8d25');
     } finally {
       _mutateState(() {
         _reactingPostIds.remove(post.id);
@@ -190,18 +186,14 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelReactionUsersEmpty),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReactionUsersEmpty);
     }
   }
 
@@ -324,9 +316,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
           cookieHeader: cookie,
         );
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('草稿已删除')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('草稿已删除');
     }
     return true;
   }
@@ -359,11 +349,9 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
   }) async {
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_CommentDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_CommentDetailPageState._labelReplyNeedLogin);
       return false;
     }
 
@@ -385,28 +373,24 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_CommentDetailPageState._labelReplySuccess),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_CommentDetailPageState._labelReplySuccess);
       await _loadData();
       return true;
     } on RiverSideApiException catch (error) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
       return false;
     } catch (_) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u56de\u590d\u53d1\u9001\u5931\u8d25')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar('\u56de\u590d\u53d1\u9001\u5931\u8d25');
       return false;
     }
   }
@@ -522,11 +506,9 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f'),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showRiverSnackBar('\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f');
   }
 
   void _replacePostInState(RiverSideTopicPostDetail updated) {
@@ -556,11 +538,9 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
   }) async {
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_CommentDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_CommentDetailPageState._labelReplyNeedLogin);
       return false;
     }
 
@@ -580,27 +560,23 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
         _replacePostInState(edited);
         _hasMutations = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_CommentDetailPageState._labelEditCommentSuccess),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_CommentDetailPageState._labelEditCommentSuccess);
       return true;
     } on RiverSideApiException catch (error) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
       return false;
     } catch (_) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u7f16\u8f91\u8bc4\u8bba\u5931\u8d25')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar('\u7f16\u8f91\u8bc4\u8bba\u5931\u8d25');
       return false;
     }
   }
@@ -608,11 +584,9 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
   Future<void> _openEditCommentComposer(RiverSideTopicPostDetail post) async {
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_CommentDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_CommentDetailPageState._labelReplyNeedLogin);
       return;
     }
 
@@ -711,11 +685,9 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
   Future<void> _deleteComment(RiverSideTopicPostDetail post) async {
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_CommentDetailPageState._labelReplyNeedLogin),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_CommentDetailPageState._labelReplyNeedLogin);
       return;
     }
 
@@ -750,25 +722,21 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
         _removePostFromState(post);
         _hasMutations = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_CommentDetailPageState._labelDeleteCommentSuccess),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_CommentDetailPageState._labelDeleteCommentSuccess);
     } on RiverSideApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
+    } catch (_) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u5220\u9664\u8bc4\u8bba\u5931\u8d25')),
-      );
+      ).showRiverSnackBar('\u5220\u9664\u8bc4\u8bba\u5931\u8d25');
     }
   }
 

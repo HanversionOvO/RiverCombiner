@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:river/core/mini_apps/river_mini_app_models.dart';
 import 'package:river/core/mini_apps/river_mini_app_permission_store.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
 class MiniAppPermissionsPage extends StatefulWidget {
@@ -56,14 +57,9 @@ class _MiniAppPermissionsPageState extends State<MiniAppPermissionsPage> {
     setState(() {
       _policy = policy;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(
-          '${permission.title}${granted ? '已开启' : '已关闭'}',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showRiverSnackBar('${permission.title}${granted ? '已开启' : '已关闭'}');
   }
 
   String _subtitleFor(RiverMiniAppNativePermission permission) {
@@ -94,17 +90,18 @@ class _MiniAppPermissionsPageState extends State<MiniAppPermissionsPage> {
                   child: Column(
                     children: RiverMiniAppNativePermission.values
                         .map((permission) {
-                      final granted = _policy.isGranted(permission);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _PermissionTile(
-                          permission: permission,
-                          granted: granted,
-                          subtitle: _subtitleFor(permission),
-                          onChanged: (next) => _update(permission, next),
-                        ),
-                      );
-                    }).toList(growable: false),
+                          final granted = _policy.isGranted(permission);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _PermissionTile(
+                              permission: permission,
+                              granted: granted,
+                              subtitle: _subtitleFor(permission),
+                              onChanged: (next) => _update(permission, next),
+                            ),
+                          );
+                        })
+                        .toList(growable: false),
                   ),
                 ),
               ],
@@ -228,4 +225,3 @@ class _PermissionTile extends StatelessWidget {
     );
   }
 }
-

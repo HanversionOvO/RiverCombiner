@@ -957,9 +957,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         _mutateState(() {
           _loadingMore = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
       } catch (_) {
         if (!mounted) {
           return;
@@ -967,9 +965,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         _mutateState(() {
           _loadingMore = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('评论加载失败')));
+        ScaffoldMessenger.of(context).showRiverSnackBar('评论加载失败');
       }
       return;
     }
@@ -1018,9 +1014,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       _mutateState(() {
         _loadingMore = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
         return;
@@ -1028,9 +1022,9 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       _mutateState(() {
         _loadingMore = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('\u8bc4\u8bba\u52a0\u8f7d\u5931\u8d25')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar('\u8bc4\u8bba\u52a0\u8f7d\u5931\u8d25');
     }
   }
 
@@ -1060,19 +1054,15 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       return;
     }
     if (topicId != detail.topicId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelCrossTopicQuote),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelCrossTopicQuote);
       return;
     }
     if (postNumber <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(_TopicDetailPageState._labelInvalidQuoteFloor),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelInvalidQuoteFloor);
       return;
     }
 
@@ -1111,11 +1101,9 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(_TopicDetailPageState._labelTargetFloorMissing),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showRiverSnackBar(_TopicDetailPageState._labelTargetFloorMissing);
   }
 
   Future<BuildContext?> _findPostContext(int postNumber) async {

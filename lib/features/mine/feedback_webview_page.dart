@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 const String riverFeedbackUrl = 'https://v.wjx.cn/vm/w4hmx3M.aspx';
 
@@ -62,12 +63,7 @@ class _FeedbackWebViewPageState extends State<FeedbackWebViewPage> {
     if (!mounted || ok) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('无法打开链接'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context).showRiverSnackBar('无法打开链接');
   }
 
   @override

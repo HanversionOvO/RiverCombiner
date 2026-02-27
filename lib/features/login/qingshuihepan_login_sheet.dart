@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/features/login/qingshuihepan_login_service.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 Future<UserAccount?> showQingShuiHePanCredentialLoginSheet({
   required BuildContext context,
@@ -117,16 +118,12 @@ class _QingShuiHePanCredentialLoginSheetBodyState
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('登录失败，请稍后重试')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('登录失败，请稍后重试');
     } finally {
       if (mounted) {
         setState(() {

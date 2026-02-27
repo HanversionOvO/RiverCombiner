@@ -369,11 +369,9 @@ extension _NotificationsPageActions on _NotificationsPageState {
     final cookie = _activeCookieHeader();
     if (cookie == null || cookie.trim().isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(_NotificationsPageState._labelNeedLogin),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showRiverSnackBar(_NotificationsPageState._labelNeedLogin);
       }
       return false;
     }
@@ -395,22 +393,16 @@ extension _NotificationsPageActions on _NotificationsPageState {
         _deletingDirectMessageIds.remove(item.id);
       });
       _notifyUnreadCountChanged();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('私信已删除')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('私信已删除');
       return true;
     } on RiverSideApiException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
       }
       return false;
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('删除私信失败，请稍后重试')));
+        ScaffoldMessenger.of(context).showRiverSnackBar('删除私信失败，请稍后重试');
       }
       return false;
     } finally {
@@ -443,11 +435,9 @@ extension _NotificationsPageActions on _NotificationsPageState {
     final cookie = _activeCookieHeader();
     if (cookie == null || cookie.trim().isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(_NotificationsPageState._labelNeedLogin),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showRiverSnackBar(_NotificationsPageState._labelNeedLogin);
       }
       return;
     }
@@ -486,9 +476,7 @@ extension _NotificationsPageActions on _NotificationsPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('已清除通知未读')));
+      ScaffoldMessenger.of(context).showRiverSnackBar('已清除通知未读');
     } catch (error) {
       if (!mounted) {
         return;
@@ -500,9 +488,7 @@ extension _NotificationsPageActions on _NotificationsPageState {
       final message = error is RiverSideApiException
           ? error.message
           : '清除未读失败，请稍后重试';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(message);
     }
   }
 

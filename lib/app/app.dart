@@ -22,6 +22,7 @@ import 'package:river/features/home/home_shell_page.dart';
 import 'package:river/features/login/login_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 
 class RiverApp extends StatefulWidget {
   const RiverApp({super.key});
@@ -143,9 +144,7 @@ class _RiverAppState extends State<RiverApp> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已打开推送消息')),
-    );
+    ScaffoldMessenger.of(context).showRiverSnackBar('已打开推送消息');
   }
 
   void _schedulePushIdentitySync() {
@@ -223,8 +222,7 @@ class _RiverAppState extends State<RiverApp> {
       );
       final baseUri = Uri.parse(baseUrl);
       final normalizedBasePath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
-      final endpointPath =
-          normalizedBasePath.isEmpty
+      final endpointPath = normalizedBasePath.isEmpty
           ? '/api/public/push/register'
           : '$normalizedBasePath/api/public/push/register';
       return baseUri.replace(path: endpointPath, query: '').toString();

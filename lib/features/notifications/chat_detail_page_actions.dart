@@ -165,9 +165,9 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelNeedLogin)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_ChatDetailPageState._labelNeedLogin);
       return;
     }
     try {
@@ -186,16 +186,14 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelLoadFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_ChatDetailPageState._labelLoadFailed);
     }
   }
 
@@ -227,9 +225,9 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
     }
     final cookie = _activeCookieHeader();
     if (cookie == null || cookie.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelNeedLogin)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_ChatDetailPageState._labelNeedLogin);
       return false;
     }
 
@@ -277,17 +275,15 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
       return false;
     } catch (_) {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelSendFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_ChatDetailPageState._labelSendFailed);
       return false;
     } finally {
       if (mounted) {
@@ -309,17 +305,17 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(_ChatDetailPageState._labelCopied)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showRiverSnackBar(_ChatDetailPageState._labelCopied);
   }
 
   Future<void> _deleteMessage(RiverSideChatMessageItem item) async {
     final cookie = _activeCookieHeader();
     if (cookie == null || cookie.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelNeedLogin)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_ChatDetailPageState._labelNeedLogin);
       return;
     }
 
@@ -347,23 +343,21 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelDeleteSuccess)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_ChatDetailPageState._labelDeleteSuccess);
     } on RiverSideApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
+    } catch (_) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelLoadFailed)),
-      );
+      ).showRiverSnackBar(_ChatDetailPageState._labelLoadFailed);
     }
   }
 
@@ -479,9 +473,9 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
   }) async {
     final cookie = _activeCookieHeader();
     if (cookie == null || cookie.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelNeedLogin)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_ChatDetailPageState._labelNeedLogin);
       return;
     }
     final original = _findMessageById(item.id);
@@ -514,9 +508,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
     } catch (_) {
       if (original != null) {
         _replaceMessageLocal(original);
@@ -524,9 +516,9 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(_ChatDetailPageState._labelLoadFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_ChatDetailPageState._labelLoadFailed);
     }
   }
 
@@ -825,9 +817,9 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(_ChatDetailPageState._labelCopied)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showRiverSnackBar(_ChatDetailPageState._labelCopied);
     _exitSelectionMode();
   }
 
