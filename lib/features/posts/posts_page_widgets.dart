@@ -584,11 +584,6 @@ class _TopicListTabState extends State<_TopicListTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isIPhone =
-        !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.iOS &&
-        MediaQuery.sizeOf(context).shortestSide < 600;
-    final backToTopBottom = isIPhone ? 98.0 : 16.0;
     final showSkeleton = _isLoading && _topics.isEmpty && _error == null;
     final showError = _error != null && _topics.isEmpty;
     final showEmpty = _topics.isEmpty && !showSkeleton && !showError;
@@ -668,6 +663,11 @@ class _TopicListTabState extends State<_TopicListTab>
   }
 
   Widget _buildTopicListContent() {
+    final isIPhone =
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.iOS &&
+        MediaQuery.sizeOf(context).shortestSide < 600;
+    final backToTopBottom = isIPhone ? 98.0 : 16.0;
     final hasInlineHint = widget.showInlineRealtimeHint && _topics.isNotEmpty;
     if (hasInlineHint && _realtimeHintAnchorIndex == null) {
       _pinRealtimeHintAnchorToCurrentViewport();
