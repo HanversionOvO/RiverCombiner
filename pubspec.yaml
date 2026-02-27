@@ -64,6 +64,7 @@ dependencies:
   crypto: ^3.0.6
   file_picker: ^10.3.3
   jpush_flutter: ^3.4.3
+  adaptive_platform_ui: ^0.1.103
 
 dev_dependencies:
   flutter_test:

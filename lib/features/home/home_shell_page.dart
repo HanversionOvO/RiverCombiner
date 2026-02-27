@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -109,6 +108,11 @@ class _HomeShellPageState extends State<HomeShellPage> {
     final secondFloorProgress = _selectedTabIndex == 0
         ? _postsSecondFloorProgress
         : 0.0;
+
+    if (isIPhone) {
+      return _buildIPhoneAdaptiveScaffold(secondFloorProgress);
+    }
+
     final bottomOpacity = (1 - secondFloorProgress).clamp(0.0, 1.0);
     final bottomSizeFactor = (1 - secondFloorProgress).clamp(0.0, 1.0);
     return Scaffold(
@@ -121,9 +125,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
             opacity: bottomOpacity,
             child: IgnorePointer(
               ignoring: secondFloorProgress > 0.001,
-              child: isIPhone
-                  ? _buildIPhoneLiquidTabBar(context)
-                  : _buildMaterialTabBar(),
+              child: _buildMaterialTabBar(),
             ),
           ),
         ),
@@ -136,6 +138,49 @@ class _HomeShellPageState extends State<HomeShellPage> {
       return false;
     }
     return MediaQuery.sizeOf(context).shortestSide < 600;
+  }
+
+  Widget _buildIPhoneAdaptiveScaffold(double secondFloorProgress) {
+    final shouldHideBottomBar = secondFloorProgress > 0.001;
+    return AdaptiveScaffold(
+      enableBlur: true,
+      minimizeBehavior: TabBarMinimizeBehavior.automatic,
+      body: IndexedStack(index: _selectedTabIndex, children: _pages),
+      bottomNavigationBar: shouldHideBottomBar ? null : _buildIPhoneTabBar(),
+    );
+  }
+
+  AdaptiveBottomNavigationBar _buildIPhoneTabBar() {
+    return AdaptiveBottomNavigationBar(
+      useNativeBottomBar: true,
+      selectedIndex: _selectedTabIndex,
+      onTap: _onDestinationSelected,
+      items: <AdaptiveNavigationDestination>[
+        const AdaptiveNavigationDestination(
+          icon: 'bubble.left.and.bubble.right',
+          selectedIcon: 'bubble.left.and.bubble.right.fill',
+          label: '\u5e16\u5b50',
+        ),
+        const AdaptiveNavigationDestination(
+          icon: 'square.and.pencil',
+          selectedIcon: 'square.and.pencil',
+          label: '\u53d1\u5e16',
+        ),
+        AdaptiveNavigationDestination(
+          icon: 'bell',
+          selectedIcon: 'bell.fill',
+          label: '\u901a\u77e5',
+          badgeCount: _notificationsUnreadCount > 99
+              ? 99
+              : _notificationsUnreadCount,
+        ),
+        const AdaptiveNavigationDestination(
+          icon: 'person',
+          selectedIcon: 'person.fill',
+          label: '\u6211\u7684',
+        ),
+      ],
+    );
   }
 
   Widget _buildMaterialTabBar() {
@@ -181,94 +226,6 @@ class _HomeShellPageState extends State<HomeShellPage> {
           label: '\u6211\u7684',
         ),
       ],
-    );
-  }
-
-  Widget _buildIPhoneLiquidTabBar(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: <Color>[
-                  colorScheme.surface.withValues(alpha: 0.68),
-                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.48),
-                ],
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
-                width: 0.8,
-              ),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 18,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              minimum: const EdgeInsets.only(bottom: 2),
-              child: CupertinoTabBar(
-                currentIndex: _selectedTabIndex,
-                onTap: _onDestinationSelected,
-                backgroundColor: Colors.transparent,
-                border: null,
-                activeColor: colorScheme.primary,
-                inactiveColor: colorScheme.onSurfaceVariant,
-                items: <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(
-                    icon: _AnimatedBottomNavIcon(
-                      selected: _selectedTabIndex == 0,
-                      outlinedIcon: Icons.forum_outlined,
-                      filledIcon: Icons.forum,
-                      motionStyle: _NavIconMotionStyle.posts,
-                    ),
-                    label: '\u5e16\u5b50',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _AnimatedBottomNavIcon(
-                      selected: _selectedTabIndex == 1,
-                      outlinedIcon: Icons.edit_note_outlined,
-                      filledIcon: Icons.edit_note,
-                      motionStyle: _NavIconMotionStyle.compose,
-                    ),
-                    label: '\u53d1\u5e16',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _AnimatedBottomNavIcon(
-                      selected: _selectedTabIndex == 2,
-                      outlinedIcon: Icons.notifications_none_outlined,
-                      filledIcon: Icons.notifications,
-                      badgeCount: _notificationsUnreadCount,
-                      motionStyle: _NavIconMotionStyle.notifications,
-                    ),
-                    label: '\u901a\u77e5',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _AnimatedBottomNavIcon(
-                      selected: _selectedTabIndex == 3,
-                      outlinedIcon: Icons.person_outline,
-                      filledIcon: Icons.person,
-                      motionStyle: _NavIconMotionStyle.mine,
-                    ),
-                    label: '\u6211\u7684',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
