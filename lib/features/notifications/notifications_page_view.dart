@@ -129,6 +129,10 @@ extension _NotificationsPageView on _NotificationsPageState {
   }
 
   Widget _buildSegmentedTabBar(ThemeData theme) {
+    if (_isIPhoneDevice(context)) {
+      return _buildIPhoneSegmentedTabBar(theme);
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       height: 40,
@@ -168,6 +172,48 @@ extension _NotificationsPageView on _NotificationsPageState {
         ],
       ),
     );
+  }
+
+  Widget _buildIPhoneSegmentedTabBar(ThemeData theme) {
+    final unreadNotifications = _notifications.where((n) => !n.read).length;
+    final unreadChannels = _channelMessages.fold(
+      0,
+      (sum, i) => sum + i.unreadCount,
+    );
+    final unreadDirect = _directMessages.fold(
+      0,
+      (sum, i) => sum + i.unreadCount,
+    );
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      child: AdaptiveSegmentedControl(
+        labels: [
+          _buildAdaptiveTabLabel('通知', unreadNotifications),
+          _buildAdaptiveTabLabel('频道', unreadChannels),
+          _buildAdaptiveTabLabel('私信', unreadDirect),
+        ],
+        selectedIndex: _tabController.index,
+        onValueChanged: (index) {
+          if (index == _tabController.index) {
+            return;
+          }
+          _tabController.animateTo(index);
+          if (mounted) {
+            _setState(() {});
+          }
+          _syncBackToTopVisibility();
+        },
+        color: theme.colorScheme.primary,
+        height: 40,
+      ),
+    );
+  }
+
+  String _buildAdaptiveTabLabel(String label, int count) {
+    if (count <= 0) {
+      return label;
+    }
+    return '$label •';
   }
 
   Widget _buildTabItem(String label, int count) {
