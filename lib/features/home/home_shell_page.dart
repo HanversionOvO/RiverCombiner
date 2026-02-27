@@ -71,15 +71,26 @@ class _HomeShellPageState extends State<HomeShellPage> {
     _nativeSearchTabBarSyncing = true;
     try {
       final shouldEnable = _shouldUseExperimentalNativeSearchTabBar(context);
+      final theme = Theme.of(context);
+      final tint = _colorToArgb(theme.colorScheme.primary);
+      final unselectedItemTint = _colorToArgb(
+        theme.colorScheme.onSurfaceVariant,
+      );
       if (shouldEnable && !_nativeSearchTabBarEnabled) {
         await IOS26NativeSearchTabBar.enable(
-          tabs: const <NativeTabConfig>[
+          tabs: <NativeTabConfig>[
             NativeTabConfig(
               title: '帖子',
               sfSymbol: 'bubble.left.and.bubble.right',
             ),
             NativeTabConfig(title: '发帖', sfSymbol: 'square.and.pencil'),
-            NativeTabConfig(title: '通知', sfSymbol: 'bell'),
+            NativeTabConfig(
+              title: '通知',
+              sfSymbol: 'bell',
+              badgeCount: _notificationsUnreadCount > 99
+                  ? 99
+                  : _notificationsUnreadCount,
+            ),
             NativeTabConfig(title: '我的', sfSymbol: 'person'),
             NativeTabConfig(
               title: '搜索',
@@ -88,6 +99,8 @@ class _HomeShellPageState extends State<HomeShellPage> {
             ),
           ],
           selectedIndex: _selectedTabIndex.clamp(0, _nativeSearchTabIndex),
+          tint: tint,
+          unselectedItemTint: unselectedItemTint,
           onTabSelected: _onNativeSearchTabSelected,
           onSearchQueryChanged:
               _searchPageController.onNativeSearchQueryChanged,
@@ -97,6 +110,27 @@ class _HomeShellPageState extends State<HomeShellPage> {
           onSearchCancelled: _searchPageController.onNativeSearchCancelled,
         );
         _nativeSearchTabBarEnabled = true;
+        return;
+      }
+      if (shouldEnable && _nativeSearchTabBarEnabled) {
+        await IOS26NativeSearchTabBar.setStyle(
+          tint: tint,
+          unselectedItemTint: unselectedItemTint,
+        );
+        await IOS26NativeSearchTabBar.setBadgeCounts(<int?>[
+          null,
+          null,
+          _notificationsUnreadCount > 0
+              ? (_notificationsUnreadCount > 99
+                    ? 99
+                    : _notificationsUnreadCount)
+              : null,
+          null,
+          null,
+        ]);
+        await IOS26NativeSearchTabBar.setSelectedIndex(
+          _selectedTabIndex.clamp(0, _nativeSearchTabIndex),
+        );
         return;
       }
       if (!shouldEnable && _nativeSearchTabBarEnabled) {
@@ -117,9 +151,6 @@ class _HomeShellPageState extends State<HomeShellPage> {
     if (index < 0 || index > _nativeSearchTabIndex) {
       return;
     }
-    if (index == _nativeSearchTabIndex) {
-      return;
-    }
     _handleDestinationSelected(index, triggerHaptic: false);
   }
 
@@ -130,6 +161,17 @@ class _HomeShellPageState extends State<HomeShellPage> {
     setState(() {
       _notificationsUnreadCount = value;
     });
+    if (_nativeSearchTabBarEnabled) {
+      unawaited(
+        IOS26NativeSearchTabBar.setBadgeCounts(<int?>[
+          null,
+          null,
+          value > 0 ? (value > 99 ? 99 : value) : null,
+          null,
+          null,
+        ]),
+      );
+    }
   }
 
   void _onPostsSecondFloorVisibilityChanged(bool visible) {
@@ -181,6 +223,9 @@ class _HomeShellPageState extends State<HomeShellPage> {
     setState(() {
       _selectedTabIndex = index;
     });
+    if (_nativeSearchTabBarEnabled) {
+      unawaited(IOS26NativeSearchTabBar.setSelectedIndex(index));
+    }
   }
 
   void _onMaterialDestinationSelected(int index) {
@@ -246,6 +291,13 @@ class _HomeShellPageState extends State<HomeShellPage> {
       return false;
     }
     return PlatformInfo.isIOS26OrHigher();
+  }
+
+  int _colorToArgb(Color color) {
+    return ((color.a * 255).round() & 0xff) << 24 |
+        ((color.r * 255).round() & 0xff) << 16 |
+        ((color.g * 255).round() & 0xff) << 8 |
+        ((color.b * 255).round() & 0xff);
   }
 
   List<Widget> _buildPages({required bool isIPhone}) {

@@ -6,6 +6,7 @@ analyzer:
     - '_ref_*/**'
     - '**/_ref/**'
     - '**/_ref_*/**'
+    - 'packages/adaptive_platform_ui/example/**'
 
 linter:
   rules:

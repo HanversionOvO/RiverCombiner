@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/account/account_models.dart';
@@ -37,6 +38,8 @@ class _RiverAppState extends State<RiverApp> {
   late final RiverPushRegistrationReporter _pushRegistrationReporter;
   final GlobalKey<NavigatorState> _appNavigatorKey =
       GlobalKey<NavigatorState>();
+  final _NativeTabBarVisibilityObserver _nativeTabBarVisibilityObserver =
+      _NativeTabBarVisibilityObserver();
   final DateTime _launchStartedAt = DateTime.now();
   static const Duration _minLaunchDisplay = Duration(milliseconds: 1250);
   bool _initialized = false;
@@ -344,6 +347,9 @@ class _RiverAppState extends State<RiverApp> {
           title: 'River Login',
           debugShowCheckedModeBanner: false,
           navigatorKey: _appNavigatorKey,
+          navigatorObservers: <NavigatorObserver>[
+            _nativeTabBarVisibilityObserver,
+          ],
           locale: const Locale('zh', 'CN'),
           supportedLocales: const <Locale>[
             Locale('zh', 'CN'),
@@ -609,6 +615,62 @@ class _RiverAppState extends State<RiverApp> {
     }
 
     return LoginPage(dependencies: _dependencies);
+  }
+}
+
+class _NativeTabBarVisibilityObserver extends NavigatorObserver {
+  int _pageRouteDepth = 0;
+
+  bool _isTracked(Route<dynamic>? route) {
+    return route is PageRoute<dynamic>;
+  }
+
+  void _syncNativeTabBarVisibility() {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    if (!PlatformInfo.isIOS26OrHigher()) {
+      return;
+    }
+    final shouldHide = _pageRouteDepth > 1;
+    unawaited(
+      IOS26NativeSearchTabBar.setTabBarHidden(shouldHide, animated: true),
+    );
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (_isTracked(route)) {
+      _pageRouteDepth += 1;
+    }
+    _syncNativeTabBarVisibility();
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (_isTracked(route)) {
+      _pageRouteDepth = math.max(0, _pageRouteDepth - 1);
+    }
+    _syncNativeTabBarVisibility();
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (_isTracked(route)) {
+      _pageRouteDepth = math.max(0, _pageRouteDepth - 1);
+    }
+    _syncNativeTabBarVisibility();
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (_isTracked(oldRoute)) {
+      _pageRouteDepth = math.max(0, _pageRouteDepth - 1);
+    }
+    if (_isTracked(newRoute)) {
+      _pageRouteDepth += 1;
+    }
+    _syncNativeTabBarVisibility();
   }
 }
 
