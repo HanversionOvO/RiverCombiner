@@ -293,14 +293,15 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                 )
               : ListView.builder(
                   controller: _scrollController,
+                  reverse: true,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.fromLTRB(10, 10, 10, listBottomPadding),
                   itemCount: _messages.length + 1,
                   itemBuilder: (context, index) {
-                    if (index == 0) {
+                    if (index == _messages.length) {
                       return _buildLoadMoreIndicator(context);
                     }
-                    final messageIndex = index - 1;
+                    final messageIndex = _messages.length - 1 - index;
                     final item = _messages[messageIndex];
                     final previous = messageIndex > 0
                         ? _messages[messageIndex - 1]

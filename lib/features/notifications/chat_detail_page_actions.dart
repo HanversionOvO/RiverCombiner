@@ -866,7 +866,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted || !_scrollController.hasClients) {
         return;
       }
-      final target = _scrollController.position.maxScrollExtent;
+      final target = _scrollController.position.minScrollExtent;
       if ((_scrollController.position.pixels - target).abs() <= 1) {
         return;
       }
@@ -886,12 +886,12 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted || !_scrollController.hasClients) {
         return;
       }
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      _scrollController.jumpTo(_scrollController.position.minScrollExtent);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_scrollController.hasClients) {
           return;
         }
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
       });
     });
   }

@@ -64,7 +64,29 @@ class _SettingsTile extends StatelessWidget {
     if (tag == null) {
       return child;
     }
-    return Hero(tag: tag, child: child);
+    return Hero(
+      tag: tag,
+      transitionOnUserGestures: true,
+      flightShuttleBuilder:
+          (_, animation, direction, fromHeroContext, toHeroContext) {
+            final fromHero = fromHeroContext.widget as Hero;
+            final toHero = toHeroContext.widget as Hero;
+            final heroChild = direction == HeroFlightDirection.push
+                ? toHero.child
+                : fromHero.child;
+            return FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOut,
+              ),
+              child: Material(
+                type: MaterialType.transparency,
+                child: heroChild,
+              ),
+            );
+          },
+      child: child,
+    );
   }
 
   @override

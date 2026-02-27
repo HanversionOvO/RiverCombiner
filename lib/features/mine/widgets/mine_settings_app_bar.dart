@@ -1,6 +1,7 @@
 import 'dart:ui';
 
-import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+// ignore: implementation_imports
+import 'package:adaptive_platform_ui/src/widgets/ios26/ios26_native_toolbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -22,12 +23,18 @@ class MineSettingsAppBar extends StatelessWidget
   final List<Widget>? actions;
 
   @override
-  Size get preferredSize => const Size.fromHeight(74);
+  Size get preferredSize {
+    final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    return Size.fromHeight(isIOS ? 96 : 74);
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isIPhone(context)) {
+      return _buildIPhoneNativeToolbar(context);
+    }
+
     final theme = Theme.of(context);
-    final enableHero = !_isIPhone(context);
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -42,7 +49,6 @@ class MineSettingsAppBar extends StatelessWidget
       title: Row(
         children: [
           _maybeHero(
-            enabled: enableHero,
             tag: _tag('icon'),
             child: Container(
               width: 34,
@@ -65,7 +71,6 @@ class MineSettingsAppBar extends StatelessWidget
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _maybeHero(
-                  enabled: enableHero,
                   tag: _tag('title'),
                   child: Material(
                     type: MaterialType.transparency,
@@ -81,7 +86,6 @@ class MineSettingsAppBar extends StatelessWidget
                   ),
                 ),
                 _maybeHero(
-                  enabled: enableHero,
                   tag: _tag('subtitle'),
                   child: Material(
                     type: MaterialType.transparency,
@@ -139,6 +143,27 @@ class MineSettingsAppBar extends StatelessWidget
     );
   }
 
+  Widget _buildIPhoneNativeToolbar(BuildContext context) {
+    final safeTop = MediaQuery.paddingOf(context).top;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        IOS26NativeToolbar(
+          title: title,
+          onLeadingTap: () => Navigator.of(context).maybePop(),
+          height: preferredSize.height - safeTop,
+        ),
+        if (actions != null && actions!.isNotEmpty)
+          Positioned(
+            top: safeTop,
+            right: 6,
+            height: preferredSize.height - safeTop,
+            child: Row(mainAxisSize: MainAxisSize.min, children: actions!),
+          ),
+      ],
+    );
+  }
+
   String? _tag(String suffix) {
     if (heroTagPrefix == null || heroTagPrefix!.isEmpty) {
       return null;
@@ -146,24 +171,36 @@ class MineSettingsAppBar extends StatelessWidget
     return '${heroTagPrefix!}__$suffix';
   }
 
-  Widget _maybeHero({
-    required bool enabled,
-    required String? tag,
-    required Widget child,
-  }) {
-    if (!enabled || tag == null) {
+  Widget _maybeHero({required String? tag, required Widget child}) {
+    if (tag == null) {
       return child;
     }
-    return Hero(tag: tag, child: child);
+    return Hero(
+      tag: tag,
+      transitionOnUserGestures: true,
+      flightShuttleBuilder:
+          (_, animation, direction, fromHeroContext, toHeroContext) {
+            final fromHero = fromHeroContext.widget as Hero;
+            final toHero = toHeroContext.widget as Hero;
+            final heroChild = direction == HeroFlightDirection.push
+                ? toHero.child
+                : fromHero.child;
+            return FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOut,
+              ),
+              child: Material(
+                type: MaterialType.transparency,
+                child: heroChild,
+              ),
+            );
+          },
+      child: child,
+    );
   }
 
   Widget _buildBackButton(BuildContext context) {
-    if (_isIPhone(context)) {
-      return _IPhoneLiquidBackButton(
-        onPressed: () => Navigator.of(context).maybePop(),
-      );
-    }
-
     final theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
@@ -197,90 +234,5 @@ class MineSettingsAppBar extends StatelessWidget
       return false;
     }
     return MediaQuery.sizeOf(context).shortestSide < 600;
-  }
-}
-
-class _IPhoneLiquidBackButton extends StatelessWidget {
-  const _IPhoneLiquidBackButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final routeAnimation = ModalRoute.of(context)?.animation;
-    if (routeAnimation == null) {
-      return _buildNativeButton();
-    }
-    return AnimatedBuilder(
-      animation: routeAnimation,
-      builder: (context, _) {
-        final value = routeAnimation.value;
-        final isTransitioning = value > 0 && value < 1;
-        return isTransitioning
-            ? _buildFallbackGlassButton(context)
-            : _buildNativeButton();
-      },
-    );
-  }
-
-  Widget _buildNativeButton() {
-    return Center(
-      child: SizedBox.square(
-        dimension: 44,
-        child: AdaptiveButton.sfSymbol(
-          onPressed: onPressed,
-          sfSymbol: const SFSymbol('chevron.backward', size: 17),
-          style: AdaptiveButtonStyle.glass,
-          size: AdaptiveButtonSize.large,
-          minSize: const Size(44, 44),
-          padding: EdgeInsets.zero,
-          borderRadius: const BorderRadius.all(Radius.circular(999)),
-          useSmoothRectangleBorder: false,
-          useNative: true,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFallbackGlassButton(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: SizedBox.square(
-        dimension: 44,
-        child: Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: onPressed,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: const SizedBox.expand(),
-                ),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: theme.colorScheme.surface.withValues(alpha: 0.24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.42),
-                      width: 0.9,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 16,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
