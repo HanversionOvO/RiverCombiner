@@ -31,7 +31,8 @@ workflows:
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             VALIDATE_PRODUCT=NO \
-            COMPILER_INDEX_STORE_ENABLE=NO
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO
           cd ..
       - name: Pack unsigned IPA
         script: |
