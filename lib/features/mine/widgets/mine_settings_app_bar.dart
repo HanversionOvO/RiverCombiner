@@ -25,7 +25,16 @@ class MineSettingsAppBar extends StatelessWidget
   @override
   Size get preferredSize {
     final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
-    return Size.fromHeight(isIOS ? 96 : 74);
+    if (!isIOS) {
+      return const Size.fromHeight(74);
+    }
+    final views = WidgetsBinding.instance.platformDispatcher.views;
+    if (views.isEmpty) {
+      return const Size.fromHeight(88);
+    }
+    final view = views.first;
+    final topPadding = view.viewPadding.top / view.devicePixelRatio;
+    return Size.fromHeight(topPadding + 44);
   }
 
   @override
@@ -151,13 +160,13 @@ class MineSettingsAppBar extends StatelessWidget
         IOS26NativeToolbar(
           title: title,
           onLeadingTap: () => Navigator.of(context).maybePop(),
-          height: preferredSize.height - safeTop,
+          height: 44,
         ),
         if (actions != null && actions!.isNotEmpty)
           Positioned(
             top: safeTop,
             right: 6,
-            height: preferredSize.height - safeTop,
+            height: 44,
             child: Row(mainAxisSize: MainAxisSize.min, children: actions!),
           ),
       ],

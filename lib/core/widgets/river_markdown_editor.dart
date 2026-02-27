@@ -150,6 +150,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
       _lastDraftSavedContent = widget.initialText;
     }
     _controller.addListener(_onEditorTextChanged);
+    _focusNode.addListener(_onEditorFocusChanged);
     _loadCurrentDraft();
   }
 
@@ -157,9 +158,17 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   void dispose() {
     _draftSaveDebounce?.cancel();
     _controller.removeListener(_onEditorTextChanged);
+    _focusNode.removeListener(_onEditorFocusChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onEditorFocusChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 
   void _onEditorTextChanged() {
@@ -762,7 +771,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final keyboardVisible = bottomInset > 0;
+    final keyboardVisible = bottomInset > 0 || _focusNode.hasFocus;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final resolvedCollapsedHeight = widget.maxHeight > 0
         ? widget.maxHeight

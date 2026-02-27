@@ -615,7 +615,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
 
   Widget _buildBottomToolbar(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final keyboardVisible = bottomInset > 0;
+    final keyboardVisible = bottomInset > 0 || _titleFocusNode.hasFocus;
     final extraInset = bottomInset > 0 ? 0.0 : widget.bottomToolbarExtraInset;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;

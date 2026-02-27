@@ -65,10 +65,12 @@ class SearchPage extends StatefulWidget {
     super.key,
     required this.dependencies,
     this.initialMode = SearchPageInitialMode.posts,
+    this.showEntryActionIcon = true,
   });
 
   final AppDependencies dependencies;
   final SearchPageInitialMode initialMode;
+  final bool showEntryActionIcon;
 
   @override
   State<SearchPage> createState() => _SearchPageState();

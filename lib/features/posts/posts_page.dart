@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'dart:ui';
 
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -5054,6 +5055,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     double t, {
     required double secondFloorProgress,
   }) {
+    final useBottomSearchTab = _shouldUseBottomSearchTab(context);
     final topInset = MediaQuery.paddingOf(context).top;
     final collapse = t.clamp(0.0, 1.0);
     final secondFloorFade = (1 - secondFloorProgress).clamp(0.0, 1.0);
@@ -5170,14 +5172,15 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                   _buildOnlineUsersPill(theme),
                                   const SizedBox(width: 8),
                                 ],
-                                IconButton.filledTonal(
-                                  onPressed: _openSearchPage,
-                                  tooltip: '搜索',
-                                  icon: Hero(
-                                    tag: postsSearchHeroTag,
-                                    child: const Icon(Icons.search_rounded),
+                                if (!useBottomSearchTab)
+                                  IconButton.filledTonal(
+                                    onPressed: _openSearchPage,
+                                    tooltip: '搜索',
+                                    icon: Hero(
+                                      tag: postsSearchHeroTag,
+                                      child: const Icon(Icons.search_rounded),
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -5399,6 +5402,16 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       borderRadius: BorderRadius.circular(999),
       child: Image.asset(assetPath, width: 14, height: 14, fit: BoxFit.cover),
     );
+  }
+
+  bool _shouldUseBottomSearchTab(BuildContext context) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    if (MediaQuery.sizeOf(context).shortestSide >= 600) {
+      return false;
+    }
+    return PlatformInfo.isIOS26OrHigher();
   }
 }
 

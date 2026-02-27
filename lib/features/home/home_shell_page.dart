@@ -7,10 +7,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:river/app/app_dependencies.dart';
+import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/features/compose/compose_topic_page.dart';
 import 'package:river/features/mine/mine_page.dart';
 import 'package:river/features/notifications/notifications_page.dart';
 import 'package:river/features/posts/posts_page.dart';
+import 'package:river/features/search/search_page.dart';
 
 class HomeShellPage extends StatefulWidget {
   const HomeShellPage({super.key, required this.dependencies});
@@ -23,6 +25,7 @@ class HomeShellPage extends StatefulWidget {
 
 class _HomeShellPageState extends State<HomeShellPage> {
   static const Duration _postsTabDoubleTapWindow = Duration(milliseconds: 320);
+  static const int _iPhoneSearchDestinationIndex = 1;
 
   int _selectedTabIndex = 0;
   int _notificationsUnreadCount = 0;
@@ -72,8 +75,62 @@ class _HomeShellPageState extends State<HomeShellPage> {
     });
   }
 
-  void _onDestinationSelected(int index) {
+  Future<void> _openSearchPageFromBottomTab() async {
+    await Navigator.of(context).push(
+      riverPageRoute<void>(
+        builder: (_) => SearchPage(
+          dependencies: widget.dependencies,
+          initialMode: SearchPageInitialMode.posts,
+          showEntryActionIcon: false,
+        ),
+      ),
+    );
+  }
+
+  int _toAppTabIndex(
+    int destinationIndex, {
+    required bool hasIPhoneSearchDestination,
+  }) {
+    if (!hasIPhoneSearchDestination) {
+      return destinationIndex;
+    }
+    if (destinationIndex > _iPhoneSearchDestinationIndex) {
+      return destinationIndex - 1;
+    }
+    return destinationIndex;
+  }
+
+  int _toDestinationIndex(
+    int appTabIndex, {
+    required bool hasIPhoneSearchDestination,
+  }) {
+    if (!hasIPhoneSearchDestination) {
+      return appTabIndex;
+    }
+    if (appTabIndex >= _iPhoneSearchDestinationIndex) {
+      return appTabIndex + 1;
+    }
+    return appTabIndex;
+  }
+
+  void _handleDestinationSelected(
+    int rawIndex, {
+    required bool hasIPhoneSearchDestination,
+  }) {
     HapticFeedback.selectionClick();
+    if (hasIPhoneSearchDestination &&
+        rawIndex == _iPhoneSearchDestinationIndex) {
+      unawaited(_openSearchPageFromBottomTab());
+      if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
+
+    final index = _toAppTabIndex(
+      rawIndex,
+      hasIPhoneSearchDestination: hasIPhoneSearchDestination,
+    );
     if (index == 0) {
       if (_selectedTabIndex == 0) {
         final now = DateTime.now();
@@ -98,6 +155,17 @@ class _HomeShellPageState extends State<HomeShellPage> {
     setState(() {
       _selectedTabIndex = index;
     });
+  }
+
+  void _onMaterialDestinationSelected(int index) {
+    _handleDestinationSelected(index, hasIPhoneSearchDestination: false);
+  }
+
+  void _onIPhoneDestinationSelected(int index) {
+    _handleDestinationSelected(
+      index,
+      hasIPhoneSearchDestination: PlatformInfo.isIOS26OrHigher(),
+    );
   }
 
   @override
@@ -194,13 +262,22 @@ class _HomeShellPageState extends State<HomeShellPage> {
     );
   }
 
-  List<AdaptiveNavigationDestination> _iPhoneDestinations() {
+  List<AdaptiveNavigationDestination> _iPhoneDestinations({
+    required bool hasSearchDestination,
+  }) {
     return <AdaptiveNavigationDestination>[
       const AdaptiveNavigationDestination(
         icon: 'bubble.left.and.bubble.right',
         selectedIcon: 'bubble.left.and.bubble.right.fill',
         label: '\u5e16\u5b50',
       ),
+      if (hasSearchDestination)
+        const AdaptiveNavigationDestination(
+          icon: 'magnifyingglass',
+          selectedIcon: 'magnifyingglass',
+          label: '\u641c\u7d22',
+          isSearch: true,
+        ),
       const AdaptiveNavigationDestination(
         icon: 'square.and.pencil',
         selectedIcon: 'square.and.pencil',
@@ -223,20 +300,28 @@ class _HomeShellPageState extends State<HomeShellPage> {
   }
 
   Widget _buildIPhoneTabBar(BuildContext context) {
+    final hasSearchDestination = PlatformInfo.isIOS26OrHigher();
+    final destinations = _iPhoneDestinations(
+      hasSearchDestination: hasSearchDestination,
+    );
+    final selectedDestinationIndex = _toDestinationIndex(
+      _selectedTabIndex,
+      hasIPhoneSearchDestination: hasSearchDestination,
+    );
+
     if (PlatformInfo.isIOS26OrHigher()) {
       return IOS26NativeTabBar(
-        destinations: _iPhoneDestinations(),
-        selectedIndex: _selectedTabIndex,
-        onTap: _onDestinationSelected,
+        destinations: destinations,
+        selectedIndex: selectedDestinationIndex,
+        onTap: _onIPhoneDestinationSelected,
         tint: CupertinoTheme.of(context).primaryColor,
         minimizeBehavior: TabBarMinimizeBehavior.automatic,
       );
     }
 
-    final destinations = _iPhoneDestinations();
     return CupertinoTabBar(
-      currentIndex: _selectedTabIndex,
-      onTap: _onDestinationSelected,
+      currentIndex: selectedDestinationIndex,
+      onTap: _onIPhoneDestinationSelected,
       items: destinations
           .map((destination) {
             final icon = destination.icon is String
@@ -258,7 +343,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
   Widget _buildMaterialTabBar() {
     return NavigationBar(
       selectedIndex: _selectedTabIndex,
-      onDestinationSelected: _onDestinationSelected,
+      onDestinationSelected: _onMaterialDestinationSelected,
       destinations: <NavigationDestination>[
         NavigationDestination(
           icon: _AnimatedBottomNavIcon(

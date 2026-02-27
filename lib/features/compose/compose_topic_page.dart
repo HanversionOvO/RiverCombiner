@@ -129,18 +129,27 @@ class _ComposeTopicPageState extends State<ComposeTopicPage>
     _animController.forward();
     _loadMetaData();
     _pageScrollController.addListener(_onPageScroll);
+    _titleFocusNode.addListener(_onTitleFocusChanged);
   }
 
   @override
   void dispose() {
     widget.dependencies.accountStore.removeListener(_onAccountStoreChanged);
     _titleController.dispose();
+    _titleFocusNode.removeListener(_onTitleFocusChanged);
     _titleFocusNode.dispose();
     _pageScrollController
       ..removeListener(_onPageScroll)
       ..dispose();
     _animController.dispose();
     super.dispose();
+  }
+
+  void _onTitleFocusChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 
   void _onPageScroll() {

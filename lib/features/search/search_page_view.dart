@@ -17,19 +17,20 @@ extension _SearchPageView on _SearchPageState {
           ),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Hero(
-              tag: postsSearchHeroTag,
-              child: Material(
-                color: Colors.transparent,
-                child: Icon(
-                  Icons.search_rounded,
-                  color: theme.colorScheme.primary,
+          if (widget.showEntryActionIcon)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Hero(
+                tag: postsSearchHeroTag,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Icon(
+                    Icons.search_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(124),
