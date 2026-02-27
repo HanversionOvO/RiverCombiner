@@ -8,7 +8,11 @@ class AppIconSwitcher {
   static const MethodChannel _channel = MethodChannel('river/app_icon');
 
   static Future<bool> switchToPreset(AppAppIconPreset preset) async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+    if (kIsWeb) {
+      return false;
+    }
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS) {
       return false;
     }
     try {

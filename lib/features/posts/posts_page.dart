@@ -5,7 +5,6 @@ import 'dart:math' as math;
 
 import 'dart:ui';
 
-import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -112,6 +111,17 @@ class PostsPageController {
 
   Future<void> scrollToTopAndRefresh() async {
     await _state?._scrollToTopAndRefresh();
+  }
+
+  Future<void> openSearchPage() async {
+    await _state?._openSearchPageFromExternal();
+  }
+
+  Future<void> openFeed(
+    RiverSideTopicFeed feed, {
+    bool refresh = true,
+  }) async {
+    await _state?._switchToFeedFromExternal(feed, refresh: refresh);
   }
 }
 
@@ -4796,6 +4806,40 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     );
   }
 
+  Future<void> _openSearchPageFromExternal() async {
+    if (!mounted) {
+      return;
+    }
+    if (_secondFloorOpened || _secondFloorController.value > 0.001) {
+      await _closeSecondFloor();
+    }
+    await _openSearchPage();
+  }
+
+  Future<void> _switchToFeedFromExternal(
+    RiverSideTopicFeed feed, {
+    bool refresh = true,
+  }) async {
+    final targetIndex = _feeds.indexOf(feed);
+    if (targetIndex < 0 || !mounted) {
+      return;
+    }
+    if (_secondFloorOpened || _secondFloorController.value > 0.001) {
+      await _closeSecondFloor();
+    }
+    if (_tabController.index != targetIndex) {
+      _tabController.animateTo(targetIndex);
+      await Future<void>.delayed(const Duration(milliseconds: 280));
+      if (!mounted) {
+        return;
+      }
+    }
+    _syncHeaderWithCurrentTab();
+    if (refresh) {
+      await _scrollToTopAndRefresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -5406,13 +5450,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   }
 
   bool _shouldUseBottomSearchTab(BuildContext context) {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
-      return false;
-    }
-    if (MediaQuery.sizeOf(context).shortestSide >= 600) {
-      return false;
-    }
-    return PlatformInfo.isIOS26OrHigher();
+    return false;
   }
 }
 

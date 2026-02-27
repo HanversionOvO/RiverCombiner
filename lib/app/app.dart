@@ -7,12 +7,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:home_widget/home_widget.dart';
+import 'package:quick_actions/quick_actions.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/core/account/account_store.dart';
 import 'package:river/core/network/riverside_api_client.dart';
+import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/mini_apps/river_mini_app_platform_client.dart';
 import 'package:river/core/platform/app_icon_switcher.dart';
 import 'package:river/core/platform/riverside_cookie_bridge.dart';
@@ -21,6 +23,7 @@ import 'package:river/core/push/river_push_registration_reporter.dart';
 import 'package:river/core/update/app_update_checker.dart';
 import 'package:river/features/home/home_shell_page.dart';
 import 'package:river/features/login/login_page.dart';
+import 'package:river/core/widgets/river_home_widget_service.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
@@ -33,19 +36,27 @@ class RiverApp extends StatefulWidget {
 }
 
 class _RiverAppState extends State<RiverApp> {
+  static const String _shortcutCompose = 'river.quick.compose';
+  static const String _shortcutSearch = 'river.quick.search';
+  static const String _shortcutLatestCreated = 'river.quick.latest_created';
+  static const String _shortcutLatestReplied = 'river.quick.latest_replied';
+
   late final AppDependencies _dependencies;
   late final RiverJPushService _jPushService;
   late final RiverPushRegistrationReporter _pushRegistrationReporter;
+  late final RiverHomeWidgetService _homeWidgetService;
+  final QuickActions _quickActions = const QuickActions();
+  final HomeShellController _homeShellController = HomeShellController();
   final GlobalKey<NavigatorState> _appNavigatorKey =
       GlobalKey<NavigatorState>();
-  final _NativeTabBarVisibilityObserver _nativeTabBarVisibilityObserver =
-      _NativeTabBarVisibilityObserver();
   final DateTime _launchStartedAt = DateTime.now();
   static const Duration _minLaunchDisplay = Duration(milliseconds: 1250);
   bool _initialized = false;
   bool _didAutoCheckUpdate = false;
   StreamSubscription<Map<String, dynamic>>? _jPushOpenSubscription;
+  StreamSubscription<Uri?>? _homeWidgetClickSubscription;
   Timer? _pushSyncDebounceTimer;
+  Timer? _homeWidgetSyncDebounceTimer;
   String? _lastPushReportSignature;
 
   @override
@@ -61,9 +72,17 @@ class _RiverAppState extends State<RiverApp> {
     );
     _jPushService = RiverJPushService();
     _pushRegistrationReporter = RiverPushRegistrationReporter();
+    _homeWidgetService = RiverHomeWidgetService(
+      apiClient: _dependencies.accountStore.riverSideApiClient,
+      accountStore: _dependencies.accountStore,
+      settingsController: _dependencies.settingsController,
+    );
     _dependencies.accountStore.addListener(_schedulePushIdentitySync);
     _dependencies.settingsController.addListener(_schedulePushIdentitySync);
+    _dependencies.accountStore.addListener(_scheduleHomeWidgetSync);
+    _dependencies.settingsController.addListener(_scheduleHomeWidgetSync);
 
+    _initializeQuickActions();
     _bootstrap();
   }
 
@@ -88,8 +107,89 @@ class _RiverAppState extends State<RiverApp> {
       _initialized = true;
     });
     unawaited(_initializePush());
+    unawaited(_initializeHomeWidgetBridge());
     _scheduleAutoUpdateCheck();
     unawaited(_dependencies.accountStore.syncActiveRiverSideCookieToWebView());
+  }
+
+  Future<void> _initializeQuickActions() async {
+    try {
+      _quickActions.initialize((type) {
+        final action = _mapQuickAction(type);
+        if (action == null) {
+          return;
+        }
+        _homeShellController.performQuickAction(action);
+      });
+      await _quickActions.setShortcutItems(_buildQuickShortcutItems());
+    } catch (error) {
+      debugPrint('[QuickActions] initialize failed: $error');
+    }
+  }
+
+  List<ShortcutItem> _buildQuickShortcutItems() {
+    final composeIcon = switch (defaultTargetPlatform) {
+      TargetPlatform.android => 'ic_shortcut_compose',
+      TargetPlatform.iOS => 'quick_compose',
+      _ => null,
+    };
+    final searchIcon = switch (defaultTargetPlatform) {
+      TargetPlatform.android => 'ic_shortcut_search',
+      TargetPlatform.iOS => 'quick_search',
+      _ => null,
+    };
+    final latestCreatedIcon = switch (defaultTargetPlatform) {
+      TargetPlatform.android => 'ic_shortcut_latest_created',
+      TargetPlatform.iOS => 'quick_latest_created',
+      _ => null,
+    };
+    final latestRepliedIcon = switch (defaultTargetPlatform) {
+      TargetPlatform.android => 'ic_shortcut_latest_replied',
+      TargetPlatform.iOS => 'quick_latest_replied',
+      _ => null,
+    };
+
+    return <ShortcutItem>[
+      ShortcutItem(
+        type: _shortcutCompose,
+        localizedTitle: '发个帖子',
+        localizedSubtitle: '快速发布新内容',
+        icon: composeIcon,
+      ),
+      ShortcutItem(
+        type: _shortcutSearch,
+        localizedTitle: '搜索',
+        localizedSubtitle: '查找帖子和用户',
+        icon: searchIcon,
+      ),
+      ShortcutItem(
+        type: _shortcutLatestCreated,
+        localizedTitle: '最新发表',
+        localizedSubtitle: '查看新发布帖子',
+        icon: latestCreatedIcon,
+      ),
+      ShortcutItem(
+        type: _shortcutLatestReplied,
+        localizedTitle: '最新回复',
+        localizedSubtitle: '查看最新活跃回复',
+        icon: latestRepliedIcon,
+      ),
+    ];
+  }
+
+  HomeQuickAction? _mapQuickAction(String? type) {
+    switch (type) {
+      case _shortcutCompose:
+        return HomeQuickAction.compose;
+      case _shortcutSearch:
+        return HomeQuickAction.search;
+      case _shortcutLatestCreated:
+        return HomeQuickAction.latestCreated;
+      case _shortcutLatestReplied:
+        return HomeQuickAction.latestReplied;
+      default:
+        return null;
+    }
   }
 
   Future<void> _initializePush() async {
@@ -155,6 +255,78 @@ class _RiverAppState extends State<RiverApp> {
     _pushSyncDebounceTimer = Timer(const Duration(milliseconds: 360), () {
       unawaited(_syncPushIdentity());
     });
+  }
+
+  void _scheduleHomeWidgetSync() {
+    _homeWidgetSyncDebounceTimer?.cancel();
+    _homeWidgetSyncDebounceTimer = Timer(const Duration(milliseconds: 680), () {
+      unawaited(_homeWidgetService.syncLatestTopic());
+    });
+  }
+
+  Future<void> _initializeHomeWidgetBridge() async {
+    try {
+      await _homeWidgetService.initialize();
+      _homeWidgetClickSubscription?.cancel();
+      _homeWidgetClickSubscription = HomeWidget.widgetClicked.listen(
+        _handleHomeWidgetLaunchUri,
+        onError: (Object error) {
+          debugPrint('[HomeWidget] widgetClicked stream error: $error');
+        },
+      );
+      final initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+      await _handleHomeWidgetLaunchUri(initialUri);
+      await _homeWidgetService.syncLatestTopic();
+    } catch (error) {
+      debugPrint('[HomeWidget] initialize failed: $error');
+    }
+  }
+
+  Future<void> _handleHomeWidgetLaunchUri(Uri? uri) async {
+    final request = _homeWidgetService.parseLaunchUri(uri);
+    if (request == null) {
+      return;
+    }
+    switch (request.type) {
+      case RiverHomeWidgetLaunchType.openApp:
+        return;
+      case RiverHomeWidgetLaunchType.openFeed:
+        final feed = request.feed;
+        if (feed == null) {
+          return;
+        }
+        switch (feed) {
+          case RiverSideTopicFeed.latestCreated:
+            _homeShellController.performQuickAction(
+              HomeQuickAction.latestCreated,
+            );
+            return;
+          case RiverSideTopicFeed.latestReplied:
+            _homeShellController.performQuickAction(
+              HomeQuickAction.latestReplied,
+            );
+            return;
+          case RiverSideTopicFeed.hot:
+            _homeShellController.performQuickAction(HomeQuickAction.hot);
+            return;
+        }
+      case RiverHomeWidgetLaunchType.openTopic:
+        final topicId = request.topicId;
+        final context = _appNavigatorKey.currentContext;
+        if (topicId == null || topicId <= 0 || context == null) {
+          return;
+        }
+        if (!context.mounted) {
+          return;
+        }
+        await Navigator.of(context).push(
+          riverPageRoute<void>(
+            builder: (_) =>
+                TopicDetailPage(dependencies: _dependencies, topicId: topicId),
+          ),
+        );
+        return;
+    }
   }
 
   Future<void> _syncPushIdentity() async {
@@ -326,11 +498,15 @@ class _RiverAppState extends State<RiverApp> {
   @override
   void dispose() {
     _jPushOpenSubscription?.cancel();
+    _homeWidgetClickSubscription?.cancel();
     _pushSyncDebounceTimer?.cancel();
+    _homeWidgetSyncDebounceTimer?.cancel();
     _jPushService.registrationId.removeListener(_schedulePushIdentitySync);
     unawaited(_jPushService.dispose());
     _dependencies.accountStore.removeListener(_schedulePushIdentitySync);
     _dependencies.settingsController.removeListener(_schedulePushIdentitySync);
+    _dependencies.accountStore.removeListener(_scheduleHomeWidgetSync);
+    _dependencies.settingsController.removeListener(_scheduleHomeWidgetSync);
     _dependencies.settingsController.dispose();
     _dependencies.accountStore.dispose();
     _dependencies.updateChecker.dispose();
@@ -347,9 +523,6 @@ class _RiverAppState extends State<RiverApp> {
           title: 'River Login',
           debugShowCheckedModeBanner: false,
           navigatorKey: _appNavigatorKey,
-          navigatorObservers: <NavigatorObserver>[
-            _nativeTabBarVisibilityObserver,
-          ],
           locale: const Locale('zh', 'CN'),
           supportedLocales: const <Locale>[
             Locale('zh', 'CN'),
@@ -611,66 +784,13 @@ class _RiverAppState extends State<RiverApp> {
   Widget _buildResolvedHome() {
     if (_dependencies.accountStore.hasAnyAccount ||
         _dependencies.accountStore.isGuestBrowsing) {
-      return HomeShellPage(dependencies: _dependencies);
+      return HomeShellPage(
+        dependencies: _dependencies,
+        controller: _homeShellController,
+      );
     }
 
     return LoginPage(dependencies: _dependencies);
-  }
-}
-
-class _NativeTabBarVisibilityObserver extends NavigatorObserver {
-  int _pageRouteDepth = 0;
-
-  bool _isTracked(Route<dynamic>? route) {
-    return route is PageRoute<dynamic>;
-  }
-
-  void _syncNativeTabBarVisibility() {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
-      return;
-    }
-    if (!PlatformInfo.isIOS26OrHigher()) {
-      return;
-    }
-    final shouldHide = _pageRouteDepth > 1;
-    unawaited(
-      IOS26NativeSearchTabBar.setTabBarHidden(shouldHide, animated: true),
-    );
-  }
-
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    if (_isTracked(route)) {
-      _pageRouteDepth += 1;
-    }
-    _syncNativeTabBarVisibility();
-  }
-
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    if (_isTracked(route)) {
-      _pageRouteDepth = math.max(0, _pageRouteDepth - 1);
-    }
-    _syncNativeTabBarVisibility();
-  }
-
-  @override
-  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    if (_isTracked(route)) {
-      _pageRouteDepth = math.max(0, _pageRouteDepth - 1);
-    }
-    _syncNativeTabBarVisibility();
-  }
-
-  @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    if (_isTracked(oldRoute)) {
-      _pageRouteDepth = math.max(0, _pageRouteDepth - 1);
-    }
-    if (_isTracked(newRoute)) {
-      _pageRouteDepth += 1;
-    }
-    _syncNativeTabBarVisibility();
   }
 }
 

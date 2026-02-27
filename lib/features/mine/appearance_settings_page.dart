@@ -44,19 +44,54 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
 
   static const List<_IconOption> _iconOptions = <_IconOption>[
     _IconOption(
-      preset: AppAppIconPreset.classic,
+      preset: AppAppIconPreset.origin,
       title: '经典',
-      assetPath: 'assets/images/logo.jpg',
+      assetPath: 'assets/images/app_icons/origin.png',
     ),
     _IconOption(
-      preset: AppAppIconPreset.riverBlue,
-      title: 'RiverSide',
-      assetPath: 'assets/images/rs.png',
+      preset: AppAppIconPreset.quality,
+      title: '质感',
+      assetPath: 'assets/images/app_icons/quality.png',
     ),
     _IconOption(
-      preset: AppAppIconPreset.minimal,
-      title: '清水河畔',
-      assetPath: 'assets/images/hp.png',
+      preset: AppAppIconPreset.pixel,
+      title: '像素画',
+      assetPath: 'assets/images/app_icons/pixel.png',
+    ),
+    _IconOption(
+      preset: AppAppIconPreset.cloud,
+      title: '云',
+      assetPath: 'assets/images/app_icons/cloud.png',
+    ),
+    _IconOption(
+      preset: AppAppIconPreset.neon,
+      title: '霓虹',
+      assetPath: 'assets/images/app_icons/neon.png',
+    ),
+    _IconOption(
+      preset: AppAppIconPreset.vaporwave,
+      title: '蒸汽波',
+      assetPath: 'assets/images/app_icons/vaporwave.png',
+    ),
+    _IconOption(
+      preset: AppAppIconPreset.china,
+      title: '国风',
+      assetPath: 'assets/images/app_icons/china.png',
+    ),
+    _IconOption(
+      preset: AppAppIconPreset.chengdu,
+      title: '成都',
+      assetPath: 'assets/images/app_icons/chengdu.png',
+    ),
+    _IconOption(
+      preset: AppAppIconPreset.animation,
+      title: '动漫',
+      assetPath: 'assets/images/app_icons/animation.png',
+    ),
+    _IconOption(
+      preset: AppAppIconPreset.sweet,
+      title: '小清新',
+      assetPath: 'assets/images/app_icons/sweet.png',
     ),
   ];
 
@@ -489,6 +524,32 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     ),
                   ],
                   onChanged: settings.updateHomeForumPreference,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _SettingsSection(
+                title: '桌面小组件',
+                subtitle: '设置小组件展示的数据源（小/中/大尺寸一致）',
+                child: _PillWrap<AppHomeWidgetFeedPreference>(
+                  selected: settings.homeWidgetFeedPreference,
+                  options: const [
+                    _PillOption(
+                      value: AppHomeWidgetFeedPreference.latestCreated,
+                      label: '最新发表',
+                      icon: Icons.fiber_new_rounded,
+                    ),
+                    _PillOption(
+                      value: AppHomeWidgetFeedPreference.latestReplied,
+                      label: '最新回复',
+                      icon: Icons.update_rounded,
+                    ),
+                    _PillOption(
+                      value: AppHomeWidgetFeedPreference.hot,
+                      label: '热门',
+                      icon: Icons.local_fire_department_outlined,
+                    ),
+                  ],
+                  onChanged: settings.updateHomeWidgetFeedPreference,
                 ),
               ),
               const SizedBox(height: 14),

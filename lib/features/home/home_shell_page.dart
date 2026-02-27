@@ -7,16 +7,48 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:river/app/app_dependencies.dart';
+import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/features/compose/compose_topic_page.dart';
 import 'package:river/features/mine/mine_page.dart';
 import 'package:river/features/notifications/notifications_page.dart';
 import 'package:river/features/posts/posts_page.dart';
-import 'package:river/features/search/search_page.dart';
+
+enum HomeQuickAction { compose, search, latestCreated, latestReplied, hot }
+
+class HomeShellController {
+  _HomeShellPageState? _state;
+  HomeQuickAction? _pendingAction;
+
+  void _attach(_HomeShellPageState state) {
+    _state = state;
+    final pending = _pendingAction;
+    _pendingAction = null;
+    if (pending != null) {
+      unawaited(state._performQuickAction(pending));
+    }
+  }
+
+  void _detach(_HomeShellPageState state) {
+    if (_state == state) {
+      _state = null;
+    }
+  }
+
+  void performQuickAction(HomeQuickAction action) {
+    final state = _state;
+    if (state == null) {
+      _pendingAction = action;
+      return;
+    }
+    unawaited(state._performQuickAction(action));
+  }
+}
 
 class HomeShellPage extends StatefulWidget {
-  const HomeShellPage({super.key, required this.dependencies});
+  const HomeShellPage({super.key, required this.dependencies, this.controller});
 
   final AppDependencies dependencies;
+  final HomeShellController? controller;
 
   @override
   State<HomeShellPage> createState() => _HomeShellPageState();
@@ -24,16 +56,12 @@ class HomeShellPage extends StatefulWidget {
 
 class _HomeShellPageState extends State<HomeShellPage> {
   static const Duration _postsTabDoubleTapWindow = Duration(milliseconds: 320);
-  static const int _nativeSearchTabIndex = 4;
 
   int _selectedTabIndex = 0;
   int _notificationsUnreadCount = 0;
   double _postsSecondFloorProgress = 0;
   DateTime? _lastPostsTabTapAt;
   final PostsPageController _postsPageController = PostsPageController();
-  final SearchPageController _searchPageController = SearchPageController();
-  bool _nativeSearchTabBarEnabled = false;
-  bool _nativeSearchTabBarSyncing = false;
 
   late final PostsPage _postsPage = PostsPage(
     dependencies: widget.dependencies,
@@ -45,113 +73,22 @@ class _HomeShellPageState extends State<HomeShellPage> {
     dependencies: widget.dependencies,
     onUnreadCountChanged: _onUnreadCountChanged,
   );
-  late final SearchPage _searchPage = SearchPage(
-    dependencies: widget.dependencies,
-    initialMode: SearchPageInitialMode.posts,
-    showEntryActionIcon: false,
-    controller: _searchPageController,
-  );
   late final MinePage _minePage = MinePage(dependencies: widget.dependencies);
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      unawaited(_syncNativeSearchTabBarMode());
-    });
+  void initState() {
+    super.initState();
+    widget.controller?._attach(this);
   }
 
-  Future<void> _syncNativeSearchTabBarMode() async {
-    if (_nativeSearchTabBarSyncing) {
+  @override
+  void didUpdateWidget(covariant HomeShellPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) {
       return;
     }
-    _nativeSearchTabBarSyncing = true;
-    try {
-      final shouldEnable = _shouldUseExperimentalNativeSearchTabBar(context);
-      final theme = Theme.of(context);
-      final tint = _colorToArgb(theme.colorScheme.primary);
-      final unselectedItemTint = _colorToArgb(
-        theme.colorScheme.onSurfaceVariant,
-      );
-      if (shouldEnable && !_nativeSearchTabBarEnabled) {
-        await IOS26NativeSearchTabBar.enable(
-          tabs: <NativeTabConfig>[
-            NativeTabConfig(
-              title: '帖子',
-              sfSymbol: 'bubble.left.and.bubble.right',
-            ),
-            NativeTabConfig(title: '发帖', sfSymbol: 'square.and.pencil'),
-            NativeTabConfig(
-              title: '通知',
-              sfSymbol: 'bell',
-              badgeCount: _notificationsUnreadCount > 99
-                  ? 99
-                  : _notificationsUnreadCount,
-            ),
-            NativeTabConfig(title: '我的', sfSymbol: 'person'),
-            NativeTabConfig(
-              title: '搜索',
-              sfSymbol: 'magnifyingglass',
-              isSearchTab: true,
-            ),
-          ],
-          selectedIndex: _selectedTabIndex.clamp(0, _nativeSearchTabIndex),
-          tint: tint,
-          unselectedItemTint: unselectedItemTint,
-          onTabSelected: _onNativeSearchTabSelected,
-          onSearchQueryChanged:
-              _searchPageController.onNativeSearchQueryChanged,
-          onSearchSubmitted: (query) {
-            unawaited(_searchPageController.onNativeSearchSubmitted(query));
-          },
-          onSearchCancelled: _searchPageController.onNativeSearchCancelled,
-        );
-        _nativeSearchTabBarEnabled = true;
-        return;
-      }
-      if (shouldEnable && _nativeSearchTabBarEnabled) {
-        await IOS26NativeSearchTabBar.setStyle(
-          tint: tint,
-          unselectedItemTint: unselectedItemTint,
-        );
-        await IOS26NativeSearchTabBar.setBadgeCounts(<int?>[
-          null,
-          null,
-          _notificationsUnreadCount > 0
-              ? (_notificationsUnreadCount > 99
-                    ? 99
-                    : _notificationsUnreadCount)
-              : null,
-          null,
-          null,
-        ]);
-        await IOS26NativeSearchTabBar.setSelectedIndex(
-          _selectedTabIndex.clamp(0, _nativeSearchTabIndex),
-        );
-        return;
-      }
-      if (!shouldEnable && _nativeSearchTabBarEnabled) {
-        await IOS26NativeSearchTabBar.disable();
-        _nativeSearchTabBarEnabled = false;
-      }
-    } catch (error) {
-      debugPrint('[HomeShell] native search tab bar switch failed: $error');
-    } finally {
-      _nativeSearchTabBarSyncing = false;
-    }
-  }
-
-  void _onNativeSearchTabSelected(int index) {
-    if (!mounted) {
-      return;
-    }
-    if (index < 0 || index > _nativeSearchTabIndex) {
-      return;
-    }
-    _handleDestinationSelected(index, triggerHaptic: false);
+    oldWidget.controller?._detach(this);
+    widget.controller?._attach(this);
   }
 
   void _onUnreadCountChanged(int value) {
@@ -161,17 +98,6 @@ class _HomeShellPageState extends State<HomeShellPage> {
     setState(() {
       _notificationsUnreadCount = value;
     });
-    if (_nativeSearchTabBarEnabled) {
-      unawaited(
-        IOS26NativeSearchTabBar.setBadgeCounts(<int?>[
-          null,
-          null,
-          value > 0 ? (value > 99 ? 99 : value) : null,
-          null,
-          null,
-        ]),
-      );
-    }
   }
 
   void _onPostsSecondFloorVisibilityChanged(bool visible) {
@@ -223,9 +149,6 @@ class _HomeShellPageState extends State<HomeShellPage> {
     setState(() {
       _selectedTabIndex = index;
     });
-    if (_nativeSearchTabBarEnabled) {
-      unawaited(IOS26NativeSearchTabBar.setSelectedIndex(index));
-    }
   }
 
   void _onMaterialDestinationSelected(int index) {
@@ -246,11 +169,6 @@ class _HomeShellPageState extends State<HomeShellPage> {
         : 0.0;
 
     if (isIPhone) {
-      if (_shouldUseExperimentalNativeSearchTabBar(context)) {
-        return Scaffold(
-          body: IndexedStack(index: safeSelectedTabIndex, children: pages),
-        );
-      }
       return _buildIPhoneShell(
         context: context,
         pages: pages,
@@ -286,32 +204,15 @@ class _HomeShellPageState extends State<HomeShellPage> {
     return MediaQuery.sizeOf(context).shortestSide < 600;
   }
 
-  bool _shouldUseExperimentalNativeSearchTabBar(BuildContext context) {
-    if (!_isIPhoneDevice(context)) {
-      return false;
-    }
-    return PlatformInfo.isIOS26OrHigher();
-  }
-
-  int _colorToArgb(Color color) {
-    return ((color.a * 255).round() & 0xff) << 24 |
-        ((color.r * 255).round() & 0xff) << 16 |
-        ((color.g * 255).round() & 0xff) << 8 |
-        ((color.b * 255).round() & 0xff);
-  }
-
   List<Widget> _buildPages({required bool isIPhone}) {
-    final hasSearchDestination = isIPhone && PlatformInfo.isIOS26OrHigher();
-    final composeBottomInset = hasSearchDestination ? 78.0 : 0.0;
     return <Widget>[
       _postsPage,
       ComposeTopicPage(
         dependencies: widget.dependencies,
-        bottomToolbarExtraInset: composeBottomInset,
+        bottomToolbarExtraInset: 0,
       ),
       _notificationsPage,
       _minePage,
-      if (hasSearchDestination) _searchPage,
     ];
   }
 
@@ -352,9 +253,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
     );
   }
 
-  List<AdaptiveNavigationDestination> _iPhoneDestinations({
-    required bool hasSearchDestination,
-  }) {
+  List<AdaptiveNavigationDestination> _iPhoneDestinations() {
     return <AdaptiveNavigationDestination>[
       const AdaptiveNavigationDestination(
         icon: 'bubble.left.and.bubble.right',
@@ -379,21 +278,11 @@ class _HomeShellPageState extends State<HomeShellPage> {
         selectedIcon: 'person.fill',
         label: '\u6211\u7684',
       ),
-      if (hasSearchDestination)
-        const AdaptiveNavigationDestination(
-          icon: 'magnifyingglass',
-          selectedIcon: 'magnifyingglass',
-          label: '\u641c\u7d22',
-          isSearch: true,
-        ),
     ];
   }
 
   Widget _buildIPhoneTabBar(BuildContext context) {
-    final hasSearchDestination = PlatformInfo.isIOS26OrHigher();
-    final destinations = _iPhoneDestinations(
-      hasSearchDestination: hasSearchDestination,
-    );
+    final destinations = _iPhoneDestinations();
     final selectedDestinationIndex = _selectedTabIndex.clamp(
       0,
       destinations.length - 1,
@@ -479,11 +368,32 @@ class _HomeShellPageState extends State<HomeShellPage> {
 
   @override
   void dispose() {
-    if (_nativeSearchTabBarEnabled) {
-      unawaited(IOS26NativeSearchTabBar.disable());
-      _nativeSearchTabBarEnabled = false;
-    }
+    widget.controller?._detach(this);
     super.dispose();
+  }
+
+  Future<void> _performQuickAction(HomeQuickAction action) async {
+    switch (action) {
+      case HomeQuickAction.compose:
+        _handleDestinationSelected(1, triggerHaptic: false);
+        return;
+      case HomeQuickAction.search:
+        _handleDestinationSelected(0, triggerHaptic: false);
+        await _postsPageController.openSearchPage();
+        return;
+      case HomeQuickAction.latestCreated:
+        _handleDestinationSelected(0, triggerHaptic: false);
+        await _postsPageController.openFeed(RiverSideTopicFeed.latestCreated);
+        return;
+      case HomeQuickAction.latestReplied:
+        _handleDestinationSelected(0, triggerHaptic: false);
+        await _postsPageController.openFeed(RiverSideTopicFeed.latestReplied);
+        return;
+      case HomeQuickAction.hot:
+        _handleDestinationSelected(0, triggerHaptic: false);
+        await _postsPageController.openFeed(RiverSideTopicFeed.hot);
+        return;
+    }
   }
 }
 

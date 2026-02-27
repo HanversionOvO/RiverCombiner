@@ -6,13 +6,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppFontWeightPreset { regular, medium, bold }
 
-enum AppAppIconPreset { classic, riverBlue, minimal }
+enum AppAppIconPreset {
+  origin,
+  quality,
+  pixel,
+  cloud,
+  neon,
+  vaporwave,
+  china,
+  chengdu,
+  animation,
+  sweet,
+}
 
 enum AppCornerPreset { compact, standard, relaxed }
 
 enum AppAiProvider { deepseek, openAiCompatible }
 
 enum AppHomeForumPreference { riverSide, qingShuiHePan }
+
+enum AppHomeWidgetFeedPreference { latestCreated, latestReplied, hot }
 
 class AppSettingsController extends ChangeNotifier {
   static const String _themeModeKey = 'app.theme_mode';
@@ -43,6 +56,8 @@ class AppSettingsController extends ChangeNotifier {
   static const String _aiTemperatureKey = 'app.ai_temperature';
   static const String _developerModeEnabledKey = 'app.developer_mode_enabled';
   static const String _homeForumPreferenceKey = 'app.home_forum_preference';
+  static const String _homeWidgetFeedPreferenceKey =
+      'app.home_widget_feed_preference';
 
   static const Color defaultSeedColor = Color(0xFF12457A);
   static const String defaultAiBaseUrl =
@@ -56,7 +71,7 @@ class AppSettingsController extends ChangeNotifier {
   double _fontScale = 1.0;
   AppFontWeightPreset _fontWeightPreset = AppFontWeightPreset.medium;
   String? _fontFamilyName;
-  AppAppIconPreset _iconPreset = AppAppIconPreset.classic;
+  AppAppIconPreset _iconPreset = AppAppIconPreset.origin;
   AppCornerPreset _cornerPreset = AppCornerPreset.standard;
   bool _compactDensity = false;
   bool _reduceMotion = false;
@@ -76,6 +91,8 @@ class AppSettingsController extends ChangeNotifier {
   bool _developerModeEnabled = false;
   AppHomeForumPreference _homeForumPreference =
       AppHomeForumPreference.riverSide;
+  AppHomeWidgetFeedPreference _homeWidgetFeedPreference =
+      AppHomeWidgetFeedPreference.latestReplied;
 
   SharedPreferences? _prefs;
 
@@ -105,6 +122,8 @@ class AppSettingsController extends ChangeNotifier {
   double get aiTemperature => _aiTemperature;
   bool get developerModeEnabled => _developerModeEnabled;
   AppHomeForumPreference get homeForumPreference => _homeForumPreference;
+  AppHomeWidgetFeedPreference get homeWidgetFeedPreference =>
+      _homeWidgetFeedPreference;
   bool get aiConfigured =>
       _aiBaseUrl.trim().isNotEmpty &&
       _aiModel.trim().isNotEmpty &&
@@ -152,7 +171,9 @@ class AppSettingsController extends ChangeNotifier {
       _fontFamilyName = _mapLegacyFontPresetToFamily(legacyPreset);
     }
 
-    final iconPresetRaw = _prefs?.getString(_iconPresetKey);
+    final iconPresetRaw = _normalizeLegacyIconPresetName(
+      _prefs?.getString(_iconPresetKey),
+    );
     if (iconPresetRaw != null) {
       for (final value in AppAppIconPreset.values) {
         if (value.name == iconPresetRaw) {
@@ -266,6 +287,15 @@ class AppSettingsController extends ChangeNotifier {
       for (final value in AppHomeForumPreference.values) {
         if (value.name == homeForumRaw) {
           _homeForumPreference = value;
+          break;
+        }
+      }
+    }
+    final homeWidgetFeedRaw = _prefs?.getString(_homeWidgetFeedPreferenceKey);
+    if (homeWidgetFeedRaw != null) {
+      for (final value in AppHomeWidgetFeedPreference.values) {
+        if (value.name == homeWidgetFeedRaw) {
+          _homeWidgetFeedPreference = value;
           break;
         }
       }
@@ -512,6 +542,15 @@ class AppSettingsController extends ChangeNotifier {
     unawaited(_saveHomeForumPreference());
   }
 
+  void updateHomeWidgetFeedPreference(AppHomeWidgetFeedPreference value) {
+    if (_homeWidgetFeedPreference == value) {
+      return;
+    }
+    _homeWidgetFeedPreference = value;
+    notifyListeners();
+    unawaited(_saveHomeWidgetFeedPreference());
+  }
+
   String? _mapLegacyFontPresetToFamily(String? presetName) {
     switch (presetName) {
       case 'system':
@@ -540,6 +579,22 @@ class AppSettingsController extends ChangeNotifier {
         return 'monospace';
       default:
         return null;
+    }
+  }
+
+  String? _normalizeLegacyIconPresetName(String? rawName) {
+    if (rawName == null) {
+      return null;
+    }
+    switch (rawName.trim()) {
+      case 'classic':
+        return AppAppIconPreset.origin.name;
+      case 'riverBlue':
+        return AppAppIconPreset.quality.name;
+      case 'minimal':
+        return AppAppIconPreset.pixel.name;
+      default:
+        return rawName.trim();
     }
   }
 
@@ -652,7 +707,6 @@ class AppSettingsController extends ChangeNotifier {
     await _prefs!.setString(_miniAppsManifestUrlKey, _miniAppsManifestUrl);
   }
 
-
   Future<void> _saveAiProvider() async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setString(_aiProviderKey, _aiProvider.name);
@@ -691,5 +745,13 @@ class AppSettingsController extends ChangeNotifier {
   Future<void> _saveHomeForumPreference() async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setString(_homeForumPreferenceKey, _homeForumPreference.name);
+  }
+
+  Future<void> _saveHomeWidgetFeedPreference() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setString(
+      _homeWidgetFeedPreferenceKey,
+      _homeWidgetFeedPreference.name,
+    );
   }
 }

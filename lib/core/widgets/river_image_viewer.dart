@@ -468,10 +468,12 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
       return;
     }
     var saved = false;
+    final editorConfigs = _buildImageEditorConfigs(Theme.of(context));
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ProImageEditor.memory(
           Uint8List.fromList(bytes),
+          configs: editorConfigs,
           callbacks: ProImageEditorCallbacks(
             onImageEditingComplete: (editedBytes) async {
               final granted = await _ensureStoragePermission();
@@ -515,6 +517,361 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     }
     ScaffoldMessenger.of(context).showRiverSnackBar(
       '\u7f16\u8f91\u540e\u7684\u56fe\u7247\u5df2\u4fdd\u5b58\u5230\u7cfb\u7edf\u76f8\u518c',
+    );
+  }
+
+  ProImageEditorConfigs _buildImageEditorConfigs(ThemeData appTheme) {
+    final colorScheme = appTheme.colorScheme;
+    final useCupertino = defaultTargetPlatform == TargetPlatform.iOS;
+    final canvasColor = Colors.black;
+    final chromeColor = colorScheme.surface.withValues(alpha: 0.9);
+    final chromeStrongColor = colorScheme.surfaceContainerHigh.withValues(
+      alpha: 0.93,
+    );
+    final sheetColor = colorScheme.surfaceContainer.withValues(alpha: 0.96);
+    final inactiveColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.82);
+    final outlineColor = colorScheme.outlineVariant.withValues(alpha: 0.46);
+    const uiOverlayStyle = SystemUiOverlayStyle.light;
+
+    return ProImageEditorConfigs(
+      designMode: useCupertino
+          ? ImageEditorDesignMode.cupertino
+          : ImageEditorDesignMode.material,
+      theme: appTheme.copyWith(
+        scaffoldBackgroundColor: canvasColor,
+      ),
+      mainEditor: MainEditorConfigs(
+        safeArea: const EditorSafeArea.none(),
+        style: MainEditorStyle(
+          background: canvasColor,
+          appBarBackground: chromeColor,
+          appBarColor: colorScheme.onSurface,
+          bottomBarBackground: chromeColor,
+          bottomBarColor: colorScheme.onSurface,
+          outsideCaptureAreaLayerOpacity: 0.26,
+          uiOverlayStyle: uiOverlayStyle,
+        ),
+      ),
+      paintEditor: PaintEditorConfigs(
+        safeArea: const EditorSafeArea.none(),
+        style: PaintEditorStyle(
+          background: canvasColor,
+          appBarBackground: chromeColor,
+          appBarColor: colorScheme.onSurface,
+          bottomBarBackground: chromeColor,
+          bottomBarActiveItemColor: colorScheme.primary,
+          bottomBarInactiveItemColor: inactiveColor,
+          lineWidthBottomSheetBackground: sheetColor,
+          opacityBottomSheetBackground: sheetColor,
+          editSheetBackgroundColor: chromeStrongColor,
+          editSheetColor: colorScheme.onSurface,
+          editSheetPreviewAreaColor: colorScheme.surfaceContainerHighest
+              .withValues(alpha: 0.7),
+          initialColor: colorScheme.primary,
+          uiOverlayStyle: uiOverlayStyle,
+        ),
+      ),
+      textEditor: TextEditorConfigs(
+        safeArea: const EditorSafeArea.none(),
+        style: TextEditorStyle(
+          appBarBackground: chromeColor,
+          appBarColor: colorScheme.onSurface,
+          bottomBarBackground: chromeColor,
+          background: canvasColor.withValues(alpha: 0.68),
+          inputHintColor: inactiveColor,
+          inputCursorColor: colorScheme.primary,
+          fontScaleBottomSheetBackground: sheetColor,
+          inputTextFieldBackground: colorScheme.surfaceContainerHighest
+              .withValues(alpha: 0.62),
+          inputTextFieldBorderColor: outlineColor,
+          inputTextFieldBorderRadius: BorderRadius.circular(14),
+          inputTextFieldPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+        ),
+        initialPrimaryColor: colorScheme.onSurface,
+        initialSecondaryColor: colorScheme.primary.withValues(alpha: 0.22),
+        defaultTextStyle: TextStyle(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      cropRotateEditor: CropRotateEditorConfigs(
+        safeArea: const EditorSafeArea.none(),
+        style: CropRotateEditorStyle(
+          background: canvasColor,
+          appBarBackground: chromeColor,
+          appBarColor: colorScheme.onSurface,
+          bottomBarBackground: chromeColor,
+          bottomBarColor: colorScheme.onSurface,
+          cropCornerColor: colorScheme.primary,
+          helperLineColor: colorScheme.primary.withValues(alpha: 0.75),
+          cropOverlayColor: Colors.black,
+          aspectRatioSheetBackgroundColor: sheetColor,
+          aspectRatioSheetForegroundColor: colorScheme.onSurface,
+          uiOverlayStyle: uiOverlayStyle,
+        ),
+      ),
+      filterEditor: FilterEditorConfigs(
+        safeArea: const EditorSafeArea.none(),
+        style: FilterEditorStyle(
+          appBarBackground: chromeColor,
+          appBarColor: colorScheme.onSurface,
+          background: canvasColor,
+          previewTextColor: inactiveColor,
+          previewSelectedTextColor: colorScheme.primary,
+          uiOverlayStyle: uiOverlayStyle,
+        ),
+      ),
+      tuneEditor: TuneEditorConfigs(
+        safeArea: const EditorSafeArea.none(),
+        style: TuneEditorStyle(
+          appBarBackground: chromeColor,
+          appBarColor: colorScheme.onSurface,
+          bottomBarBackground: chromeColor,
+          bottomBarActiveItemColor: colorScheme.primary,
+          bottomBarInactiveItemColor: inactiveColor,
+          background: canvasColor,
+          uiOverlayStyle: uiOverlayStyle,
+        ),
+      ),
+      blurEditor: BlurEditorConfigs(
+        safeArea: const EditorSafeArea.none(),
+        style: BlurEditorStyle(
+          appBarBackgroundColor: chromeColor,
+          appBarForegroundColor: colorScheme.onSurface,
+          background: canvasColor,
+          uiOverlayStyle: uiOverlayStyle,
+        ),
+      ),
+      emojiEditor: EmojiEditorConfigs(
+        style: EmojiEditorStyle(
+          backgroundColor: chromeStrongColor,
+          bottomActionBarConfig: BottomActionBarConfig(
+            showBackspaceButton: false,
+            backgroundColor: chromeStrongColor,
+            buttonColor: colorScheme.primary.withValues(alpha: 0.2),
+            buttonIconColor: colorScheme.primary,
+          ),
+          categoryViewConfig: CategoryViewConfig(
+            backgroundColor: chromeStrongColor,
+            indicatorColor: colorScheme.primary,
+            iconColor: inactiveColor,
+            iconColorSelected: colorScheme.primary,
+            backspaceColor: colorScheme.primary,
+            dividerColor: outlineColor,
+          ),
+          emojiViewConfig: EmojiViewConfig(
+            backgroundColor: chromeStrongColor,
+            noRecents: Text(
+              '暂无最近表情',
+              style: TextStyle(
+                fontSize: 18,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          searchViewConfig: SearchViewConfig(
+            backgroundColor: chromeStrongColor,
+            buttonIconColor: inactiveColor,
+            hintText: '搜索',
+            hintTextStyle: TextStyle(color: inactiveColor),
+            inputTextStyle: TextStyle(color: colorScheme.onSurface),
+          ),
+          skinToneConfig: SkinToneConfig(
+            dialogBackgroundColor: sheetColor,
+            indicatorColor: colorScheme.primary,
+          ),
+          categoryTitleStyle: TextStyle(
+            color: inactiveColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      ),
+      dialogConfigs: DialogConfigs(
+        style: DialogStyle(
+          loadingDialog: LoadingDialogStyle(
+            textColor: colorScheme.onSurface,
+            cupertinoPrimaryColorLight: colorScheme.primary,
+            cupertinoPrimaryColorDark: colorScheme.primary,
+          ),
+          adaptiveDialog: AdaptiveDialogStyle(
+            cupertinoPrimaryColorLight: colorScheme.primary,
+            cupertinoPrimaryColorDark: colorScheme.primary,
+          ),
+        ),
+      ),
+      i18n: _buildChineseImageEditorI18n(),
+    );
+  }
+
+  I18n _buildChineseImageEditorI18n() {
+    return const I18n(
+      importStateHistoryMsg: '正在初始化编辑器...',
+      cancel: '取消',
+      undo: '撤销',
+      redo: '重做',
+      done: '完成',
+      remove: '移除',
+      doneLoadingMsg: '正在生成图片...',
+      various: I18nVarious(
+        loadingDialogMsg: '请稍候...',
+        closeEditorWarningTitle: '退出编辑？',
+        closeEditorWarningMessage: '当前修改尚未保存，确定要退出吗？',
+        closeEditorWarningConfirmBtn: '退出',
+        closeEditorWarningCancelBtn: '继续编辑',
+      ),
+      layerInteraction: I18nLayerInteraction(
+        remove: '删除',
+        edit: '编辑',
+        rotateScale: '旋转/缩放',
+      ),
+      paintEditor: I18nPaintEditor(
+        moveAndZoom: '移动与缩放',
+        bottomNavigationBarText: '涂鸦',
+        freestyle: '自由画笔',
+        freestyleArrowStart: '自由线(起点箭头)',
+        freestyleArrowEnd: '自由线(终点箭头)',
+        freestyleArrowStartEnd: '自由线(双向箭头)',
+        arrow: '箭头',
+        line: '直线',
+        rectangle: '矩形',
+        circle: '圆形',
+        dashLine: '虚线',
+        dashDotLine: '点划线',
+        hexagon: '六边形',
+        polygon: '多边形',
+        blur: '模糊',
+        pixelate: '像素化',
+        custom1: '自定义 1',
+        custom2: '自定义 2',
+        custom3: '自定义 3',
+        lineWidth: '线宽',
+        eraser: '橡皮擦',
+        toggleFill: '填充开关',
+        changeOpacity: '透明度',
+        undo: '撤销',
+        redo: '重做',
+        done: '完成',
+        back: '返回',
+        smallScreenMoreTooltip: '更多',
+        opacity: '透明度',
+        color: '颜色',
+        strokeWidth: '描边粗细',
+        fill: '填充',
+        cancel: '取消',
+      ),
+      textEditor: I18nTextEditor(
+        inputHintText: '输入文字',
+        bottomNavigationBarText: '文字',
+        back: '返回',
+        done: '完成',
+        textAlign: '文字对齐',
+        fontScale: '字号',
+        backgroundMode: '背景模式',
+        smallScreenMoreTooltip: '更多',
+      ),
+      cropRotateEditor: I18nCropRotateEditor(
+        bottomNavigationBarText: '裁剪/旋转',
+        rotate: '旋转',
+        flip: '翻转',
+        ratio: '比例',
+        back: '返回',
+        done: '完成',
+        cancel: '取消',
+        undo: '撤销',
+        redo: '重做',
+        smallScreenMoreTooltip: '更多',
+        reset: '重置',
+      ),
+      tuneEditor: I18nTuneEditor(
+        bottomNavigationBarText: '调节',
+        back: '返回',
+        done: '完成',
+        brightness: '亮度',
+        contrast: '对比度',
+        saturation: '饱和度',
+        exposure: '曝光',
+        hue: '色相',
+        temperature: '色温',
+        sharpness: '锐化',
+        fade: '褪色',
+        luminance: '明度',
+        undo: '撤销',
+        redo: '重做',
+      ),
+      filterEditor: I18nFilterEditor(
+        bottomNavigationBarText: '滤镜',
+        back: '返回',
+        done: '完成',
+        filters: I18nFilters(
+          none: '无滤镜',
+          addictiveBlue: '蓝调',
+          addictiveRed: '红调',
+          aden: '雅登',
+          amaro: '阿玛罗',
+          ashby: '阿什比',
+          brannan: '布兰南',
+          brooklyn: '布鲁克林',
+          charmes: '夏慕',
+          clarendon: '克拉伦登',
+          crema: '克雷玛',
+          dogpatch: '道格帕奇',
+          earlybird: '晨鸟',
+          f1977: '1977',
+          gingham: '金格姆',
+          ginza: '银座',
+          hefe: '海菲',
+          helena: '海伦娜',
+          hudson: '哈德森',
+          inkwell: '墨色',
+          juno: '朱诺',
+          kelvin: '开尔文',
+          lark: '云雀',
+          loFi: '高反差',
+          ludwig: '路德维希',
+          maven: '梅文',
+          mayfair: '梅菲尔',
+          moon: '月光',
+          nashville: '纳什维尔',
+          perpetua: '珀佩图阿',
+          reyes: '雷耶斯',
+          rise: '初升',
+          sierra: '内华达',
+          skyline: '天际线',
+          slumber: '沉眠',
+          stinson: '斯廷森',
+          sutro: '苏特罗',
+          toaster: '烘烤',
+          valencia: '瓦伦西亚',
+          vesper: '维斯珀',
+          walden: '瓦尔登',
+          willow: '柳影',
+          xProII: 'X-Pro II',
+        ),
+      ),
+      blurEditor: I18nBlurEditor(
+        bottomNavigationBarText: '模糊',
+        back: '返回',
+        done: '完成',
+      ),
+      emojiEditor: I18nEmojiEditor(
+        bottomNavigationBarText: '表情',
+        search: '搜索',
+        categoryRecent: '最近使用',
+        categorySmileys: '笑脸与人物',
+        categoryAnimals: '动物与自然',
+        categoryFood: '食物与饮料',
+        categoryActivities: '活动',
+        categoryTravel: '旅行与地点',
+        categoryObjects: '物品',
+        categorySymbols: '符号',
+        categoryFlags: '旗帜',
+      ),
+      stickerEditor: I18nStickerEditor(bottomNavigationBarText: '贴纸'),
     );
   }
 

@@ -1,7 +1,6 @@
 package com.example.river
 
 import android.content.ComponentName
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.webkit.CookieManager
 import androidx.webkit.WebViewCompat
@@ -159,17 +158,31 @@ class MainActivity : FlutterActivity() {
 
     private fun switchAppIcon(preset: String): Boolean {
         val targetAlias = when (preset) {
-            "classic" -> ".MainActivityAliasClassic"
-            "riverBlue" -> ".MainActivityAliasRiver"
-            "minimal" -> ".MainActivityAliasHp"
+            "origin" -> ".MainActivityAliasOrigin"
+            "quality" -> ".MainActivityAliasQuality"
+            "pixel" -> ".MainActivityAliasPixel"
+            "cloud" -> ".MainActivityAliasCloud"
+            "neon" -> ".MainActivityAliasNeon"
+            "vaporwave" -> ".MainActivityAliasVaporwave"
+            "china" -> ".MainActivityAliasChina"
+            "chengdu" -> ".MainActivityAliasChengdu"
+            "animation" -> ".MainActivityAliasAnimation"
+            "sweet" -> ".MainActivityAliasSweet"
             else -> return false
         }
 
         return try {
             val aliases = listOf(
-                ".MainActivityAliasClassic",
-                ".MainActivityAliasRiver",
-                ".MainActivityAliasHp",
+                ".MainActivityAliasOrigin",
+                ".MainActivityAliasQuality",
+                ".MainActivityAliasPixel",
+                ".MainActivityAliasCloud",
+                ".MainActivityAliasNeon",
+                ".MainActivityAliasVaporwave",
+                ".MainActivityAliasChina",
+                ".MainActivityAliasChengdu",
+                ".MainActivityAliasAnimation",
+                ".MainActivityAliasSweet",
             )
             val packageManager = packageManager
 

@@ -65,6 +65,8 @@ dependencies:
   file_picker: ^10.3.3
   jpush_flutter: ^3.4.3
   adaptive_platform_ui: ^0.1.103
+  quick_actions: ^1.1.0
+  home_widget: ^0.8.1
   draggable_route: ^0.7.3
   pro_image_editor: ^12.0.0
 
@@ -96,6 +98,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/images/app_icons/
     - assets/lottie/login_welcome.json
     - assets/lottie/weather/
     - assets/lottie/tab_select_fx.json

@@ -7,22 +7,30 @@ extension _SearchPageView on _SearchPageState {
     final useIPhoneNativeLayout = _isIPhoneNativeSearchPage(context);
 
     if (useIPhoneNativeLayout) {
+      final topToolbarPlaceholder = MediaQuery.paddingOf(context).top + 44;
       return AdaptiveScaffold(
         appBar: const AdaptiveAppBar(
           title: _SearchPageState._labelSearch,
           useNativeToolbar: true,
         ),
-        body: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          child: Column(
-            children: [
-              _buildNativeSearchInput(theme, hasKeyword),
-              const SizedBox(height: 10),
-              _buildModeSelector(theme),
-              const SizedBox(height: 8),
-              Expanded(child: _buildResultsSwitcher()),
-            ],
-          ),
+        body: Column(
+          children: [
+            SizedBox(height: topToolbarPlaceholder),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: Column(
+                  children: [
+                    _buildSearchInput(theme, hasKeyword),
+                    const SizedBox(height: 10),
+                    _buildModeSelector(theme),
+                    const SizedBox(height: 8),
+                    Expanded(child: _buildResultsSwitcher()),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
         floatingActionButton: _buildBackToTopFab(),
       );
@@ -136,42 +144,6 @@ extension _SearchPageView on _SearchPageState {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildNativeSearchInput(ThemeData theme, bool hasKeyword) {
-    return AdaptiveTextField(
-      controller: _keywordController,
-      focusNode: _keywordFocusNode,
-      autofocus: true,
-      placeholder: _SearchPageState._labelSearchHint,
-      textInputAction: TextInputAction.search,
-      onChanged: _onKeywordInputChanged,
-      onSubmitted: (_) => _runSearch(reset: true),
-      prefixIcon: Icon(
-        Icons.search_rounded,
-        color: _keywordFocused
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurfaceVariant,
-      ),
-      suffix: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (hasKeyword)
-            IconButton(
-              icon: const Icon(Icons.close_rounded),
-              tooltip: '清空',
-              visualDensity: VisualDensity.compact,
-              onPressed: _clearKeywordInput,
-            ),
-          IconButton(
-            icon: const Icon(Icons.arrow_forward_rounded),
-            tooltip: _SearchPageState._labelSearch,
-            visualDensity: VisualDensity.compact,
-            onPressed: () => _runSearch(reset: true),
-          ),
-        ],
-      ),
     );
   }
 
