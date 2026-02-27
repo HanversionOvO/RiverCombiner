@@ -2035,26 +2035,16 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(_TopicDetailPageState._labelDeleteCommentTitle),
-          content: const Text(_TopicDetailPageState._labelDeleteCommentHint),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(_TopicDetailPageState._labelCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(_TopicDetailPageState._labelDelete),
-            ),
-          ],
-        );
-      },
+      title: _TopicDetailPageState._labelDeleteCommentTitle,
+      message: _TopicDetailPageState._labelDeleteCommentHint,
+      cancelText: _TopicDetailPageState._labelCancel,
+      confirmText: _TopicDetailPageState._labelDelete,
+      icon: Icons.delete_outline_rounded,
+      isDestructive: true,
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 
@@ -2107,26 +2097,16 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(_TopicDetailPageState._labelDeleteMainPostTitle),
-          content: const Text(_TopicDetailPageState._labelDeleteMainPostHint),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(_TopicDetailPageState._labelCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(_TopicDetailPageState._labelDelete),
-            ),
-          ],
-        );
-      },
+      title: _TopicDetailPageState._labelDeleteMainPostTitle,
+      message: _TopicDetailPageState._labelDeleteMainPostHint,
+      cancelText: _TopicDetailPageState._labelCancel,
+      confirmText: _TopicDetailPageState._labelDelete,
+      icon: Icons.delete_forever_rounded,
+      isDestructive: true,
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 

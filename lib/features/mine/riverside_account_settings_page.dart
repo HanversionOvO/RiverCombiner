@@ -7,6 +7,7 @@ import 'package:river/core/account/account_models.dart';
 import 'package:river/core/network/riverside_account_settings_models.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_search_models.dart';
+import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
 part 'riverside_account_settings_page_widgets.dart';
@@ -486,24 +487,15 @@ class _RiverSideAccountSettingsPageState
 
     final title = tokenId == null ? '全部设备下线' : '移除设备';
     final content = tokenId == null ? '确定让当前账号在其他设备全部下线吗？' : '确定移除该设备登录状态吗？';
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('确认'),
-          ),
-        ],
-      ),
+      title: title,
+      message: content,
+      confirmText: '确认',
+      icon: tokenId == null ? Icons.devices_fold_rounded : Icons.remove_circle,
+      isDestructive: tokenId != null,
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 

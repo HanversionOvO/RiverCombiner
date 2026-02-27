@@ -8,6 +8,7 @@ import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_notification_models.dart';
 import 'package:river/core/realtime/riverside_message_bus_poller.dart';
+import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/notifications/chat_detail_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 

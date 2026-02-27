@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_models.dart';
+import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
 class DeveloperSettingsPage extends StatefulWidget {
@@ -21,27 +22,15 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
       RiverMiniAppInstallStore();
 
   Future<void> _exitDeveloperMode() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('退出开发者模式'),
-          content: const Text('退出后将隐藏开发者设置项，是否继续？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('确认退出'),
-            ),
-          ],
-        );
-      },
+      title: '退出开发者模式',
+      message: '退出后将隐藏开发者设置项，是否继续？',
+      confirmText: '确认退出',
+      icon: Icons.developer_mode_rounded,
     );
 
-    if (confirmed != true || !mounted) {
+    if (!confirmed || !mounted) {
       return;
     }
 

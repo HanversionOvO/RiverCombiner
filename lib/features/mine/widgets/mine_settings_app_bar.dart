@@ -155,9 +155,10 @@ class MineSettingsAppBar extends StatelessWidget
         onPressed: () => Navigator.of(context).maybePop(),
         sfSymbol: const SFSymbol('chevron.backward', size: 17),
         style: AdaptiveButtonStyle.glass,
-        size: AdaptiveButtonSize.medium,
-        minSize: const Size(40, 40),
+        size: AdaptiveButtonSize.large,
+        minSize: const Size(44, 44),
         padding: EdgeInsets.zero,
+        borderRadius: BorderRadius.all(Radius.circular(999)),
         useSmoothRectangleBorder: false,
       );
     }

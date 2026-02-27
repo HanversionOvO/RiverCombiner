@@ -349,26 +349,15 @@ extension _NotificationsPageActions on _NotificationsPageState {
     final title = item.name.trim().isNotEmpty
         ? item.name.trim()
         : '私信 #${item.id}';
-    final result = await showDialog<bool>(
+    final result = await showRiverConfirmDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('删除私信'),
-          content: Text('是否删除与“$title”的私信会话？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('删除'),
-            ),
-          ],
-        );
-      },
+      title: '删除私信',
+      message: '是否删除与“$title”的私信会话？',
+      confirmText: '删除',
+      icon: Icons.delete_outline_rounded,
+      isDestructive: true,
     );
-    return result ?? false;
+    return result;
   }
 
   Future<bool> _deleteDirectMessageChannel(

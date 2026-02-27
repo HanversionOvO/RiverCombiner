@@ -24,6 +24,7 @@ import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_message_bus_models.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/realtime/riverside_message_bus_poller.dart';
+import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
 import 'package:river/features/search/search_page.dart';
@@ -4046,27 +4047,16 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                   tooltip: '删除',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () async {
-                                    final confirmed = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('删除小程序'),
-                                        content: Text('确定删除“${item.name}”吗？'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(
-                                              context,
-                                            ).pop(false),
-                                            child: const Text('取消'),
-                                          ),
-                                          FilledButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(true),
-                                            child: const Text('删除'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                    if (confirmed != true) {
+                                    final confirmed =
+                                        await showRiverConfirmDialog(
+                                          context: context,
+                                          title: '删除小程序',
+                                          message: '确定删除“${item.name}”吗？',
+                                          confirmText: '删除',
+                                          icon: Icons.delete_outline_rounded,
+                                          isDestructive: true,
+                                        );
+                                    if (!confirmed) {
                                       return;
                                     }
                                     await _miniAppInstallStore

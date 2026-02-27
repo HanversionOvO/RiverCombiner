@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
 import 'package:river/core/storage/app_cache_service.dart';
+import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
 part 'storage_settings_widgets.dart';
@@ -84,7 +85,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
       message:
           '将清除全部缓存数据（约 ${_formatBytes(_overview.totalBytes)}），不会影响登录状态，确认继续吗？',
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 
@@ -104,7 +105,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
       message:
           '将清理“${category.title}”（约 ${_formatBytes(category.bytes)}），确定继续吗？',
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 
@@ -127,7 +128,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
       message:
           '将清理“${category.title}”中的相关缓存（约 ${_formatBytes(category.bytes)}），确认继续吗？',
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 
@@ -153,7 +154,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
       message:
           '将删除已安装的 ${_miniAppOverview.appCount} 个小程序及本地资源（约 ${_formatBytes(_miniAppOverview.totalBytes)}），确认继续吗？',
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 
@@ -172,7 +173,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
       title: '删除小程序',
       message: '确定删除“${item.appName}”及其本地资源吗？',
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
     await _runBusy('miniapp_${item.appId}', () async {
@@ -246,26 +247,16 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
     );
   }
 
-  Future<bool?> _confirmClearDialog({
+  Future<bool> _confirmClearDialog({
     required String title,
     required String message,
   }) {
-    return showDialog<bool>(
+    return showRiverConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
+      title: title,
+      message: message,
+      confirmText: '确定',
+      icon: Icons.cleaning_services_rounded,
     );
   }
 

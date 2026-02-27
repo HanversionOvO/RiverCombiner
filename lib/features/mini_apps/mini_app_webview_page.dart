@@ -18,6 +18,7 @@ import 'package:river/core/mini_apps/river_mini_app_code_image_codec.dart';
 import 'package:river/core/mini_apps/river_mini_app_permission_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_platform_client.dart';
 import 'package:river/core/mini_apps/river_mini_app_repository.dart';
+import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mini_apps/mini_app_permissions_page.dart';
 import 'package:river/features/mine/mine_qr_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1085,29 +1086,18 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     if (!mounted) {
       return <String, dynamic>{'success': false, 'confirm': false};
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: title.isEmpty ? const Text('提示') : Text(title),
-          content: Text(content.isEmpty ? '是否确认继续？' : content),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(cancelText.isEmpty ? '取消' : cancelText),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(confirmText.isEmpty ? '确认' : confirmText),
-            ),
-          ],
-        );
-      },
+      title: title.isEmpty ? '提示' : title,
+      message: content.isEmpty ? '是否确认继续？' : content,
+      cancelText: cancelText.isEmpty ? '取消' : cancelText,
+      confirmText: confirmText.isEmpty ? '确认' : confirmText,
+      icon: Icons.task_alt_rounded,
     );
     return <String, dynamic>{
       'success': true,
-      'confirm': confirmed == true,
-      'cancel': confirmed != true,
+      'confirm': confirmed,
+      'cancel': !confirmed,
     };
   }
 

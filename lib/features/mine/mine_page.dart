@@ -1,11 +1,14 @@
 import 'dart:ui';
 
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/core/platform/riverside_webview_support.dart';
 import 'package:river/core/update/app_update_checker.dart';
+import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/login/riverside_external_fallback_page.dart';
 import 'package:river/features/login/riverside_login_flow_mode.dart';
 import 'package:river/features/login/riverside_login_webview_page.dart';
@@ -214,26 +217,16 @@ class _MinePageState extends State<MinePage> {
   }
 
   Future<bool> _onDeleteRiverSideAccount(UserAccount account) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除账号'),
-        content: Text('确定要移除 "${account.displayName}" 吗？\n此操作不可撤销。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+      title: '删除账号',
+      message: '确定要移除 "${account.displayName}" 吗？\n此操作不可撤销。',
+      confirmText: '删除',
+      icon: Icons.delete_forever_rounded,
+      isDestructive: true,
     );
 
-    if (confirmed != true) {
+    if (!confirmed) {
       return false;
     }
 
@@ -245,26 +238,16 @@ class _MinePageState extends State<MinePage> {
   }
 
   Future<bool> _onDeleteQingShuiHePanAccount(UserAccount account) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除账号'),
-        content: Text('确定要移除 "${account.displayName}" 吗？\n此操作不可撤销。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+      title: '删除账号',
+      message: '确定要移除 "${account.displayName}" 吗？\n此操作不可撤销。',
+      confirmText: '删除',
+      icon: Icons.delete_forever_rounded,
+      isDestructive: true,
     );
 
-    if (confirmed != true) {
+    if (!confirmed) {
       return false;
     }
 
@@ -466,6 +449,13 @@ class _MinePageState extends State<MinePage> {
     setState(() {
       _headerScrollFactor = next;
     });
+  }
+
+  bool _isIPhoneDevice(BuildContext context) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    return MediaQuery.sizeOf(context).shortestSide < 600;
   }
 
   Widget _buildProfileActionChip({
@@ -874,11 +864,30 @@ class _MinePageState extends State<MinePage> {
                     ),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: IconButton.filledTonal(
-                        onPressed: _openScanPage,
-                        tooltip: '扫一扫',
-                        icon: const Icon(Icons.qr_code_scanner_rounded),
-                      ),
+                      child: _isIPhoneDevice(context)
+                          ? Tooltip(
+                              message: '扫一扫',
+                              child: AdaptiveButton.sfSymbol(
+                                onPressed: _openScanPage,
+                                sfSymbol: const SFSymbol(
+                                  'qrcode.viewfinder',
+                                  size: 18,
+                                ),
+                                style: AdaptiveButtonStyle.glass,
+                                size: AdaptiveButtonSize.large,
+                                minSize: const Size(44, 44),
+                                padding: EdgeInsets.zero,
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(999),
+                                ),
+                                useSmoothRectangleBorder: false,
+                              ),
+                            )
+                          : IconButton.filledTonal(
+                              onPressed: _openScanPage,
+                              tooltip: '扫一扫',
+                              icon: const Icon(Icons.qr_code_scanner_rounded),
+                            ),
                     ),
                   ],
                 ),

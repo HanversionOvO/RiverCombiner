@@ -27,6 +27,7 @@ import 'package:river/core/network/riverside_message_bus_models.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/qing/qing_emoji_catalog.dart';
 import 'package:river/core/realtime/riverside_message_bus_poller.dart';
+import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/core/widgets/river_image_viewer.dart';
 import 'package:river/core/widgets/river_markdown_editor.dart';
 import 'package:river/core/widgets/riverside_category_picker_sheet.dart';

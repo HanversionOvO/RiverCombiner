@@ -719,26 +719,16 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(_CommentDetailPageState._labelDeleteCommentTitle),
-          content: const Text(_CommentDetailPageState._labelDeleteCommentHint),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(_CommentDetailPageState._labelCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(_CommentDetailPageState._labelDelete),
-            ),
-          ],
-        );
-      },
+      title: _CommentDetailPageState._labelDeleteCommentTitle,
+      message: _CommentDetailPageState._labelDeleteCommentHint,
+      cancelText: _CommentDetailPageState._labelCancel,
+      confirmText: _CommentDetailPageState._labelDelete,
+      icon: Icons.delete_outline_rounded,
+      isDestructive: true,
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 

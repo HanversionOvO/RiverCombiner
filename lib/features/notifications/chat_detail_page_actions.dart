@@ -323,26 +323,16 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showRiverConfirmDialog(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(_ChatDetailPageState._labelDelete),
-          content: const Text(_ChatDetailPageState._labelDeleteConfirm),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(_ChatDetailPageState._labelCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(_ChatDetailPageState._labelDelete),
-            ),
-          ],
-        );
-      },
+      title: _ChatDetailPageState._labelDelete,
+      message: _ChatDetailPageState._labelDeleteConfirm,
+      cancelText: _ChatDetailPageState._labelCancel,
+      confirmText: _ChatDetailPageState._labelDelete,
+      icon: Icons.delete_outline_rounded,
+      isDestructive: true,
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
 
