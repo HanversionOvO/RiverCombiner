@@ -10,6 +10,9 @@ import 'package:quick_actions/quick_actions.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/account/account_store.dart';
+import 'package:river/core/mini_apps/river_mini_app_floating_store.dart';
+import 'package:river/core/mini_apps/river_mini_app_host_store.dart';
+import 'package:river/core/mini_apps/river_mini_app_suspension_store.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/platform/app_icon_switcher.dart';
@@ -17,6 +20,7 @@ import 'package:river/core/platform/riverside_cookie_bridge.dart';
 import 'package:river/core/update/app_update_checker.dart';
 import 'package:river/features/home/home_shell_page.dart';
 import 'package:river/features/login/login_page.dart';
+import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/core/widgets/river_home_widget_service.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
@@ -289,6 +293,8 @@ class _RiverAppState extends State<RiverApp> {
     _dependencies.settingsController.removeListener(_scheduleHomeWidgetSync);
     _dependencies.settingsController.dispose();
     _dependencies.accountStore.dispose();
+    _dependencies.miniAppHostStore.dispose();
+    _dependencies.miniAppFloatingStore.dispose();
     _dependencies.updateChecker.dispose();
     super.dispose();
   }
@@ -321,6 +327,11 @@ class _RiverAppState extends State<RiverApp> {
                 textScaler: TextScaler.linear(settings.fontScale),
               ),
               child: _AppRootSnackbarHost(
+                dependencies: _dependencies,
+                hostStore: _dependencies.miniAppHostStore,
+                floatingStore: _dependencies.miniAppFloatingStore,
+                onOpenFloatingMiniApp: _openMiniAppFromFloatingEntry,
+                onCloseFloatingMiniApp: _closeFloatingMiniApp,
                 child: child ?? const SizedBox.shrink(),
               ),
             );
@@ -562,6 +573,17 @@ class _RiverAppState extends State<RiverApp> {
     return all[next];
   }
 
+  void _openMiniAppFromFloatingEntry(RiverMiniAppFloatingEntry entry) {
+    _dependencies.miniAppFloatingStore.removeById(entry.miniApp.id);
+    _dependencies.miniAppHostStore.activate(entry.miniApp.id);
+  }
+
+  void _closeFloatingMiniApp(String appId) {
+    _dependencies.miniAppFloatingStore.removeById(appId);
+    RiverMiniAppSuspensionStore.clearById(appId);
+    _dependencies.miniAppHostStore.close(appId);
+  }
+
   Widget _buildResolvedHome() {
     if (_dependencies.accountStore.hasAnyAccount ||
         _dependencies.accountStore.isGuestBrowsing) {
@@ -609,14 +631,1014 @@ class _RiverScrollBehavior extends MaterialScrollBehavior {
 }
 
 class _AppRootSnackbarHost extends StatelessWidget {
-  const _AppRootSnackbarHost({required this.child});
+  const _AppRootSnackbarHost({
+    required this.dependencies,
+    required this.hostStore,
+    required this.child,
+    required this.floatingStore,
+    required this.onOpenFloatingMiniApp,
+    required this.onCloseFloatingMiniApp,
+  });
 
+  final AppDependencies dependencies;
+  final RiverMiniAppHostStore hostStore;
   final Widget child;
+  final RiverMiniAppFloatingStore floatingStore;
+  final ValueChanged<RiverMiniAppFloatingEntry> onOpenFloatingMiniApp;
+  final ValueChanged<String> onCloseFloatingMiniApp;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: child);
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          child,
+          _MiniAppHostOverlay(dependencies: dependencies, hostStore: hostStore),
+          _MiniAppFloatingDock(
+            store: floatingStore,
+            onOpen: onOpenFloatingMiniApp,
+            onClose: onCloseFloatingMiniApp,
+          ),
+        ],
+      ),
+    );
   }
+}
+
+class _MiniAppHostOverlay extends StatelessWidget {
+  const _MiniAppHostOverlay({
+    required this.dependencies,
+    required this.hostStore,
+  });
+
+  final AppDependencies dependencies;
+  final RiverMiniAppHostStore hostStore;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: hostStore,
+      builder: (context, _) {
+        final sessions = hostStore.sessions;
+        if (sessions.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final activeId = hostStore.activeSessionId;
+        final orderedSessions = <RiverMiniAppHostSession>[
+          ...sessions.where((session) => session.id != activeId),
+          ...sessions.where((session) => session.id == activeId),
+        ];
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            for (final session in orderedSessions)
+              _MiniAppHostAnimatedLayer(
+                key: ValueKey<String>(
+                  'mini_host_layer_${session.id}_${session.generation}',
+                ),
+                active: session.id == activeId,
+                child: Navigator(
+                  key: ValueKey<String>(
+                    'mini_host_nav_${session.id}_${session.generation}',
+                  ),
+                  onGenerateRoute: (_) {
+                    return MaterialPageRoute<void>(
+                      settings: RouteSettings(name: 'mini_host_${session.id}'),
+                      builder: (_) => MiniAppWebViewPage(
+                        dependencies: dependencies,
+                        miniApp: session.miniApp,
+                        launchRoute: session.launchRoute,
+                        launchParams: session.launchParams,
+                        launchAction: session.launchAction,
+                        launchSource: session.launchSource,
+                        onSuspendRequested: () => hostStore.suspend(session.id),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MiniAppHostAnimatedLayer extends StatefulWidget {
+  const _MiniAppHostAnimatedLayer({
+    super.key,
+    required this.active,
+    required this.child,
+  });
+
+  final bool active;
+  final Widget child;
+
+  @override
+  State<_MiniAppHostAnimatedLayer> createState() =>
+      _MiniAppHostAnimatedLayerState();
+}
+
+class _MiniAppHostAnimatedLayerState extends State<_MiniAppHostAnimatedLayer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+      reverseDuration: const Duration(milliseconds: 260),
+    );
+    _slide = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+    _fade = Tween<double>(begin: 0.72, end: 1).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+        reverseCurve: Curves.easeIn,
+      ),
+    );
+
+    if (widget.active) {
+      _controller.value = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.active) {
+          unawaited(_controller.forward());
+        }
+      });
+    } else {
+      _controller.value = 0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _MiniAppHostAnimatedLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.active && widget.active) {
+      _controller.forward(from: 0);
+    } else if (oldWidget.active && !widget.active) {
+      _controller.reverse(from: _controller.value <= 0 ? 1 : _controller.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: !widget.active,
+      child: ExcludeSemantics(
+        excluding: !widget.active,
+        child: FadeTransition(
+          opacity: _fade,
+          child: SlideTransition(position: _slide, child: widget.child),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniAppFloatingDock extends StatefulWidget {
+  const _MiniAppFloatingDock({
+    required this.store,
+    required this.onOpen,
+    required this.onClose,
+  });
+
+  final RiverMiniAppFloatingStore store;
+  final ValueChanged<RiverMiniAppFloatingEntry> onOpen;
+  final ValueChanged<String> onClose;
+
+  @override
+  State<_MiniAppFloatingDock> createState() => _MiniAppFloatingDockState();
+}
+
+class _MiniAppFloatingDockState extends State<_MiniAppFloatingDock> {
+  bool _snapToRight = true;
+  double _topRatio = 0.18;
+  double? _dragTop;
+  double? _dragLeft;
+  bool _isDragging = false;
+  bool _dragOverDismissZone = false;
+  bool _closingAllFloating = false;
+  bool _panelOpen = false;
+  bool _panelVisible = false;
+  bool _didDrag = false;
+  Timer? _panelHideTimer;
+
+  Duration _panelHideDelay() {
+    final count = widget.store.entries.length;
+    final ms = (280 + count * 30).clamp(300, 560);
+    return Duration(milliseconds: ms);
+  }
+
+  void _openPanel() {
+    _panelHideTimer?.cancel();
+    setState(() {
+      _panelVisible = true;
+      _panelOpen = true;
+    });
+  }
+
+  void _closePanel({bool immediate = false}) {
+    _panelHideTimer?.cancel();
+    if (!_panelVisible) {
+      return;
+    }
+    setState(() {
+      _panelOpen = false;
+      if (immediate) {
+        _panelVisible = false;
+      }
+    });
+    if (immediate) {
+      return;
+    }
+    _panelHideTimer = Timer(_panelHideDelay(), () {
+      if (!mounted || _panelOpen) {
+        return;
+      }
+      setState(() {
+        _panelVisible = false;
+      });
+    });
+  }
+
+  Future<void> _closeAllFloatingApps(List<String> appIds) async {
+    if (appIds.isEmpty || _closingAllFloating) {
+      return;
+    }
+    setState(() {
+      _closingAllFloating = true;
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 190));
+    if (!mounted) {
+      return;
+    }
+    for (final appId in appIds) {
+      widget.onClose(appId);
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _closingAllFloating = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _panelHideTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.store,
+      builder: (context, _) {
+        final entries = widget.store.entries;
+        if (entries.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final mediaPadding = MediaQuery.paddingOf(context);
+            const verticalMargin = 12.0;
+            const dockHeight = 52.0;
+            const dockWidth = 66.0;
+            final minTop = mediaPadding.top + verticalMargin;
+            final maxTop =
+                constraints.maxHeight -
+                mediaPadding.bottom -
+                dockHeight -
+                verticalMargin;
+            if (maxTop <= minTop) {
+              return const SizedBox.shrink();
+            }
+
+            final resolvedTop =
+                (_dragTop ?? (minTop + (maxTop - minTop) * _topRatio)).clamp(
+                  minTop,
+                  maxTop,
+                );
+            const minLeft = 0.0;
+            final maxLeft = constraints.maxWidth - dockWidth;
+            final resolvedLeft =
+                (_dragLeft ?? (_snapToRight ? maxLeft : minLeft)).clamp(
+                  minLeft,
+                  maxLeft,
+                );
+            final isDragging = _isDragging || _dragLeft != null || _dragTop != null;
+            final snapDuration = Duration(milliseconds: isDragging ? 0 : 260);
+            final anchorX = _snapToRight
+                ? (resolvedLeft + 8.0)
+                : (resolvedLeft + dockWidth - 8.0);
+            final anchorY = resolvedTop + dockHeight / 2;
+            final dismissZoneRadius = 128.0;
+            const dismissZoneRight = 0.0;
+            const dismissZoneBottom = 0.0;
+            final dismissCorner = Offset(
+              constraints.maxWidth - dismissZoneRight,
+              constraints.maxHeight - dismissZoneBottom,
+            );
+
+            bool isPointInsideDismissZone(Offset point) {
+              final dx = dismissCorner.dx - point.dx;
+              final dy = dismissCorner.dy - point.dy;
+              if (dx < 0 || dy < 0 || dx > dismissZoneRadius || dy > dismissZoneRadius) {
+                return false;
+              }
+              return dx * dx + dy * dy <= dismissZoneRadius * dismissZoneRadius;
+            }
+
+            if (_panelVisible && entries.isEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _panelOpen = false;
+                    _panelVisible = false;
+                    _dragOverDismissZone = false;
+                  });
+                }
+              });
+            }
+
+            return SizedBox.expand(
+              child: Stack(
+                children: [
+                  if (_panelVisible)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        ignoring: !_panelOpen,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _closePanel,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOut,
+                            opacity: _panelOpen ? 1 : 0,
+                            child: Container(
+                              color: Colors.black.withValues(alpha: 0.34),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_panelVisible)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        ignoring: !_panelOpen,
+                        child: _MiniAppFloatingPanel(
+                          entries: entries,
+                          expanded: _panelOpen,
+                          dockedRight: _snapToRight,
+                          anchor: Offset(anchorX, anchorY),
+                          onOpen: (entry) {
+                            _closePanel();
+                            widget.onOpen(entry);
+                          },
+                          onClose: (appId) {
+                            widget.onClose(appId);
+                          },
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: dismissZoneRight,
+                      bottom: dismissZoneBottom,
+                      child: _MiniAppDismissZone(
+                        visible: isDragging,
+                        active: _dragOverDismissZone,
+                        radius: dismissZoneRadius,
+                      ),
+                    ),
+                  AnimatedPositioned(
+                    duration: snapDuration,
+                    curve: Curves.easeOutCubic,
+                    left: resolvedLeft,
+                    top: resolvedTop,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (_didDrag) {
+                          _didDrag = false;
+                          return;
+                        }
+                        if (_panelOpen) {
+                          _closePanel();
+                        } else {
+                          _openPanel();
+                        }
+                      },
+                      onPanStart: (_) {
+                        setState(() {
+                          _didDrag = false;
+                          _isDragging = true;
+                          _dragOverDismissZone = false;
+                          _closingAllFloating = false;
+                          _dragTop = resolvedTop;
+                          _dragLeft = resolvedLeft;
+                        });
+                        _closePanel(immediate: true);
+                      },
+                      onPanUpdate: (details) {
+                        setState(() {
+                          if (details.delta.distanceSquared > 0.8) {
+                            _didDrag = true;
+                          }
+                          _dragTop =
+                              (_dragTop ?? resolvedTop) + details.delta.dy;
+                          _dragTop = _dragTop!.clamp(minTop, maxTop);
+                          _dragLeft =
+                              (_dragLeft ?? resolvedLeft) + details.delta.dx;
+                          _dragLeft = _dragLeft!.clamp(minLeft, maxLeft);
+                          final center = Offset(
+                            _dragLeft! + dockWidth / 2,
+                            _dragTop! + dockHeight / 2,
+                          );
+                          _dragOverDismissZone = isPointInsideDismissZone(center);
+                        });
+                      },
+                      onPanEnd: (_) {
+                        final shouldCloseAll = _dragOverDismissZone;
+                        final center =
+                            (_dragLeft ?? resolvedLeft) + dockWidth / 2;
+                        final appIds = entries
+                            .map((item) => item.miniApp.id)
+                            .where((id) => id.trim().isNotEmpty)
+                            .toList(growable: false);
+                        setState(() {
+                          _snapToRight = center > constraints.maxWidth / 2;
+                          final top = (_dragTop ?? resolvedTop).clamp(
+                            minTop,
+                            maxTop,
+                          );
+                          _topRatio = (top - minTop) / (maxTop - minTop);
+                          _dragTop = null;
+                          _dragLeft = null;
+                          _isDragging = false;
+                          _dragOverDismissZone = false;
+                        });
+                        if (shouldCloseAll) {
+                          unawaited(_closeAllFloatingApps(appIds));
+                        }
+                      },
+                      onPanCancel: () {
+                        setState(() {
+                          _dragTop = null;
+                          _dragLeft = null;
+                          _isDragging = false;
+                          _dragOverDismissZone = false;
+                        });
+                      },
+                      child: _MiniAppFloatingHandle(
+                        dockedRight: _snapToRight,
+                        dragging: isDragging,
+                        dimmed: _dragOverDismissZone,
+                        closingAll: _closingAllFloating,
+                        count: entries.length,
+                        opened: _panelOpen,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _MiniAppFloatingHandle extends StatelessWidget {
+  const _MiniAppFloatingHandle({
+    required this.dockedRight,
+    required this.dragging,
+    required this.dimmed,
+    required this.closingAll,
+    required this.count,
+    required this.opened,
+  });
+
+  final bool dockedRight;
+  final bool dragging;
+  final bool dimmed;
+  final bool closingAll;
+  final int count;
+  final bool opened;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final edgeRadius = dragging ? 26.0 : (dockedRight ? 0.0 : 26.0);
+    final farRadius = dragging ? 26.0 : (dockedRight ? 26.0 : 0.0);
+    final targetOpacity = closingAll
+        ? 0.10
+        : (dimmed ? 0.44 : 1.0);
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 190),
+      curve: Curves.easeInOutCubic,
+      scale: closingAll ? 0.86 : 1,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        opacity: targetOpacity,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          width: 66,
+          height: 52,
+          padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(farRadius),
+              bottomLeft: Radius.circular(farRadius),
+              topRight: Radius.circular(edgeRadius),
+              bottomRight: Radius.circular(edgeRadius),
+            ),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.28),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.shadow.withValues(alpha: 0.16),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(begin: 0.86, end: 1).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: opened
+                    ? Container(
+                        key: const ValueKey<String>('mini_app_handle_close'),
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.colorScheme.primaryContainer,
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      )
+                    : ClipOval(
+                        key: const ValueKey<String>('mini_app_handle_logo'),
+                        child: Image.asset(
+                          'assets/images/miniapp.jpg',
+                          width: 34,
+                          height: 34,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.widgets_rounded,
+                              size: 18,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+              Positioned(
+                top: -4,
+                right: -4,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  opacity: opened ? 0 : 1,
+                  child: IgnorePointer(
+                    ignoring: opened,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 17),
+                      height: 17,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: theme.colorScheme.surface.withValues(alpha: 0.96),
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$count',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniAppDismissZone extends StatelessWidget {
+  const _MiniAppDismissZone({
+    required this.visible,
+    required this.active,
+    required this.radius,
+  });
+
+  final bool visible;
+  final bool active;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bg = active
+        ? theme.colorScheme.error.withValues(alpha: 0.90)
+        : theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.92);
+    final fg = active
+        ? theme.colorScheme.onError
+        : theme.colorScheme.onSurfaceVariant;
+    final label = active ? '松开关闭' : '关闭所有';
+    return IgnorePointer(
+      child: AnimatedSlide(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        offset: visible ? Offset.zero : const Offset(0.18, 0.18),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          opacity: visible ? 1 : 0,
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutBack,
+            scale: active ? 1.04 : 1,
+            child: SizedBox(
+              width: radius,
+              height: radius,
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(radius),
+                  ),
+                  border: Border.all(
+                    color: active
+                        ? theme.colorScheme.onError.withValues(alpha: 0.28)
+                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.22),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.shadow.withValues(alpha: 0.22),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 14,
+                    top: 14,
+                    right: 16,
+                    bottom: 16,
+                  ),
+                  child: Align(
+                    alignment: const Alignment(-0.28, -0.28),
+                    child: SizedBox(
+                      width: radius * 0.55,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            active
+                                ? Icons.delete_forever_rounded
+                                : Icons.delete_outline_rounded,
+                            size: 18,
+                            color: fg,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.fade,
+                            softWrap: false,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                                  color: fg,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.2,
+                                ) ??
+                                TextStyle(
+                                  color: fg,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniAppFloatingPanel extends StatelessWidget {
+  const _MiniAppFloatingPanel({
+    required this.entries,
+    required this.expanded,
+    required this.dockedRight,
+    required this.anchor,
+    required this.onOpen,
+    required this.onClose,
+  });
+
+  final List<RiverMiniAppFloatingEntry> entries;
+  final bool expanded;
+  final bool dockedRight;
+  final Offset anchor;
+  final ValueChanged<RiverMiniAppFloatingEntry> onOpen;
+  final ValueChanged<String> onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final inward = dockedRight ? -1.0 : 1.0;
+    final count = entries.length;
+    final step = count <= 1 ? 0.0 : 1.0 / (count - 1);
+    const actionSize = 60.0;
+    const openCurve = Cubic(0.2, 0.0, 0.0, 1.0);
+    const closeCurve = Cubic(0.4, 0.0, 1.0, 1.0);
+    const openScaleCurve = Cubic(0.16, 1.0, 0.2, 1.0);
+    const closeScaleCurve = Cubic(0.4, 0.0, 0.84, 0.18);
+    const desiredSpacing = 66.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableTop = math.max(0.0, anchor.dy - 28.0);
+        final availableBottom = math.max(0.0, constraints.maxHeight - anchor.dy - 28.0);
+        final verticalLimit = math.max(52.0, math.min(availableTop, availableBottom));
+
+        var radius = 96.0 + (count - 1) * 12.0;
+        radius = radius.clamp(92.0, 176.0);
+
+        var angleRange = count <= 1
+            ? 0.0
+            : (((count - 1) * desiredSpacing) / radius) * 180 / math.pi;
+        angleRange = angleRange.clamp(44.0, 128.0);
+
+        final halfRad = (angleRange / 2) * math.pi / 180.0;
+        final sinHalf = math.max(0.25, math.sin(halfRad).abs());
+        final maxAllowedRadius = (verticalLimit / sinHalf).clamp(72.0, 176.0);
+        radius = math.min(radius, maxAllowedRadius);
+
+        return Stack(
+          children: [
+            for (var i = 0; i < entries.length; i++)
+              TweenAnimationBuilder<double>(
+                key: ValueKey<String>('mini_app_fan_${entries[i].miniApp.id}'),
+                tween: Tween<double>(
+                  begin: expanded ? 0 : 1,
+                  end: expanded ? 1 : 0,
+                ),
+                duration: Duration(milliseconds: 240 + (i * 20)),
+                curve: Curves.linear,
+                builder: (context, value, _) {
+                  final start = (i * 0.06).clamp(0.0, 0.45);
+                  final itemRaw = ((value - start) / (1 - start)).clamp(0.0, 1.0);
+                  final arcT = (expanded
+                          ? openCurve.transform(itemRaw)
+                          : closeCurve.transform(itemRaw))
+                      .clamp(0.0, 1.0);
+                  final popT = (expanded
+                          ? openScaleCurve.transform(itemRaw)
+                          : closeScaleCurve.transform(itemRaw))
+                      .clamp(0.0, 1.0);
+                  final normalized = count <= 1 ? 0.0 : (-0.5 + step * i);
+                  final targetRad =
+                      (normalized * angleRange) * (math.pi / 180.0);
+                  final currentRad = targetRad * arcT;
+                  final currentRadius = radius * popT;
+                  final dx = inward * math.cos(currentRad) * currentRadius;
+                  final dy = math.sin(currentRad) * currentRadius;
+                  final left = anchor.dx + dx - actionSize / 2;
+                  final top = anchor.dy + dy - actionSize / 2;
+                  final rotate = (1 - popT) * 0.32 * inward;
+                  return Positioned(
+                    left: left,
+                    top: top,
+                    child: Opacity(
+                      opacity: popT,
+                      child: Transform.rotate(
+                        angle: rotate,
+                        child: Transform.scale(
+                          scale: 0.76 + (0.24 * popT),
+                          child: _MiniAppFloatingItemButton(
+                            entry: entries[i],
+                            onOpen: () => onOpen(entries[i]),
+                            onClose: () => onClose(entries[i].miniApp.id),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MiniAppFloatingItemButton extends StatelessWidget {
+  const _MiniAppFloatingItemButton({
+    required this.entry,
+    required this.onOpen,
+    required this.onClose,
+  });
+
+  final RiverMiniAppFloatingEntry entry;
+  final VoidCallback onOpen;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconProvider = _miniAppFloatingIconProvider(entry.miniApp.iconUrl);
+    return SizedBox(
+      width: 60,
+      height: 60,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkResponse(
+                onTap: onOpen,
+                containedInkWell: true,
+                highlightShape: BoxShape.circle,
+                splashColor: theme.colorScheme.primary.withValues(alpha: 0.14),
+                highlightColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: theme.colorScheme.surface.withValues(alpha: 0.94),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.24,
+                      ),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.2),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: theme.colorScheme.surfaceContainerHigh.withValues(
+                          alpha: 0.90,
+                        ),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: iconProvider == null
+                            ? Center(
+                                child: Icon(
+                                  Icons.extension_rounded,
+                                  size: 22,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              )
+                            : Image(
+                                image: iconProvider,
+                                fit: BoxFit.cover,
+                                filterQuality: FilterQuality.medium,
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: -4,
+            top: -4,
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              child: InkWell(
+                onTap: onClose,
+                customBorder: const CircleBorder(),
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  padding: const EdgeInsets.all(2.6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: theme.colorScheme.surface.withValues(alpha: 0.94),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.36,
+                      ),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.shadow.withValues(alpha: 0.22),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: theme.colorScheme.primary,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 9,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+ImageProvider<Object>? _miniAppFloatingIconProvider(String raw) {
+  final value = raw.trim();
+  if (value.isEmpty) {
+    return null;
+  }
+  final uri = Uri.tryParse(value);
+  if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+    return NetworkImage(value);
+  }
+  return null;
 }
 
 class _StartupTunnelExitTransition extends StatelessWidget {

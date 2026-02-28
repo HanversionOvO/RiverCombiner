@@ -20,10 +20,10 @@ import 'package:river/core/mini_apps/river_mini_app_orbit_code_codec.dart';
 import 'package:river/core/mini_apps/river_mini_app_platform_client.dart';
 import 'package:river/core/mini_apps/river_mini_app_repository.dart';
 import 'package:river/core/navigation/river_page_route.dart';
-import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/features/mine/riverside_profile_page.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+
 class MineQrScanPage extends StatefulWidget {
   const MineQrScanPage({
     super.key,
@@ -660,17 +660,13 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
     if (!mounted) {
       return;
     }
-    await Navigator.of(context).push(
-      riverPageRoute<void>(
-        builder: (_) => MiniAppWebViewPage(
-          dependencies: widget.dependencies,
-          miniApp: toOpen,
-          launchRoute: code.route,
-          launchParams: code.params,
-          launchAction: code.action,
-          launchSource: 'scan',
-        ),
-      ),
+    widget.dependencies.miniAppFloatingStore.removeById(toOpen.id);
+    widget.dependencies.miniAppHostStore.open(
+      miniApp: toOpen,
+      launchRoute: code.route,
+      launchParams: code.params,
+      launchAction: code.action,
+      launchSource: 'scan',
     );
   }
 
@@ -1613,6 +1609,3 @@ class _QrStyleCard extends StatelessWidget {
     );
   }
 }
-
-
-

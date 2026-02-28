@@ -669,35 +669,10 @@ extension _SearchPageActions on _SearchPageState {
       }
     }
 
-    await Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 360),
-        reverseTransitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            MiniAppWebViewPage(dependencies: widget.dependencies, miniApp: app),
-        transitionsBuilder: (_, animation, secondaryAnimation, child) {
-          final slide = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          );
-          final fade = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOut,
-            reverseCurve: Curves.easeIn,
-          );
-          return FadeTransition(
-            opacity: Tween<double>(begin: 0.7, end: 1).animate(fade),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(slide),
-              child: child,
-            ),
-          );
-        },
-      ),
+    widget.dependencies.miniAppFloatingStore.removeById(app.id);
+    widget.dependencies.miniAppHostStore.open(
+      miniApp: app,
+      launchSource: 'search',
     );
   }
 

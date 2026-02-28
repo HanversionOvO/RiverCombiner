@@ -29,7 +29,6 @@ import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/realtime/riverside_message_bus_poller.dart';
 import 'package:river/core/widgets/river_ai_action_button.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
-import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
 import 'package:river/features/search/search_page.dart';
 import 'package:river/core/widgets/riverside_category_picker_sheet.dart';
@@ -4203,35 +4202,10 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       }
     }
 
-    await Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 360),
-        reverseTransitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            MiniAppWebViewPage(dependencies: widget.dependencies, miniApp: app),
-        transitionsBuilder: (_, animation, secondaryAnimation, child) {
-          final slide = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          );
-          final fade = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOut,
-            reverseCurve: Curves.easeIn,
-          );
-          return FadeTransition(
-            opacity: Tween<double>(begin: 0.7, end: 1).animate(fade),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(slide),
-              child: child,
-            ),
-          );
-        },
-      ),
+    widget.dependencies.miniAppFloatingStore.removeById(app.id);
+    widget.dependencies.miniAppHostStore.open(
+      miniApp: app,
+      launchSource: 'posts',
     );
   }
 

@@ -4,9 +4,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:image/image.dart' as img;
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
+
 typedef RiverMarkdownSubmitCallback = Future<bool> Function(String markdown);
 typedef RiverMarkdownImageUploadCallback =
     Future<String?> Function(String fileName, List<int> bytes);
@@ -76,6 +78,13 @@ class _PickedImageUploadData {
   final List<int> bytes;
 }
 
+class _PreparedUploadBytes {
+  const _PreparedUploadBytes({required this.bytes, required this.extension});
+
+  final List<int> bytes;
+  final String extension;
+}
+
 class RiverMarkdownEditor extends StatefulWidget {
   const RiverMarkdownEditor({
     super.key,
@@ -134,6 +143,8 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   Timer? _draftSaveDebounce;
 
   static const int _maxGalleryPickCount = 3;
+  static const int _imageUploadCompressThresholdBytes = 1024 * 1024;
+  static const int _imageUploadTargetMaxBytes = 1024 * 1024;
 
   bool _submitting = false;
   bool _uploadingImage = false;
@@ -447,7 +458,8 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
       final insertedSegments = <String>[];
 
       for (final image in pickedImages) {
-        final inserted = await callback(image.fileName, image.bytes);
+        final prepared = _prepareImageForUpload(image);
+        final inserted = await callback(prepared.fileName, prepared.bytes);
         if (inserted != null && inserted.trim().isNotEmpty) {
           successCount++;
           insertedSegments.add(inserted.trim());
@@ -569,6 +581,112 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
               ? fileNameFromPath
               : '$fallbackPrefix.jpg');
     return _PickedImageUploadData(fileName: resolvedName, bytes: fileBytes);
+  }
+
+  _PickedImageUploadData _prepareImageForUpload(_PickedImageUploadData source) {
+    if (source.bytes.length <= _imageUploadCompressThresholdBytes) {
+      return source;
+    }
+    final compressed = _compressImageBytesToLimit(
+      source.bytes,
+      maxBytes: _imageUploadTargetMaxBytes,
+    );
+    if (compressed == null || compressed.bytes.isEmpty) {
+      return source;
+    }
+    return _PickedImageUploadData(
+      fileName: _replaceFileExtension(source.fileName, compressed.extension),
+      bytes: compressed.bytes,
+    );
+  }
+
+  _PreparedUploadBytes? _compressImageBytesToLimit(
+    List<int> sourceBytes, {
+    required int maxBytes,
+  }) {
+    final decoded = img.decodeImage(Uint8List.fromList(sourceBytes));
+    if (decoded == null) {
+      return null;
+    }
+
+    List<int> bestBytes = sourceBytes;
+    var bestExtension = _fileExtensionFromName('image.jpg');
+
+    void rememberBest(List<int> candidateBytes, String extension) {
+      if (candidateBytes.isNotEmpty &&
+          candidateBytes.length < bestBytes.length) {
+        bestBytes = candidateBytes;
+        bestExtension = extension;
+      }
+    }
+
+    if (decoded.hasAlpha) {
+      final pngBytes = img.encodePng(decoded, level: 9);
+      if (pngBytes.length <= maxBytes) {
+        return _PreparedUploadBytes(bytes: pngBytes, extension: 'png');
+      }
+      rememberBest(pngBytes, 'png');
+    }
+
+    img.Image current = decoded.hasAlpha
+        ? _flattenImageAlpha(decoded)
+        : decoded;
+    const jpegQualities = <int>[88, 80, 72, 64, 56, 48, 40];
+    for (var step = 0; step < 6; step++) {
+      for (final quality in jpegQualities) {
+        final jpgBytes = img.encodeJpg(current, quality: quality);
+        if (jpgBytes.length <= maxBytes) {
+          return _PreparedUploadBytes(bytes: jpgBytes, extension: 'jpg');
+        }
+        rememberBest(jpgBytes, 'jpg');
+      }
+
+      final nextWidth = (current.width * 0.85).round();
+      final nextHeight = (current.height * 0.85).round();
+      if (nextWidth < 320 || nextHeight < 320) {
+        break;
+      }
+      current = img.copyResize(
+        current,
+        width: nextWidth,
+        height: nextHeight,
+        interpolation: img.Interpolation.cubic,
+      );
+    }
+
+    if (bestBytes.length < sourceBytes.length) {
+      return _PreparedUploadBytes(bytes: bestBytes, extension: bestExtension);
+    }
+    return null;
+  }
+
+  img.Image _flattenImageAlpha(img.Image source) {
+    final flattened = img.Image(width: source.width, height: source.height);
+    img.fill(flattened, color: img.ColorRgb8(255, 255, 255));
+    img.compositeImage(flattened, source);
+    return flattened;
+  }
+
+  String _replaceFileExtension(String fileName, String newExtension) {
+    final cleanExtension = newExtension.toLowerCase().replaceFirst('.', '');
+    final normalized = fileName.trim();
+    if (normalized.isEmpty) {
+      return 'upload_${DateTime.now().millisecondsSinceEpoch}.$cleanExtension';
+    }
+    final dotIndex = normalized.lastIndexOf('.');
+    if (dotIndex <= 0 || dotIndex == normalized.length - 1) {
+      return '$normalized.$cleanExtension';
+    }
+    return '${normalized.substring(0, dotIndex)}.$cleanExtension';
+  }
+
+  String _fileExtensionFromName(String fileName) {
+    final normalized = fileName.trim();
+    final dotIndex = normalized.lastIndexOf('.');
+    if (dotIndex <= 0 || dotIndex == normalized.length - 1) {
+      return 'jpg';
+    }
+    return normalized.substring(dotIndex + 1).toLowerCase();
   }
 
   void _showEmojiPicker() {
@@ -2398,6 +2516,3 @@ class _RiverStructuredEmojiPickerState
     );
   }
 }
-
-
-

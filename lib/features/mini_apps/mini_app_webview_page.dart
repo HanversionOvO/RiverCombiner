@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -13,6 +14,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/config/server_config.dart';
 import 'package:river/core/mini_apps/river_mini_app_models.dart';
+import 'package:river/core/mini_apps/river_mini_app_suspension_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_code_image_codec.dart';
 import 'package:river/core/mini_apps/river_mini_app_permission_store.dart';
@@ -58,6 +60,7 @@ class MiniAppWebViewPage extends StatefulWidget {
     this.launchParams = const <String, dynamic>{},
     this.launchAction = '',
     this.launchSource = '',
+    this.onSuspendRequested,
   });
 
   final AppDependencies dependencies;
@@ -66,6 +69,7 @@ class MiniAppWebViewPage extends StatefulWidget {
   final Map<String, dynamic> launchParams;
   final String launchAction;
   final String launchSource;
+  final VoidCallback? onSuspendRequested;
 
   @override
   State<MiniAppWebViewPage> createState() => _MiniAppWebViewPageState();
@@ -95,11 +99,19 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
   bool _permissionLoaded = false;
   bool _checkingMiniAppUpdate = false;
   bool _showingUpdateReadySheet = false;
+  String _lastVisitedUrl = '';
+  RiverMiniAppSuspendedSession? _suspendedSession;
 
   @override
   void initState() {
     super.initState();
-    _title = widget.miniApp.name;
+    widget.dependencies.miniAppFloatingStore.removeById(widget.miniApp.id);
+    _suspendedSession = RiverMiniAppSuspensionStore.read(
+      appId: widget.miniApp.id,
+      appVersion: widget.miniApp.version,
+    );
+    final resumeTitle = _suspendedSession?.title.trim() ?? '';
+    _title = resumeTitle.isEmpty ? widget.miniApp.name : resumeTitle;
     _platformClient = RiverMiniAppPlatformClient();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -110,6 +122,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
             if (!mounted) {
               return;
             }
+            _lastVisitedUrl = url.trim();
             setState(() {
               _loading = true;
             });
@@ -119,6 +132,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
             if (!mounted) {
               return;
             }
+            _lastVisitedUrl = url.trim();
             setState(() {
               _loading = false;
             });
@@ -166,11 +180,25 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
   }
 
   Future<void> _loadInitialUrl() async {
+    final canResumeFromSnapshot = !_hasExplicitLaunchPayload();
+    final suspendedUrl = canResumeFromSnapshot
+        ? (_suspendedSession?.url.trim() ?? '')
+        : '';
     final localPath = widget.miniApp.localEntryFilePath.trim();
     if (localPath.isNotEmpty) {
       final localFile = File(localPath);
       if (await localFile.exists()) {
         final localUri = await _ensureLocalMiniAppEntryUri(localFile);
+        if (suspendedUrl.isNotEmpty) {
+          final resumeUri = _resolveResumeUri(
+            suspendedUrl: suspendedUrl,
+            localEntryUri: localUri,
+          );
+          if (resumeUri != null) {
+            await _controller.loadRequest(resumeUri);
+            return;
+          }
+        }
         await _controller.loadRequest(_appendLaunchQuery(localUri));
         return;
       }
@@ -180,18 +208,61 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     if (uri == null) {
       return;
     }
+    final headers = _buildMiniAppRequestHeaders(uri);
+    if (suspendedUrl.isNotEmpty) {
+      final resumeUri = _resolveResumeUri(suspendedUrl: suspendedUrl);
+      if (resumeUri != null) {
+        final resumeHeaders = _buildMiniAppRequestHeaders(resumeUri);
+        await _controller.loadRequest(resumeUri, headers: resumeHeaders);
+        return;
+      }
+    }
+    await _controller.loadRequest(_appendLaunchQuery(uri), headers: headers);
+  }
+
+  bool _hasExplicitLaunchPayload() {
+    return widget.launchRoute.trim().isNotEmpty ||
+        widget.launchAction.trim().isNotEmpty ||
+        widget.launchSource.trim().isNotEmpty ||
+        widget.launchParams.isNotEmpty;
+  }
+
+  Uri? _resolveResumeUri({required String suspendedUrl, Uri? localEntryUri}) {
+    final value = suspendedUrl.trim();
+    if (value.isEmpty) {
+      return null;
+    }
+    final parsed = Uri.tryParse(value);
+    if (parsed == null) {
+      return null;
+    }
+    final isLocalSnapshot =
+        parsed.scheme == 'http' &&
+        (parsed.host == '127.0.0.1' || parsed.host == 'localhost');
+    if (!isLocalSnapshot || localEntryUri == null) {
+      return parsed;
+    }
+    return localEntryUri.replace(
+      path: parsed.path.isEmpty ? localEntryUri.path : parsed.path,
+      query: parsed.query,
+      fragment: parsed.fragment,
+    );
+  }
+
+  Map<String, String> _buildMiniAppRequestHeaders(Uri uri) {
     final headers = <String, String>{
       'X-River-MiniApp-Id': widget.miniApp.id,
       'X-River-MiniApp-Bridge': widget.miniApp.bridgeVersion,
     };
-    if (widget.miniApp.requiresAuth) {
-      final cookie = _activeCookieHeader();
-      if (cookie.isNotEmpty &&
-          RiverServerConfig.instance.isForumHost(uri.host.trim())) {
-        headers['Cookie'] = cookie;
-      }
+    if (!widget.miniApp.requiresAuth) {
+      return headers;
     }
-    await _controller.loadRequest(_appendLaunchQuery(uri), headers: headers);
+    final cookie = _activeCookieHeader();
+    if (cookie.isNotEmpty &&
+        RiverServerConfig.instance.isForumHost(uri.host.trim())) {
+      headers['Cookie'] = cookie;
+    }
+    return headers;
   }
 
   Map<String, dynamic> _buildLaunchPayload() {
@@ -499,9 +570,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
       case 'openexternal':
         throw Exception('openExternal is disabled');
       case 'close':
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
+        await _suspendAndExit();
         return <String, dynamic>{'success': true};
       case 'platformauth':
       case 'platformauthorize':
@@ -905,6 +974,16 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
 
   Future<void> _restartWithUpdatedMiniApp(RiverMiniAppEntry updated) async {
     if (!mounted) {
+      return;
+    }
+    if (widget.onSuspendRequested != null) {
+      widget.dependencies.miniAppHostStore.open(
+        miniApp: updated,
+        launchRoute: widget.launchRoute,
+        launchParams: widget.launchParams,
+        launchAction: widget.launchAction,
+        launchSource: widget.launchSource,
+      );
       return;
     }
     await Navigator.of(context).pushReplacement(
@@ -2047,9 +2126,76 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
       await _syncNavigationState();
       return;
     }
-    if (mounted) {
-      Navigator.of(context).pop();
+    await _suspendAndExit();
+  }
+
+  Future<void> _suspendAndExit() async {
+    final url = await _resolveCurrentPageUrl();
+    if (url.trim().isNotEmpty) {
+      RiverMiniAppSuspensionStore.save(
+        miniApp: widget.miniApp,
+        url: url,
+        title: _title.trim().isEmpty ? widget.miniApp.name : _title.trim(),
+      );
     }
+    if (!mounted) {
+      return;
+    }
+    final onSuspendRequested = widget.onSuspendRequested;
+    if (onSuspendRequested != null) {
+      onSuspendRequested();
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _pinToFloatingWindow() async {
+    final url = await _resolveCurrentPageUrl();
+    final normalizedUrl = url.trim();
+    if (normalizedUrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showRiverSnackBar('当前页面暂不可挂起');
+      }
+      return;
+    }
+    final resolvedTitle = _title.trim().isEmpty
+        ? widget.miniApp.name
+        : _title.trim();
+    RiverMiniAppSuspensionStore.save(
+      miniApp: widget.miniApp,
+      url: normalizedUrl,
+      title: resolvedTitle,
+    );
+    widget.dependencies.miniAppFloatingStore.upsert(
+      miniApp: widget.miniApp,
+      suspendedUrl: normalizedUrl,
+      suspendedTitle: resolvedTitle,
+    );
+    if (!mounted) {
+      return;
+    }
+    final onSuspendRequested = widget.onSuspendRequested;
+    if (onSuspendRequested != null) {
+      onSuspendRequested();
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  Future<String> _resolveCurrentPageUrl() async {
+    final cached = _lastVisitedUrl.trim();
+    if (cached.isNotEmpty) {
+      return cached;
+    }
+    try {
+      final current = await _controller.currentUrl();
+      if (current != null && current.trim().isNotEmpty) {
+        return current.trim();
+      }
+    } catch (_) {
+      // Ignore URL probe failures during suspend.
+    }
+    return '';
   }
 
   Future<void> _showMoreSheet() async {
@@ -2059,128 +2205,190 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     await showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
-      showDragHandle: true,
-      backgroundColor: theme.colorScheme.surface,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.20),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(12),
-                      image: iconProvider == null
-                          ? null
-                          : DecorationImage(
-                              image: iconProvider,
-                              fit: BoxFit.cover,
-                            ),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withValues(alpha: 0.84),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.26,
                     ),
-                    alignment: Alignment.center,
-                    child: iconProvider == null
-                        ? Icon(
-                            Icons.widgets_rounded,
-                            color: theme.colorScheme.primary,
-                          )
-                        : null,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _title.trim().isNotEmpty
-                              ? _title.trim()
-                              : widget.miniApp.name,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.shadow.withValues(alpha: 0.14),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 38,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                         ),
-                        if (widget.miniApp.description.trim().isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            widget.miniApp.description,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(12),
+                              image: iconProvider == null
+                                  ? null
+                                  : DecorationImage(
+                                      image: iconProvider,
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
+                            alignment: Alignment.center,
+                            child: iconProvider == null
+                                ? Icon(
+                                    Icons.widgets_rounded,
+                                    color: theme.colorScheme.primary,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _title.trim().isNotEmpty
+                                      ? _title.trim()
+                                      : widget.miniApp.name,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                if (widget.miniApp.description
+                                    .trim()
+                                    .isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    widget.miniApp.description,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (widget.miniApp.tags.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: widget.miniApp.tags
-                      .take(6)
-                      .map(
-                        (tag) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.62),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            tag,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                      ),
+                      if (widget.miniApp.tags.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: widget.miniApp.tags
+                              .take(6)
+                              .map(
+                                (tag) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.62),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    tag,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
                         ),
-                      )
-                      .toList(growable: false),
+                      ],
+                      const SizedBox(height: 14),
+                      Text(
+                        '快捷操作',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _MiniAppSheetAction(
+                        icon: Icons.admin_panel_settings_outlined,
+                        label: '权限设置',
+                        subtitle: '管理该小程序的系统能力授权',
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await _openPermissionSettings();
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _MiniAppSheetAction(
+                        icon: Icons.refresh_rounded,
+                        label: '刷新小程序',
+                        subtitle: '重新加载当前页面内容',
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await _refresh();
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _MiniAppSheetAction(
+                        icon: Icons.home_work_outlined,
+                        label: '回到首页',
+                        subtitle: '跳转到小程序入口页面',
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await _loadInitialUrl();
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _MiniAppSheetAction(
+                        icon: Icons.picture_in_picture_alt_rounded,
+                        label: '浮窗保留',
+                        subtitle: '缩成悬浮球，稍后继续使用',
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await _pinToFloatingWindow();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _MiniAppSheetAction(
-                    icon: Icons.admin_panel_settings_outlined,
-                    label: '权限设置',
-                    onTap: () async {
-                      Navigator.of(context).pop();
-                      await _openPermissionSettings();
-                    },
-                  ),
-                  _MiniAppSheetAction(
-                    icon: Icons.refresh_rounded,
-                    label: '刷新小程序',
-                    onTap: () async {
-                      Navigator.of(context).pop();
-                      await _refresh();
-                    },
-                  ),
-                  _MiniAppSheetAction(
-                    icon: Icons.home_work_outlined,
-                    label: '回到首页',
-                    onTap: () async {
-                      Navigator.of(context).pop();
-                      await _loadInitialUrl();
-                    },
-                  ),
-                ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -2191,31 +2399,57 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     required IconData icon,
     required String tooltip,
     required VoidCallback onTap,
+    String? iosSymbol,
   }) {
     final theme = Theme.of(context);
+    if (PlatformInfo.isIOS26OrHigher()) {
+      return Tooltip(
+        message: tooltip,
+        child: SizedBox.square(
+          dimension: 44,
+          child: AdaptiveButton.sfSymbol(
+            onPressed: onTap,
+            sfSymbol: SFSymbol(iosSymbol ?? 'circle', size: 18),
+            style: AdaptiveButtonStyle.glass,
+            size: AdaptiveButtonSize.large,
+            minSize: const Size(44, 44),
+            padding: EdgeInsets.zero,
+            borderRadius: const BorderRadius.all(Radius.circular(999)),
+            useSmoothRectangleBorder: false,
+          ),
+        ),
+      );
+    }
+
     return Tooltip(
       message: tooltip,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+      child: ClipOval(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Material(
-            color: theme.colorScheme.surface.withValues(alpha: 0.52),
+            color: theme.colorScheme.surface.withValues(alpha: 0.46),
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(14),
+              customBorder: const CircleBorder(),
               child: Container(
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.shadow.withValues(alpha: 0.10),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                   border: Border.all(
                     color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.24,
+                      alpha: 0.32,
                     ),
                   ),
                 ),
-                child: Icon(icon, size: 20),
+                child: Icon(icon, size: 20, color: theme.colorScheme.onSurface),
               ),
             ),
           ),
@@ -2280,12 +2514,16 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
                     _buildFloatingWindowButton(
                       icon: Icons.close_rounded,
                       tooltip: '关闭小程序',
-                      onTap: () => Navigator.of(context).pop(),
+                      iosSymbol: 'xmark',
+                      onTap: () {
+                        unawaited(_suspendAndExit());
+                      },
                     ),
                     const SizedBox(width: 8),
                     _buildFloatingWindowButton(
                       icon: Icons.more_horiz_rounded,
                       tooltip: '更多',
+                      iosSymbol: 'ellipsis',
                       onTap: () {
                         unawaited(_showMoreSheet());
                       },
@@ -2378,11 +2616,13 @@ class _MiniAppSheetAction extends StatelessWidget {
   const _MiniAppSheetAction({
     required this.icon,
     required this.label,
+    required this.subtitle,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final String subtitle;
   final Future<void> Function() onTap;
 
   @override
@@ -2391,28 +2631,66 @@ class _MiniAppSheetAction extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           unawaited(onTap());
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(14),
+            color: theme.colorScheme.surfaceContainerHigh.withValues(
+              alpha: 0.82,
+            ),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.26),
             ),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: theme.colorScheme.primary),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(
+                    alpha: 0.70,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 16, color: theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.85,
                 ),
               ),
             ],
