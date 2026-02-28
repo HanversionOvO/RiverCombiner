@@ -835,7 +835,57 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeOutCubic,
                 child: _searching
-                    ? const Center(child: CircularProgressIndicator())
+                    ? Skeletonizer(
+                        key: const ValueKey<String>('loading'),
+                        enabled: true,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          itemCount: 5,
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.45),
+                                ),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  6,
+                                  10,
+                                  6,
+                                ),
+                                leading: const CircleAvatar(
+                                  radius: 16,
+                                  child: Icon(Icons.person_rounded, size: 16),
+                                ),
+                                title: const Text('加载中用户'),
+                                subtitle: const Text('@loading_user'),
+                                trailing: Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.14,
+                                    ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    Icons.add_rounded,
+                                    size: 18,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      )
                     : _errorText != null
                     ? Center(
                         key: const ValueKey<String>('error'),

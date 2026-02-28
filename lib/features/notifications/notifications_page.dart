@@ -14,6 +14,7 @@ import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/notifications/chat_detail_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 part 'notifications_page_actions.dart';
 part 'notifications_page_view.dart';

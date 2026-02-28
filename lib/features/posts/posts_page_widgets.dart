@@ -72,8 +72,6 @@ class _TopicListTabState extends State<_TopicListTab>
   int _page = 0;
   int _requestSerial = 0;
   int? _realtimeHintAnchorIndex;
-  late final AnimationController _skeletonPulseController;
-  late final Animation<double> _skeletonPulse;
 
   @override
   bool get wantKeepAlive => true;
@@ -84,14 +82,6 @@ class _TopicListTabState extends State<_TopicListTab>
   @override
   void initState() {
     super.initState();
-    _skeletonPulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    )..repeat(reverse: true);
-    _skeletonPulse = CurvedAnimation(
-      parent: _skeletonPulseController,
-      curve: Curves.easeInOut,
-    );
     _loadFirstPage();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -118,7 +108,6 @@ class _TopicListTabState extends State<_TopicListTab>
 
   @override
   void dispose() {
-    _skeletonPulseController.dispose();
     _showBackToTopNotifier.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -710,10 +699,19 @@ class _TopicListTabState extends State<_TopicListTab>
                   padding: const EdgeInsets.all(16.0),
                   child: Center(
                     child: _isLoadingMore
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        ? Skeletonizer(
+                            enabled: true,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text('正在加载更多帖子...'),
+                            ),
                           )
                         : Text(
                             '\u6ca1\u6709\u66f4\u591a\u4e86',
@@ -770,32 +768,41 @@ class _TopicListTabState extends State<_TopicListTab>
   }
 
   Widget _buildSkeletonList() {
-    return AnimatedBuilder(
-      animation: _skeletonPulse,
-      builder: (context, _) {
-        final theme = Theme.of(context);
-        final baseColor = Color.lerp(
-          theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.48),
-          theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.88),
-          _skeletonPulse.value,
-        )!;
-        final highlightColor = Color.lerp(
-          theme.colorScheme.surface.withValues(alpha: 0.45),
-          theme.colorScheme.surface.withValues(alpha: 0.85),
-          _skeletonPulse.value,
-        )!;
-
-        return ListView.separated(
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 92),
-          itemCount: 6,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, index) => _TopicCardSkeleton(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-          ),
-        );
-      },
+    final skeletonTopics = List<RiverSideTopicSummary>.generate(6, (index) {
+      return RiverSideTopicSummary(
+        id: index + 1,
+        title: 'RiverSide 加载中标题占位',
+        excerpt: '这是帖子摘要骨架占位，用于渲染加载中的内容状态。',
+        categoryId: 1,
+        categoryName: '综合讨论',
+        replyCount: 36,
+        viewCount: 248,
+        createdAt: DateTime.now(),
+        authorDisplayName: 'River 用户',
+        authorUsername: 'river_user_$index',
+        authorAvatarUrl: '',
+        isHot: index.isEven,
+        isPinned: index == 0,
+      );
+    });
+    return Skeletonizer(
+      enabled: true,
+      child: ListView.separated(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 92),
+        itemCount: skeletonTopics.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final topic = skeletonTopics[index];
+          return _TopicCard(
+            topic: topic,
+            displayCategoryName: topic.categoryName,
+            isHotFeed: widget.feed == RiverSideTopicFeed.hot,
+            onTap: (_) {},
+            onAuthorTap: () {},
+          );
+        },
+      ),
     );
   }
 }

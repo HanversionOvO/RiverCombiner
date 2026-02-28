@@ -174,54 +174,46 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
           ],
         ),
       ),
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
-        itemCount: 8,
-        itemBuilder: (context, index) {
-          final mine = index.isOdd;
-          return Align(
-            alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              width: MediaQuery.sizeOf(context).width * (mine ? 0.58 : 0.68),
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              decoration: BoxDecoration(
-                color: mine
-                    ? theme.colorScheme.primaryContainer.withValues(alpha: 0.66)
-                    : theme.colorScheme.surfaceContainerHigh.withValues(
-                        alpha: 0.8,
-                      ),
-                borderRadius: BorderRadius.circular(16),
+      child: Skeletonizer(
+        enabled: true,
+        child: ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
+          itemCount: 8,
+          itemBuilder: (context, index) {
+            final mine = index.isOdd;
+            return Align(
+              alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: MediaQuery.sizeOf(context).width * (mine ? 0.58 : 0.68),
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: mine
+                      ? theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.66,
+                        )
+                      : theme.colorScheme.surfaceContainerHigh.withValues(
+                          alpha: 0.8,
+                        ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('聊天消息骨架占位，加载中'),
+                    SizedBox(height: 8),
+                    Text('正在同步历史消息...'),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    height: 10,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 10,
-                    width: MediaQuery.sizeOf(context).width * 0.26,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.08,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -267,7 +259,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
         ? 74.0
         : (_composerDockHeight > 0 ? _composerDockHeight : 112.0);
     final listBottomPadding = (dockInset + keyboardInset + 16).toDouble();
-    final floatingBottom = (dockInset + keyboardInset + 14).toDouble();
+    final floatingBottom = (dockInset + keyboardInset + 28).toDouble();
     return Stack(
       children: [
         DecoratedBox(
@@ -436,13 +428,19 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
 
   Widget _buildLoadMoreIndicator(BuildContext context) {
     if (_loadingOlder) {
-      return const Padding(
-        padding: EdgeInsets.only(bottom: 8),
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
         child: Center(
-          child: SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
+          child: Skeletonizer(
+            enabled: true,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Text('正在加载历史消息...'),
+            ),
           ),
         ),
       );
@@ -947,6 +945,9 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
 
   Widget _buildComposerDock(BuildContext context) {
     final theme = Theme.of(context);
+    final keyboardVisible =
+        MediaQuery.viewInsetsOf(context).bottom > 0 ||
+        _composerFocusNode.hasFocus;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final render = _composerDockKey.currentContext?.findRenderObject();
       if (render is RenderBox) {
@@ -1024,6 +1025,37 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                       visualDensity: VisualDensity.compact,
                       onPressed: _sending ? null : _showComposerEmojiPicker,
                       icon: const Icon(Icons.sentiment_satisfied_alt_rounded),
+                    ),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: animation,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: keyboardVisible
+                          ? IconButton(
+                              key: const ValueKey<String>(
+                                'chat_keyboard_dismiss_visible',
+                              ),
+                              tooltip: '收起键盘',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: _dismissComposerKeyboard,
+                              icon: const Icon(Icons.keyboard_hide_rounded),
+                            )
+                          : const SizedBox(
+                              key: ValueKey<String>(
+                                'chat_keyboard_dismiss_hidden',
+                              ),
+                              width: 0,
+                              height: 0,
+                            ),
                     ),
                     Expanded(
                       child: ConstrainedBox(

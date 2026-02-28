@@ -10,6 +10,7 @@ import 'package:river/core/network/riverside_search_models.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 part 'riverside_account_settings_page_widgets.dart';
 
@@ -603,6 +604,80 @@ class _RiverSideAccountSettingsPageState
     return '${local.year}-${two(local.month)}-${two(local.day)} ${two(local.hour)}:${two(local.minute)}';
   }
 
+  Widget _buildLoadingSkeleton(ThemeData theme) {
+    return Skeletonizer(
+      enabled: true,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+        children: const [
+          _SettingsSectionCard(
+            title: '账户基础',
+            subtitle: '电子邮件、别名与头衔',
+            child: Column(
+              children: [
+                _ActionTile(
+                  icon: Icons.person_outline_rounded,
+                  title: '别名设置',
+                  subtitle: '加载中...',
+                  onTap: null,
+                ),
+                SizedBox(height: 8),
+                _ActionTile(
+                  icon: Icons.alternate_email_rounded,
+                  title: '头衔设置',
+                  subtitle: '加载中...',
+                  onTap: null,
+                ),
+                SizedBox(height: 8),
+                _ActionTile(
+                  icon: Icons.mail_outline_rounded,
+                  title: '更改电子邮件',
+                  subtitle: '加载中...',
+                  onTap: null,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 14),
+          _SettingsSectionCard(
+            title: '隐私与在线',
+            subtitle: '个人资料显示与在线状态',
+            child: Column(
+              children: [
+                _SwitchExplainTile(
+                  icon: Icons.visibility_off_outlined,
+                  title: '个人资料显示/隐藏',
+                  subtitle: '加载中...',
+                  value: true,
+                  onChanged: null,
+                ),
+                SizedBox(height: 8),
+                _SwitchExplainTile(
+                  icon: Icons.circle_notifications_outlined,
+                  title: '在线/隐身设置',
+                  subtitle: '加载中...',
+                  value: false,
+                  onChanged: null,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 14),
+          _SettingsSectionCard(
+            title: '资料内容',
+            subtitle: '编辑自我介绍',
+            child: _ActionTile(
+              icon: Icons.notes_rounded,
+              title: '自我介绍设置',
+              subtitle: '加载中...',
+              onTap: null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -620,7 +695,7 @@ class _RiverSideAccountSettingsPageState
         ),
       ],
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildLoadingSkeleton(theme)
           : _errorText != null
           ? _ErrorStateCard(text: _errorText!, onRetry: _loadInitial)
           : _snapshot == null

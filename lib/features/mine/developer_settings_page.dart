@@ -40,6 +40,21 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
     ScaffoldMessenger.of(context).showRiverSnackBar('已退出开发者模式');
   }
 
+  Future<void> _clearGuideStates() async {
+    final confirmed = await showRiverConfirmDialog(
+      context: context,
+      title: '清除引导状态',
+      message: '将重置引导记录，下次进入相关页面时会重新显示引导，是否继续？',
+      confirmText: '确认清除',
+      icon: Icons.tour_rounded,
+    );
+    if (!confirmed || !mounted) {
+      return;
+    }
+    widget.dependencies.settingsController.resetGuideStates();
+    ScaffoldMessenger.of(context).showRiverSnackBar('已清除引导状态');
+  }
+
   Future<void> _openInstallLocalMiniAppSheet() async {
     final idController = TextEditingController();
     final nameController = TextEditingController();
@@ -289,11 +304,23 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
           _SettingsSection(
             title: '模式管理',
             subtitle: '管理开发者模式开关',
-            child: _ActionTile(
-              icon: Icons.power_settings_new_rounded,
-              title: '退出开发者模式',
-              subtitle: '关闭后将隐藏开发者设置板块',
-              onTap: _exitDeveloperMode,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ActionTile(
+                  icon: Icons.tour_rounded,
+                  title: '清除引导状态',
+                  subtitle: '重置引导记录，下次进入会重新显示引导',
+                  onTap: _clearGuideStates,
+                ),
+                const SizedBox(height: 10),
+                _ActionTile(
+                  icon: Icons.power_settings_new_rounded,
+                  title: '退出开发者模式',
+                  subtitle: '关闭后将隐藏开发者设置板块',
+                  onTap: _exitDeveloperMode,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 14),

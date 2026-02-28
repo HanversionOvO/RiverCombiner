@@ -149,10 +149,26 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
     if (_sending) {
       return;
     }
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) {
+    FocusScope.of(context).unfocus();
+    final source = await _showComposerImageSourceMenu();
+    if (!mounted || source == null) {
       return;
     }
+
+    List<_ChatPickedImageUploadData> pickedImages;
+    try {
+      pickedImages = await _pickComposerImagesBySource(source);
+      if (pickedImages.isEmpty) {
+        return;
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showRiverSnackBar('选择图片失败：$error');
+      return;
+    }
+
     final cookie = _activeCookieHeader();
     if (cookie == null || cookie.trim().isEmpty) {
       if (!mounted) {
@@ -163,18 +179,50 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       ).showRiverSnackBar(_ChatDetailPageState._labelNeedLogin);
       return;
     }
+
     try {
-      final bytes = await picked.readAsBytes();
-      final uploaded = await widget.dependencies.accountStore.riverSideApiClient
-          .uploadComposerImage(
-            cookieHeader: cookie,
-            fileName: picked.name,
-            bytes: bytes,
-          );
-      final resolved = uploaded.startsWith('upload://')
-          ? '$riverSideBaseUrl/uploads/short-url/${uploaded.substring('upload://'.length)}'
-          : _resolveForumUrl(uploaded);
-      _insertComposerText('\n![]($resolved)\n');
+      final insertedSegments = <String>[];
+      var successCount = 0;
+      var failedCount = 0;
+      for (final image in pickedImages) {
+        final uploaded = await widget
+            .dependencies
+            .accountStore
+            .riverSideApiClient
+            .uploadComposerImage(
+              cookieHeader: cookie,
+              fileName: image.fileName,
+              bytes: image.bytes,
+            );
+        final resolved = uploaded.startsWith('upload://')
+            ? '$riverSideBaseUrl/uploads/short-url/${uploaded.substring('upload://'.length)}'
+            : _resolveForumUrl(uploaded);
+        if (resolved.trim().isNotEmpty) {
+          successCount++;
+          insertedSegments.add('![]($resolved)');
+        } else {
+          failedCount++;
+        }
+      }
+      if (!mounted) {
+        return;
+      }
+      if (insertedSegments.isEmpty) {
+        ScaffoldMessenger.of(context).showRiverSnackBar('图片上传失败');
+        return;
+      }
+      final merged = insertedSegments.map((segment) => '\n$segment\n').join();
+      _insertComposerText(merged);
+      if (failedCount > 0) {
+        ScaffoldMessenger.of(
+          context,
+        ).showRiverSnackBar('已添加 $successCount 张图片，$failedCount 张上传失败');
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showRiverSnackBar('已添加 $successCount 张图片');
+      }
+      _composerFocusNode.requestFocus();
     } on RiverSideApiException catch (error) {
       if (!mounted) {
         return;
@@ -188,6 +236,151 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
         context,
       ).showRiverSnackBar(_ChatDetailPageState._labelLoadFailed);
     }
+  }
+
+  Future<_ChatImagePickSource?> _showComposerImageSourceMenu() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return showModalBottomSheet<_ChatImagePickSource>(
+      context: context,
+      isScrollControlled: false,
+      useSafeArea: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Material(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                    child: Text(
+                      '插入图片',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt_rounded),
+                    title: const Text('拍摄照片'),
+                    subtitle: const Text('调用相机拍摄并上传'),
+                    onTap: () => Navigator.of(
+                      sheetContext,
+                    ).pop(_ChatImagePickSource.camera),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.image_outlined),
+                    title: const Text('选择图片'),
+                    subtitle: const Text('从相册中选择（最多 3 张）'),
+                    onTap: () => Navigator.of(
+                      sheetContext,
+                    ).pop(_ChatImagePickSource.gallery),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<List<_ChatPickedImageUploadData>> _pickComposerImagesBySource(
+    _ChatImagePickSource source,
+  ) async {
+    if (source == _ChatImagePickSource.gallery) {
+      final assets = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: const AssetPickerConfig(
+          maxAssets: _ChatDetailPageState._maxComposerImagePickCount,
+          requestType: RequestType.image,
+        ),
+      );
+      if (assets == null || assets.isEmpty) {
+        return const <_ChatPickedImageUploadData>[];
+      }
+      final images = <_ChatPickedImageUploadData>[];
+      final limit =
+          assets.length > _ChatDetailPageState._maxComposerImagePickCount
+          ? _ChatDetailPageState._maxComposerImagePickCount
+          : assets.length;
+      for (var i = 0; i < limit; i++) {
+        final data = await _buildComposerUploadDataFromAsset(
+          assets[i],
+          fallbackPrefix: 'chat_gallery_${i + 1}',
+        );
+        if (data != null) {
+          images.add(data);
+        }
+      }
+      return images;
+    }
+
+    final entity = await CameraPicker.pickFromCamera(
+      context,
+      pickerConfig: const CameraPickerConfig(
+        enableRecording: false,
+        onlyEnableRecording: false,
+      ),
+    );
+    if (entity == null) {
+      return const <_ChatPickedImageUploadData>[];
+    }
+    final image = await _buildComposerUploadDataFromAsset(
+      entity,
+      fallbackPrefix: 'chat_camera_${DateTime.now().millisecondsSinceEpoch}',
+    );
+    if (image == null) {
+      throw StateError('拍摄结果读取失败');
+    }
+    return <_ChatPickedImageUploadData>[image];
+  }
+
+  Future<_ChatPickedImageUploadData?> _buildComposerUploadDataFromAsset(
+    AssetEntity entity, {
+    required String fallbackPrefix,
+  }) async {
+    final title = (entity.title ?? '').trim();
+    final bytes = await entity.originBytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      return _ChatPickedImageUploadData(
+        fileName: title.isEmpty ? '$fallbackPrefix.jpg' : title,
+        bytes: bytes,
+      );
+    }
+    final file = await entity.file;
+    if (file == null) {
+      return null;
+    }
+    final fileBytes = await file.readAsBytes();
+    if (fileBytes.isEmpty) {
+      return null;
+    }
+    final fileNameFromPath = file.uri.pathSegments.isNotEmpty
+        ? file.uri.pathSegments.last.trim()
+        : '';
+    final resolvedName = title.isNotEmpty
+        ? title
+        : (fileNameFromPath.isNotEmpty
+              ? fileNameFromPath
+              : '$fallbackPrefix.jpg');
+    return _ChatPickedImageUploadData(fileName: resolvedName, bytes: fileBytes);
+  }
+
+  void _dismissComposerKeyboard() {
+    HapticFeedback.lightImpact();
+    FocusManager.instance.primaryFocus?.unfocus();
+    _composerFocusNode.unfocus();
+    SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
   }
 
   Future<void> _submitComposerMessage() async {

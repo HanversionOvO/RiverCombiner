@@ -3,6 +3,7 @@ import 'package:river/core/mini_apps/river_mini_app_models.dart';
 import 'package:river/core/mini_apps/river_mini_app_permission_store.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class MiniAppPermissionsPage extends StatefulWidget {
   const MiniAppPermissionsPage({
@@ -78,7 +79,33 @@ class _MiniAppPermissionsPageState extends State<MiniAppPermissionsPage> {
       icon: Icons.admin_panel_settings_outlined,
       heroTagPrefix: 'miniapp_permission_${widget.miniApp.id}',
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Skeletonizer(
+              enabled: true,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                children: [
+                  _PermissionSection(
+                    title: '原生能力权限',
+                    subtitle: '默认仅开启网络请求，其他能力首次调用会弹出授权确认。',
+                    child: Column(
+                      children: RiverMiniAppNativePermission.values
+                          .map(
+                            (permission) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: _PermissionTile(
+                                permission: permission,
+                                granted: true,
+                                subtitle: _subtitleFor(permission),
+                                onChanged: (_) {},
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
+                ],
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
               children: [

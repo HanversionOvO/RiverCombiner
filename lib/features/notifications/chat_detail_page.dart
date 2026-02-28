@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:html2md/html2md.dart' as html2md;
-import 'package:image_picker/image_picker.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/constants.dart';
@@ -19,7 +18,10 @@ import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/core/widgets/river_image_viewer.dart';
 import 'package:river/core/widgets/river_markdown_editor.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
 part 'chat_detail_page_actions.dart';
@@ -41,6 +43,7 @@ class ChatDetailPage extends StatefulWidget {
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
+  static const int _maxComposerImagePickCount = 3;
   static const String _chatGlobalRealtimeChannel = '/chat';
   static const List<String> _defaultReactionEmojiNames = <String>[
     '+1',
@@ -93,7 +96,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   final TextEditingController _composerController =
       _ChatComposerRichController();
   final FocusNode _composerFocusNode = FocusNode();
-  final ImagePicker _picker = ImagePicker();
   final Set<int> _selectedMessageIds = <int>{};
   final Map<int, GlobalKey> _messageItemKeys = <int, GlobalKey>{};
   final GlobalKey _composerDockKey = GlobalKey();
@@ -886,4 +888,16 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Widget build(BuildContext context) {
     return _buildPage(context);
   }
+}
+
+enum _ChatImagePickSource { camera, gallery }
+
+class _ChatPickedImageUploadData {
+  const _ChatPickedImageUploadData({
+    required this.fileName,
+    required this.bytes,
+  });
+
+  final String fileName;
+  final Uint8List bytes;
 }

@@ -16,6 +16,7 @@ import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/features/mine/riverside_profile_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 part 'search_page_view.dart';
 part 'search_page_actions.dart';

@@ -44,6 +44,8 @@ class AppSettingsController extends ChangeNotifier {
       'app.notifications_realtime_refresh_banner';
   static const String _topicCommentsRealtimeRefreshBannerKey =
       'app.topic_comments_realtime_refresh_banner';
+  static const String _postsSecondFloorGuideKey =
+      'app.posts_second_floor_guide';
   static const String _riverSideBaseUrlKey = 'app.riverside_base_url';
   static const String _qingShuiHePanBaseUrlKey = 'app.qingshuihepan_base_url';
   static const String _updateManifestUrlKey = 'app.update_manifest_url';
@@ -79,6 +81,7 @@ class AppSettingsController extends ChangeNotifier {
   bool _showPostsRealtimeRefreshBanner = true;
   bool _showNotificationsRealtimeRefreshBanner = true;
   bool _showTopicCommentsRealtimeRefreshBanner = true;
+  bool _showPostsSecondFloorGuide = true;
   String _riverSideBaseUrl = RiverServerConfig.defaultBaseUrl;
   String _qingShuiHePanBaseUrl = RiverServerConfig.defaultQingShuiHePanBaseUrl;
   String _updateManifestUrl = RiverServerConfig.defaultUpdateManifestUrl;
@@ -111,6 +114,7 @@ class AppSettingsController extends ChangeNotifier {
       _showNotificationsRealtimeRefreshBanner;
   bool get showTopicCommentsRealtimeRefreshBanner =>
       _showTopicCommentsRealtimeRefreshBanner;
+  bool get showPostsSecondFloorGuide => _showPostsSecondFloorGuide;
   String get riverSideBaseUrl => _riverSideBaseUrl;
   String get qingShuiHePanBaseUrl => _qingShuiHePanBaseUrl;
   String get updateManifestUrl => _updateManifestUrl;
@@ -203,6 +207,8 @@ class AppSettingsController extends ChangeNotifier {
         _prefs?.getBool(_notificationsRealtimeRefreshBannerKey) ?? true;
     _showTopicCommentsRealtimeRefreshBanner =
         _prefs?.getBool(_topicCommentsRealtimeRefreshBannerKey) ?? true;
+    _showPostsSecondFloorGuide =
+        _prefs?.getBool(_postsSecondFloorGuideKey) ?? true;
 
     final rawBaseUrl = _prefs?.getString(_riverSideBaseUrlKey);
     if (rawBaseUrl != null && rawBaseUrl.trim().isNotEmpty) {
@@ -420,6 +426,28 @@ class AppSettingsController extends ChangeNotifier {
     _showTopicCommentsRealtimeRefreshBanner = value;
     notifyListeners();
     unawaited(_saveShowTopicCommentsRealtimeRefreshBanner());
+  }
+
+  void markPostsSecondFloorGuideShown() {
+    if (!_showPostsSecondFloorGuide) {
+      return;
+    }
+    _showPostsSecondFloorGuide = false;
+    notifyListeners();
+    unawaited(_saveShowPostsSecondFloorGuide());
+  }
+
+  void resetGuideStates() {
+    var changed = false;
+    if (!_showPostsSecondFloorGuide) {
+      _showPostsSecondFloorGuide = true;
+      changed = true;
+    }
+    if (!changed) {
+      return;
+    }
+    notifyListeners();
+    unawaited(_saveShowPostsSecondFloorGuide());
   }
 
   void updateRiverSideBaseUrl(String value) {
@@ -686,6 +714,14 @@ class AppSettingsController extends ChangeNotifier {
     await _prefs!.setBool(
       _topicCommentsRealtimeRefreshBannerKey,
       _showTopicCommentsRealtimeRefreshBanner,
+    );
+  }
+
+  Future<void> _saveShowPostsSecondFloorGuide() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(
+      _postsSecondFloorGuideKey,
+      _showPostsSecondFloorGuide,
     );
   }
 

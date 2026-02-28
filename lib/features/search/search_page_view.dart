@@ -361,61 +361,37 @@ extension _SearchPageView on _SearchPageState {
   }
 
   Widget _buildLoadingState() {
-    final theme = Theme.of(context);
-    final baseColor = theme.colorScheme.surfaceContainerHighest.withValues(
-      alpha: 0.55,
-    );
-    return ListView.separated(
-      controller: _scrollController,
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 18),
-      itemCount: 5,
-      separatorBuilder: (_, _) => const SizedBox(height: 10),
-      itemBuilder: (_, index) {
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+    return Skeletonizer(
+      enabled: true,
+      child: ListView.separated(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 18),
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (_, index) {
+          return Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+              leading: const CircleAvatar(
+                radius: 22,
+                child: Icon(Icons.article_outlined),
+              ),
+              title: const Text('RiverSide 搜索结果骨架标题占位'),
+              subtitle: const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text('搜索结果摘要骨架占位，展示加载中的内容。'),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 180,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: baseColor,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                height: 11,
-                decoration: BoxDecoration(
-                  color: baseColor,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FractionallySizedBox(
-                widthFactor: 0.7,
-                child: Container(
-                  height: 11,
-                  decoration: BoxDecoration(
-                    color: baseColor,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -786,9 +762,22 @@ extension _SearchPageView on _SearchPageState {
         itemBuilder: (context, index) {
           if (index == _postItems.length) {
             if (_loadingMorePosts) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Skeletonizer(
+                  enabled: true,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text('正在加载更多搜索结果...'),
+                  ),
+                ),
               );
             }
             if (!_hasMorePostPages) {
@@ -984,10 +973,16 @@ extension _SearchPageView on _SearchPageState {
                     ),
                   ),
                   if (_loadingMiniAppCatalog)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    Skeletonizer(
+                      enabled: true,
+                      child: Container(
+                        width: 72,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
                     ),
                 ],
               ),

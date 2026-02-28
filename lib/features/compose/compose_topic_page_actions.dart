@@ -71,6 +71,38 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
     return true;
   }
 
+  Future<void> _clearComposeContentAfterPublishSuccess() async {
+    _mutateState(() {
+      _titleController.clear();
+      _contentMarkdown = '';
+      _qingUploadedImagesByDisplayUrl.clear();
+    });
+    await _deleteCurrentComposeDraftSilently();
+  }
+
+  Future<void> _deleteCurrentComposeDraftSilently() async {
+    final cookie = _activeRiverCookieHeader();
+    if (cookie == null || cookie.trim().isEmpty) {
+      return;
+    }
+    final draftKey = _topicDraftKey();
+    try {
+      final draft = await widget.dependencies.accountStore.riverSideApiClient
+          .fetchComposerDraft(draftKey: draftKey, cookieHeader: cookie);
+      if (draft == null) {
+        return;
+      }
+      await widget.dependencies.accountStore.riverSideApiClient
+          .deleteComposerDraft(
+            draftKey: draft.draftKey,
+            sequence: draft.sequence,
+            cookieHeader: cookie,
+          );
+    } catch (_) {
+      // 发布成功后的清理不应影响主流程，失败时静默忽略。
+    }
+  }
+
   Future<void> _loadMetaData() async {
     _mutateState(() {
       _loadingMeta = true;
@@ -1685,6 +1717,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
         _showToast(failed.isEmpty ? '发布失败，请稍后重试' : failed.first, isError: true);
         return;
       }
+      await _clearComposeContentAfterPublishSuccess();
       _showToast(success.length > 1 ? '已同步发布到两个论坛' : '发布成功！');
       if (failed.isNotEmpty) {
         _showToast('部分失败：${failed.join('；')}', isError: true);

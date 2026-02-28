@@ -287,9 +287,9 @@ extension _NotificationsPageView on _NotificationsPageState {
 
   Widget _buildNotificationsList(ThemeData theme) {
     if (_loading && _notifications.isEmpty) {
-      return _buildRefreshPlaceholder(
+      return RefreshIndicator(
         onRefresh: _refreshCurrentTab,
-        child: const CircularProgressIndicator(),
+        child: _buildNotificationsSkeletonList(theme),
       );
     }
 
@@ -317,9 +317,25 @@ extension _NotificationsPageView on _NotificationsPageState {
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           if (index == _notifications.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(0, 2, 0, 2),
+              child: Skeletonizer(
+                enabled: true,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const ListTile(
+                    leading: CircleAvatar(
+                      radius: 20,
+                      child: Icon(Icons.notifications_rounded),
+                    ),
+                    title: Text('正在加载更多通知...'),
+                    subtitle: Text('请稍候'),
+                  ),
+                ),
+              ),
             );
           }
           return _buildNotificationCard(theme, _notifications[index]);
@@ -554,9 +570,9 @@ extension _NotificationsPageView on _NotificationsPageState {
     required ScrollController controller,
   }) {
     if (_loading && items.isEmpty) {
-      return _buildRefreshPlaceholder(
+      return RefreshIndicator(
         onRefresh: _refreshCurrentTab,
-        child: const CircularProgressIndicator(),
+        child: _buildChatSkeletonList(theme),
       );
     }
 
@@ -761,6 +777,115 @@ extension _NotificationsPageView on _NotificationsPageState {
               ],
             ),
             child: slidableCard,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNotificationsSkeletonList(ThemeData theme) {
+    final fakeItems = List<RiverSideNotificationItem>.generate(6, (index) {
+      return RiverSideNotificationItem(
+        id: index + 1,
+        type: 2,
+        read: false,
+        highPriority: false,
+        createdAt: DateTime.now(),
+        topicId: index + 1000,
+        postNumber: index + 1,
+        slug: 'topic-skeleton-$index',
+        title: 'RiverSide 通知骨架标题占位',
+        excerpt: '这是通知内容的骨架占位，用于展示加载状态。',
+        username: 'river_user_$index',
+        actionText: '回复了你',
+        badgeName: '',
+        count: 1,
+        avatarUrl: '',
+      );
+    });
+    return Skeletonizer(
+      enabled: true,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+        itemCount: fakeItems.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          return _buildNotificationCard(theme, fakeItems[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildChatSkeletonList(ThemeData theme) {
+    final fakeItems = List<RiverSideChatChannelItem>.generate(7, (index) {
+      return RiverSideChatChannelItem(
+        id: index + 1,
+        name: '频道/私信 骨架占位',
+        description: '加载中的描述信息',
+        unreadCount: 1,
+        lastMessage: '加载中的消息预览骨架占位',
+        lastMessageAt: DateTime.now(),
+        isDirectMessage: index.isEven,
+        avatarUrl: '',
+        canDeleteSelf: false,
+      );
+    });
+    return Skeletonizer(
+      enabled: true,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+        itemCount: fakeItems.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final item = fakeItems[index];
+          final title = item.name;
+          final subtitle = item.lastMessage;
+          return Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              leading: const CircleAvatar(
+                radius: 22,
+                child: Icon(Icons.person_rounded),
+              ),
+              title: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+              subtitle: Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: Container(
+                width: 26,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.error,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
           );
         },
       ),

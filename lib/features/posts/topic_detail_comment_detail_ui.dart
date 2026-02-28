@@ -102,10 +102,49 @@ extension _CommentDetailPageUi on _CommentDetailPageState {
 
   Widget _buildRepliesBody(BuildContext context) {
     if (_loading) {
-      return const Padding(
-        key: ValueKey<String>('comment-detail-loading'),
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Center(child: CircularProgressIndicator()),
+      return Padding(
+        key: const ValueKey<String>('comment-detail-loading'),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Skeletonizer(
+          enabled: true,
+          child: Column(
+            children: List<Widget>.generate(3, (index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _CommentDetailPostCard(
+                  post: RiverSideTopicPostDetail(
+                    id: index + 1,
+                    topicId: _rootPost.topicId,
+                    postNumber: index + 2,
+                    authorUserId: index + 200,
+                    authorUsername: 'skeleton_user_$index',
+                    authorDisplayName: '加载中用户',
+                    authorAvatarUrl: '',
+                    authorTitle: '成员',
+                    isOnline: false,
+                    contentMarkdown: '评论内容骨架占位，正在加载回复...',
+                    createdAt: DateTime.now(),
+                    editCount: 0,
+                    likeCount: 0,
+                  ),
+                  cookieHeader: _activeCookieHeader(),
+                  emojiUrls: _emojiUrls,
+                  onQuoteTap: _showQuoteBottomSheet,
+                  onMentionTap: _openMentionProfileFromContent,
+                  onTopicLinkTap: _openTopicFromContent,
+                  reacting: false,
+                  pendingHeroReactionId: null,
+                  reactionPulseToken: 0,
+                  onLongPress: () {},
+                  onAuthorTap: (_) {},
+                  onReactPressed: (_) {},
+                  onReactionStatusPressed: (_, __) {},
+                  onReplyPressed: (_) {},
+                ),
+              );
+            }),
+          ),
+        ),
       );
     }
 

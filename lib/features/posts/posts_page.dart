@@ -34,6 +34,7 @@ import 'package:river/core/widgets/riverside_category_picker_sheet.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 // -----------------------------------------------------------------------------
 
@@ -1642,6 +1643,8 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       const <RiverSideCategoryOption>[];
   StreamSubscription<int>? _miniAppsChangedSubscription;
   late final AnimationController _secondFloorController;
+  late final AnimationController _secondFloorGuideFingerController;
+  late final Animation<double> _secondFloorGuideFingerOffset;
   double _secondFloorPullDistance = 0;
   bool _secondFloorArmed = false;
   bool _secondFloorVisibleForParent = false;
@@ -1662,6 +1665,9 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   String? _secondFloorWeatherError;
   Timer? _secondFloorWeatherTimer;
   bool _summarizingTodayForumByAi = false;
+  bool _secondFloorGuideHintScheduled = false;
+  bool _secondFloorGuideHintLoopRunning = false;
+  bool _secondFloorGuideHintStopRequested = false;
 
   @override
   void initState() {
@@ -1683,6 +1689,16 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 320),
       reverseDuration: const Duration(milliseconds: 260),
     );
+    _secondFloorGuideFingerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 980),
+    )..repeat(reverse: true);
+    _secondFloorGuideFingerOffset = Tween<double>(begin: -2, end: 14).animate(
+      CurvedAnimation(
+        parent: _secondFloorGuideFingerController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
     _secondFloorController.addListener(_onSecondFloorProgressChanged);
     _lastMiniAppsManifestUrl =
         widget.dependencies.settingsController.miniAppsManifestUrl;
@@ -1702,6 +1718,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _syncHeaderWithCurrentTab();
+      _scheduleSecondFloorGuideHint();
     });
   }
 
@@ -1721,6 +1738,8 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     _secondFloorWeatherTimer = null;
     _secondFloorController.removeListener(_onSecondFloorProgressChanged);
     _secondFloorController.dispose();
+    _secondFloorGuideFingerController.dispose();
+    _secondFloorGuideHintStopRequested = true;
     if (_secondFloorVisibleForParent) {
       widget.onSecondFloorVisibilityChanged?.call(false);
     }
@@ -1761,7 +1780,99 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       });
       return;
     }
+    if (widget.dependencies.settingsController.showPostsSecondFloorGuide) {
+      _startSecondFloorGuideHintLoop();
+    } else {
+      _secondFloorGuideHintStopRequested = true;
+    }
     setState(() {});
+  }
+
+  void _scheduleSecondFloorGuideHint() {
+    if (_secondFloorGuideHintScheduled) {
+      return;
+    }
+    if (!widget.dependencies.settingsController.showPostsSecondFloorGuide) {
+      return;
+    }
+    _secondFloorGuideHintScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startSecondFloorGuideHintLoop();
+    });
+  }
+
+  void _startSecondFloorGuideHintLoop() {
+    if (_secondFloorGuideHintLoopRunning) {
+      return;
+    }
+    if (!widget.dependencies.settingsController.showPostsSecondFloorGuide) {
+      return;
+    }
+    _secondFloorGuideHintStopRequested = false;
+    _secondFloorGuideHintLoopRunning = true;
+    unawaited(_runSecondFloorGuideHintLoop());
+  }
+
+  Future<void> _runSecondFloorGuideHintLoop() async {
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 420));
+      while (mounted &&
+          !_secondFloorGuideHintStopRequested &&
+          widget.dependencies.settingsController.showPostsSecondFloorGuide) {
+        if (_secondFloorOpened) {
+          _completeSecondFloorGuide();
+          break;
+        }
+        if (_secondFloorController.isAnimating ||
+            _secondFloorPullDistance > 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 220));
+          continue;
+        }
+        if (_secondFloorController.value > 0.001) {
+          await Future<void>.delayed(const Duration(milliseconds: 260));
+          continue;
+        }
+
+        await _animateSecondFloorTo(
+          0.12,
+          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 320),
+        );
+        if (!mounted ||
+            _secondFloorGuideHintStopRequested ||
+            !widget.dependencies.settingsController.showPostsSecondFloorGuide) {
+          break;
+        }
+
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+        if (_secondFloorOpened) {
+          _completeSecondFloorGuide();
+          break;
+        }
+
+        await _animateSecondFloorTo(
+          0,
+          curve: Curves.easeInOutCubic,
+          duration: const Duration(milliseconds: 300),
+        );
+        if (!mounted ||
+            _secondFloorGuideHintStopRequested ||
+            !widget.dependencies.settingsController.showPostsSecondFloorGuide) {
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 560));
+      }
+    } finally {
+      _secondFloorGuideHintLoopRunning = false;
+    }
+  }
+
+  void _completeSecondFloorGuide() {
+    if (!widget.dependencies.settingsController.showPostsSecondFloorGuide) {
+      return;
+    }
+    _secondFloorGuideHintStopRequested = true;
+    widget.dependencies.settingsController.markPostsSecondFloorGuideShown();
   }
 
   void _onAccountStoreChanged() {
@@ -4282,6 +4393,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   }
 
   Future<void> _openSecondFloor() async {
+    _completeSecondFloorGuide();
     if (mounted && !_secondFloorOpened) {
       setState(() {
         _secondFloorOpened = true;
@@ -4302,6 +4414,19 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       _secondFloorOpened = false;
     }
     _resetSecondFloorPullState();
+  }
+
+  void _acknowledgeSecondFloorGuide() {
+    _completeSecondFloorGuide();
+    if (_secondFloorController.value > 0.001 && !_secondFloorOpened) {
+      unawaited(
+        _animateSecondFloorTo(
+          0,
+          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 220),
+        ),
+      );
+    }
   }
 
   void _onHeaderDragUpdate(DragUpdateDetails details) {
@@ -4378,6 +4503,116 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     setState(() {
       _headerScrollFactor = next;
     });
+  }
+
+  Widget _buildSecondFloorGuideOverlay(ThemeData theme, double progress) {
+    final topInset = MediaQuery.paddingOf(context).top;
+    final opacity = (1 - (progress / 0.26)).clamp(0.0, 1.0).toDouble();
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: opacity <= 0.01,
+        child: Opacity(
+          opacity: opacity,
+          child: Stack(
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {},
+                onVerticalDragUpdate: _onHeaderDragUpdate,
+                onVerticalDragEnd: _onHeaderDragEnd,
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.10 * opacity),
+                ),
+              ),
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsets.only(top: topInset + 66),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 286),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 10, 10, 8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(
+                          alpha: 0.92,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.38,
+                          ),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.shadow.withValues(
+                              alpha: 0.12,
+                            ),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedBuilder(
+                                animation: _secondFloorGuideFingerController,
+                                builder: (_, child) {
+                                  return Transform.translate(
+                                    offset: Offset(
+                                      0,
+                                      _secondFloorGuideFingerOffset.value,
+                                    ),
+                                    child: child,
+                                  );
+                                },
+                                child: Icon(
+                                  Icons.touch_app_rounded,
+                                  size: 20,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  '顶部下拉进入二楼',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _acknowledgeSecondFloorGuide,
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 2,
+                                ),
+                              ),
+                              child: const Text('我知道了'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _onBoardFilterPressed() {
@@ -4973,6 +5208,12 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                     onDragEnd: _onSecondFloorDragEnd,
                   ),
                 ),
+                if (widget
+                        .dependencies
+                        .settingsController
+                        .showPostsSecondFloorGuide &&
+                    !_secondFloorOpened)
+                  _buildSecondFloorGuideOverlay(theme, progress),
               ],
             );
           },

@@ -36,6 +36,7 @@ import 'package:river/features/mine/riverside_profile_sheet.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:screenshot_callback/screenshot_callback.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
@@ -2129,204 +2130,219 @@ class _TopicDetailPageState extends State<TopicDetailPage>
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 126,
-            pinned: true,
-            stretch: true,
-            scrolledUnderElevation: 4,
-            elevation: 0,
-            backgroundColor: theme.colorScheme.surface,
-            surfaceTintColor: theme.colorScheme.surfaceTint,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () => Navigator.pop(context),
-              style: IconButton.styleFrom(
-                backgroundColor: theme.colorScheme.surface.withValues(
-                  alpha: 0.88,
+      body: Skeletonizer(
+        enabled: true,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 126,
+              pinned: true,
+              stretch: true,
+              scrolledUnderElevation: 4,
+              elevation: 0,
+              backgroundColor: theme.colorScheme.surface,
+              surfaceTintColor: theme.colorScheme.surfaceTint,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.colorScheme.surface.withValues(
+                    alpha: 0.88,
+                  ),
+                  foregroundColor: theme.colorScheme.onSurface,
                 ),
-                foregroundColor: theme.colorScheme.onSurface,
               ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: IconButton(
-                  tooltip: _labelSharePoster,
-                  icon: const Icon(Icons.share_outlined),
-                  onPressed: _openSharePosterSheet,
-                  style: IconButton.styleFrom(
-                    backgroundColor: theme.colorScheme.surface.withValues(
-                      alpha: 0.88,
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: IconButton(
+                    tooltip: _labelSharePoster,
+                    icon: const Icon(Icons.share_outlined),
+                    onPressed: _openSharePosterSheet,
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.surface.withValues(
+                        alpha: 0.88,
+                      ),
+                      foregroundColor: theme.colorScheme.onSurface,
                     ),
-                    foregroundColor: theme.colorScheme.onSurface,
                   ),
                 ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding: const EdgeInsetsDirectional.only(
-                start: 0,
-                bottom: 14,
-                end: 12,
-              ),
-              title: Hero(
-                tag: _titleHeroTag,
-                child: Material(
-                  color: Colors.transparent,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.1,
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                centerTitle: false,
+                titlePadding: const EdgeInsetsDirectional.only(
+                  start: 0,
+                  bottom: 14,
+                  end: 12,
+                ),
+                title: Hero(
+                  tag: _titleHeroTag,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.1,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              background: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.10),
-                      theme.colorScheme.surface,
-                    ],
+                background: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        theme.colorScheme.primary.withValues(alpha: 0.10),
+                        theme.colorScheme.surface,
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Card(
-              margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-              elevation: 0,
-              color: theme.colorScheme.surfaceContainerLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        if (preview != null &&
-                            avatarHeroTag != null &&
-                            avatarHeroTag.isNotEmpty)
-                          Hero(
-                            tag: avatarHeroTag,
-                            child: CircleAvatar(
-                              radius: 20,
-                              backgroundImage: preview.authorAvatarUrl.isEmpty
-                                  ? null
-                                  : NetworkImage(preview.authorAvatarUrl),
-                              child: preview.authorAvatarUrl.isEmpty
-                                  ? const Icon(Icons.person_outline)
-                                  : null,
-                            ),
-                          )
-                        else
-                          const CircleAvatar(
-                            radius: 20,
-                            child: Icon(Icons.person_outline),
-                          ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (preview != null &&
-                                  nameHeroTag != null &&
-                                  nameHeroTag.isNotEmpty)
-                                Hero(
-                                  tag: nameHeroTag,
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: Text(
-                                      preview.authorDisplayName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.titleSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ),
-                                )
-                              else
-                                _SkeletonBox(width: 120, height: 14, radius: 7),
-                              const SizedBox(height: 6),
-                              _SkeletonBox(width: 96, height: 11, radius: 6),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _SkeletonBox(width: double.infinity, height: 13, radius: 6),
-                    const SizedBox(height: 8),
-                    _SkeletonBox(width: double.infinity, height: 13, radius: 6),
-                    const SizedBox(height: 8),
-                    _SkeletonBox(width: 220, height: 13, radius: 6),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: const [
-                        _SkeletonBox(width: 76, height: 30, radius: 15),
-                        SizedBox(width: 8),
-                        _SkeletonBox(width: 76, height: 30, radius: 15),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              return Card(
-                margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            SliverToBoxAdapter(
+              child: Card(
+                margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
                 elevation: 0,
                 color: theme.colorScheme.surfaceContainerLow,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.fromLTRB(14, 14, 14, 14),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          _SkeletonBox(width: 40, height: 40, radius: 20),
-                          SizedBox(width: 10),
-                          _SkeletonBox(width: 90, height: 12, radius: 6),
+                          if (preview != null &&
+                              avatarHeroTag != null &&
+                              avatarHeroTag.isNotEmpty)
+                            Hero(
+                              tag: avatarHeroTag,
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundImage: preview.authorAvatarUrl.isEmpty
+                                    ? null
+                                    : NetworkImage(preview.authorAvatarUrl),
+                                child: preview.authorAvatarUrl.isEmpty
+                                    ? const Icon(Icons.person_outline)
+                                    : null,
+                              ),
+                            )
+                          else
+                            const CircleAvatar(
+                              radius: 20,
+                              child: Icon(Icons.person_outline),
+                            ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (preview != null &&
+                                    nameHeroTag != null &&
+                                    nameHeroTag.isNotEmpty)
+                                  Hero(
+                                    tag: nameHeroTag,
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: Text(
+                                        preview.authorDisplayName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  _SkeletonBox(
+                                    width: 120,
+                                    height: 14,
+                                    radius: 7,
+                                  ),
+                                const SizedBox(height: 6),
+                                _SkeletonBox(width: 96, height: 11, radius: 6),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       _SkeletonBox(
                         width: double.infinity,
-                        height: 12,
+                        height: 13,
                         radius: 6,
                       ),
-                      SizedBox(height: 8),
-                      _SkeletonBox(width: 240, height: 12, radius: 6),
+                      const SizedBox(height: 8),
+                      _SkeletonBox(
+                        width: double.infinity,
+                        height: 13,
+                        radius: 6,
+                      ),
+                      const SizedBox(height: 8),
+                      _SkeletonBox(width: 220, height: 13, radius: 6),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: const [
+                          _SkeletonBox(width: 76, height: 30, radius: 15),
+                          SizedBox(width: 8),
+                          _SkeletonBox(width: 76, height: 30, radius: 15),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-              );
-            }, childCount: 3),
-          ),
-        ],
+              ),
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return Card(
+                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  elevation: 0,
+                  color: theme.colorScheme.surfaceContainerLow,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            _SkeletonBox(width: 40, height: 40, radius: 20),
+                            SizedBox(width: 10),
+                            _SkeletonBox(width: 90, height: 12, radius: 6),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        _SkeletonBox(
+                          width: double.infinity,
+                          height: 12,
+                          radius: 6,
+                        ),
+                        SizedBox(height: 8),
+                        _SkeletonBox(width: 240, height: 12, radius: 6),
+                      ],
+                    ),
+                  ),
+                );
+              }, childCount: 3),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2754,7 +2770,21 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                         padding: const EdgeInsets.all(32),
                         child: Center(
                           child: _loadingMore
-                              ? const CircularProgressIndicator.adaptive()
+                              ? Skeletonizer(
+                                  enabled: true,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          theme.colorScheme.surfaceContainerLow,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: const Text('正在加载更多评论...'),
+                                  ),
+                                )
                               : Text(
                                   _hasMoreComments ? '' : _labelNoMoreReplies,
                                   style: TextStyle(

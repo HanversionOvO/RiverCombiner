@@ -4,8 +4,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
 typedef RiverMarkdownSubmitCallback = Future<bool> Function(String markdown);
 typedef RiverMarkdownImageUploadCallback =
@@ -67,6 +68,15 @@ class RiverMarkdownAiRequest {
 
 enum _EditorMode { edit, preview }
 
+enum _ImagePickSource { camera, gallery }
+
+class _PickedImageUploadData {
+  const _PickedImageUploadData({required this.fileName, required this.bytes});
+
+  final String fileName;
+  final List<int> bytes;
+}
+
 class RiverMarkdownEditor extends StatefulWidget {
   const RiverMarkdownEditor({
     super.key,
@@ -122,8 +132,9 @@ class RiverMarkdownEditor extends StatefulWidget {
 class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
-  final ImagePicker _picker = ImagePicker();
   Timer? _draftSaveDebounce;
+
+  static const int _maxGalleryPickCount = 3;
 
   bool _submitting = false;
   bool _uploadingImage = false;
@@ -404,13 +415,24 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
 
   Future<void> _pickAndUploadImage() async {
     if (_uploadingImage) return;
+    final callback = widget.onUploadImage;
+    if (callback == null) {
+      _showSnack('当前不支持上传图片', isError: true);
+      return;
+    }
 
     FocusScope.of(context).unfocus();
 
-    XFile? picked;
+    final source = await _showImageSourceMenu();
+    if (!mounted || source == null) {
+      _focusNode.requestFocus();
+      return;
+    }
+
+    List<_PickedImageUploadData> pickedImages;
     try {
-      picked = await _picker.pickImage(source: ImageSource.gallery);
-      if (picked == null) return;
+      pickedImages = await _pickImagesBySource(source);
+      if (pickedImages.isEmpty) return;
     } catch (error) {
       if (mounted) {
         _showSnack('选择图片失败: $error', isError: true);
@@ -421,18 +443,29 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     try {
       setState(() => _uploadingImage = true);
 
-      final callback = widget.onUploadImage;
-      if (callback == null) {
-        _showSnack('当前不支持上传图片', isError: true);
-        return;
+      var successCount = 0;
+      var failedCount = 0;
+      final insertedSegments = <String>[];
+
+      for (final image in pickedImages) {
+        final inserted = await callback(image.fileName, image.bytes);
+        if (inserted != null && inserted.trim().isNotEmpty) {
+          successCount++;
+          insertedSegments.add(inserted.trim());
+        } else {
+          failedCount++;
+        }
       }
-      final bytes = await picked.readAsBytes();
-      final inserted = await callback(picked.name, bytes);
       if (!mounted) return;
 
-      if (inserted != null && inserted.isNotEmpty) {
-        _insertText('\n$inserted\n');
-        _showSnack('图片已添加');
+      if (insertedSegments.isNotEmpty) {
+        final merged = insertedSegments.map((segment) => '\n$segment\n').join();
+        _insertText(merged);
+        if (failedCount > 0) {
+          _showSnack('已添加 $successCount 张图片，$failedCount 张上传失败');
+        } else {
+          _showSnack('已添加 $successCount 张图片');
+        }
       } else {
         _showSnack('图片上传失败', isError: true);
       }
@@ -446,6 +479,97 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
         _focusNode.requestFocus();
       }
     }
+  }
+
+  Future<_ImagePickSource?> _showImageSourceMenu() {
+    return showModalBottomSheet<_ImagePickSource>(
+      context: context,
+      isScrollControlled: false,
+      useSafeArea: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _ImageSourceSheet(),
+    );
+  }
+
+  Future<List<_PickedImageUploadData>> _pickImagesBySource(
+    _ImagePickSource source,
+  ) async {
+    if (source == _ImagePickSource.gallery) {
+      final assets = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: const AssetPickerConfig(
+          maxAssets: _maxGalleryPickCount,
+          requestType: RequestType.image,
+        ),
+      );
+      if (assets == null || assets.isEmpty) {
+        return const <_PickedImageUploadData>[];
+      }
+      final images = <_PickedImageUploadData>[];
+      final limit = assets.length > _maxGalleryPickCount
+          ? _maxGalleryPickCount
+          : assets.length;
+      for (var i = 0; i < limit; i++) {
+        final data = await _buildUploadDataFromAsset(
+          assets[i],
+          fallbackPrefix: 'gallery_${i + 1}',
+        );
+        if (data != null) {
+          images.add(data);
+        }
+      }
+      return images;
+    }
+    final entity = await CameraPicker.pickFromCamera(
+      context,
+      pickerConfig: const CameraPickerConfig(
+        enableRecording: false,
+        onlyEnableRecording: false,
+      ),
+    );
+    if (entity == null) {
+      return const <_PickedImageUploadData>[];
+    }
+    final image = await _buildUploadDataFromAsset(
+      entity,
+      fallbackPrefix: 'camera_${DateTime.now().millisecondsSinceEpoch}',
+    );
+    if (image == null) {
+      throw StateError('拍摄结果读取失败');
+    }
+    return <_PickedImageUploadData>[image];
+  }
+
+  Future<_PickedImageUploadData?> _buildUploadDataFromAsset(
+    AssetEntity entity, {
+    required String fallbackPrefix,
+  }) async {
+    final title = (entity.title ?? '').trim();
+    final bytes = await entity.originBytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      return _PickedImageUploadData(
+        fileName: title.isEmpty ? '$fallbackPrefix.jpg' : title,
+        bytes: bytes,
+      );
+    }
+    final file = await entity.file;
+    if (file == null) {
+      return null;
+    }
+    final fileBytes = await file.readAsBytes();
+    if (fileBytes.isEmpty) {
+      return null;
+    }
+    final fileNameFromPath = file.uri.pathSegments.isNotEmpty
+        ? file.uri.pathSegments.last.trim()
+        : '';
+    final resolvedName = title.isNotEmpty
+        ? title
+        : (fileNameFromPath.isNotEmpty
+              ? fileNameFromPath
+              : '$fallbackPrefix.jpg');
+    return _PickedImageUploadData(fileName: resolvedName, bytes: fileBytes);
   }
 
   void _showEmojiPicker() {
@@ -1549,6 +1673,166 @@ class _AiInsertAnchor {
   int end;
 }
 
+class _ImageSourceSheet extends StatelessWidget {
+  const _ImageSourceSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const SizedBox(width: 38),
+                      Expanded(
+                        child: Text(
+                          '插入图片',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                        style: IconButton.styleFrom(
+                          foregroundColor: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  _ImageSourceActionTile(
+                    icon: Icons.camera_alt_rounded,
+                    title: '拍摄照片',
+                    subtitle: '调用相机拍摄后插入编辑器',
+                    onTap: () =>
+                        Navigator.of(context).pop(_ImagePickSource.camera),
+                  ),
+                  const SizedBox(height: 8),
+                  _ImageSourceActionTile(
+                    icon: Icons.image_outlined,
+                    title: '选择图片',
+                    subtitle: '从相册中选择图片并上传（最多 3 张）',
+                    onTap: () =>
+                        Navigator.of(context).pop(_ImagePickSource.gallery),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageSourceActionTile extends StatelessWidget {
+  const _ImageSourceActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.36),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(alpha: 0.82),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                icon,
+                size: 18,
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AiToolsSheet extends StatelessWidget {
   const _AiToolsSheet({required this.actions});
 
@@ -1559,156 +1843,176 @@ class _AiToolsSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final height = MediaQuery.sizeOf(context).height * 0.52;
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
     return Material(
       color: Colors.transparent,
       child: Align(
         alignment: Alignment.bottomCenter,
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Container(
+            height: height,
             color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 38),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: colorScheme.outlineVariant.withValues(
-                                alpha: 0.65,
-                              ),
-                              borderRadius: BorderRadius.circular(99),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.auto_awesome_rounded,
-                                size: 16,
-                                color: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'AI 工具箱',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded),
-                      style: IconButton.styleFrom(
-                        foregroundColor: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
-                  itemCount: actions.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final item = actions[index];
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () => Navigator.of(context).pop(item),
-                      child: Ink(
-                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerLow.withValues(
-                            alpha: 0.96,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: colorScheme.outlineVariant.withValues(
-                              alpha: 0.36,
-                            ),
-                          ),
-                        ),
-                        child: Row(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 38),
+                      Expanded(
+                        child: Column(
                           children: [
                             Container(
-                              width: 34,
-                              height: 34,
+                              width: 36,
+                              height: 4,
                               decoration: BoxDecoration(
-                                color: colorScheme.primaryContainer.withValues(
-                                  alpha: 0.82,
+                                color: colorScheme.outlineVariant.withValues(
+                                  alpha: 0.65,
                                 ),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: Icon(
-                                item.icon,
-                                size: 17,
-                                color: colorScheme.onPrimaryContainer,
+                                borderRadius: BorderRadius.circular(99),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          item.title,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.bodyLarge
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing: -0.1,
-                                              ),
-                                        ),
-                                      ),
-                                    ],
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome_rounded,
+                                  size: 16,
+                                  color: colorScheme.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'AI 工具箱',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    item.subtitle,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              size: 18,
-                              color: colorScheme.onSurfaceVariant,
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                    );
-                  },
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                        style: IconButton.styleFrom(
+                          foregroundColor: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: ClipRect(
+                    child: ScrollConfiguration(
+                      behavior: const MaterialScrollBehavior().copyWith(
+                        overscroll: false,
+                      ),
+                      child: ListView.separated(
+                        physics: const ClampingScrollPhysics(),
+                        padding: EdgeInsets.fromLTRB(
+                          14,
+                          8,
+                          14,
+                          16 + bottomSafe,
+                        ),
+                        itemCount: actions.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final item = actions[index];
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () => Navigator.of(context).pop(item),
+                            child: Ink(
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                10,
+                                12,
+                                10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerLow
+                                    .withValues(alpha: 0.96),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.36,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 34,
+                                    height: 34,
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primaryContainer
+                                          .withValues(alpha: 0.82),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      item.icon,
+                                      size: 17,
+                                      color: colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                item.title,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: theme.textTheme.bodyLarge
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      letterSpacing: -0.1,
+                                                    ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          item.subtitle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 18,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
