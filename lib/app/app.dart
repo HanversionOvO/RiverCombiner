@@ -93,6 +93,9 @@ class _RiverAppState extends State<RiverApp> {
         _dependencies.settingsController.iconPreset,
       ),
     );
+    if (mounted && !_initialized) {
+      setState(() {});
+    }
     await _dependencies.accountStore.initialize();
     await _dependencies.updateChecker.initialize();
     final elapsed = DateTime.now().difference(_launchStartedAt);
@@ -594,8 +597,9 @@ class _RiverAppState extends State<RiverApp> {
                     key: const ValueKey<String>('app_home_ready'),
                     child: _buildResolvedHome(),
                   )
-                : const _RiverStartupScreen(
+                : _RiverStartupScreen(
                     key: ValueKey<String>('app_startup'),
+                    iconPreset: settings.iconPreset,
                   ),
           ),
         );
@@ -981,7 +985,9 @@ class _TunnelRingBurstPainter extends CustomPainter {
 }
 
 class _RiverStartupScreen extends StatefulWidget {
-  const _RiverStartupScreen({super.key});
+  const _RiverStartupScreen({super.key, required this.iconPreset});
+
+  final AppAppIconPreset iconPreset;
 
   @override
   State<_RiverStartupScreen> createState() => _RiverStartupScreenState();
@@ -1043,10 +1049,26 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
     );
   }
 
+  String _iconAssetForPreset(AppAppIconPreset preset) {
+    return switch (preset) {
+      AppAppIconPreset.origin => 'assets/images/app_icons/origin.png',
+      AppAppIconPreset.quality => 'assets/images/app_icons/quality.png',
+      AppAppIconPreset.pixel => 'assets/images/app_icons/pixel.png',
+      AppAppIconPreset.cloud => 'assets/images/app_icons/cloud.png',
+      AppAppIconPreset.neon => 'assets/images/app_icons/neon.png',
+      AppAppIconPreset.vaporwave => 'assets/images/app_icons/vaporwave.png',
+      AppAppIconPreset.china => 'assets/images/app_icons/china.png',
+      AppAppIconPreset.chengdu => 'assets/images/app_icons/chengdu.png',
+      AppAppIconPreset.animation => 'assets/images/app_icons/animation.png',
+      AppAppIconPreset.sweet => 'assets/images/app_icons/sweet.png',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = _resolvePalette(theme);
+    final startupIconAsset = _iconAssetForPreset(widget.iconPreset);
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -1146,9 +1168,9 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
                           child: Container(
                             width: 122,
                             height: 122,
-                            padding: const EdgeInsets.all(7),
+                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(28),
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -1167,9 +1189,10 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
                                 ),
                               ],
                             ),
-                            child: ClipOval(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(22),
                               child: Image.asset(
-                                'assets/images/logo.jpg',
+                                startupIconAsset,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return ColoredBox(
@@ -1199,7 +1222,7 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${palette.moodLabel}启动 · 连接 RiverSide 与 清水河畔',
+                    '连接 RiverSide 与 清水河畔',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: palette.subTextColor,
                       fontWeight: FontWeight.w600,
