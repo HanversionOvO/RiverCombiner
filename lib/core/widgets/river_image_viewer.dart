@@ -1152,7 +1152,6 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                 child: _PageIndicator(
                   controller: _pageController,
                   itemCount: widget.items.length,
-                  currentIndex: _currentIndex,
                 ),
               ),
             ),

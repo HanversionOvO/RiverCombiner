@@ -64,61 +64,37 @@ class _ViewerActionTile extends StatelessWidget {
 }
 
 class _PageIndicator extends StatelessWidget {
-  const _PageIndicator({
-    required this.controller,
-    required this.itemCount,
-    required this.currentIndex,
-  });
+  const _PageIndicator({required this.controller, required this.itemCount});
 
   final PageController controller;
   final int itemCount;
-  final int currentIndex;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final inactiveBase = Colors.white.withValues(alpha: 0.35);
-    final activeColor = colorScheme.primary.withValues(alpha: 0.96);
+    final inactiveColor = colorScheme.onSurface.withValues(alpha: 0.26);
+    final activeColor = colorScheme.primaryFixed;
 
     return Center(
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.52),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.all(7),
           child: SmoothPageIndicator(
             controller: controller,
             count: itemCount,
-            effect: CustomizableEffect(
-              spacing: 6,
-              activeDotDecoration: DotDecoration(
-                width: 32,
-                height: 12,
-                color: activeColor,
-                rotationAngle: 180,
-                verticalOffset: -10,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              dotDecoration: DotDecoration(
-                width: 24,
-                height: 12,
-                color: inactiveBase,
-                borderRadius: BorderRadius.circular(16),
-                verticalOffset: 0,
-              ),
-              inActiveColorOverride: (index) {
-                if (index == currentIndex) {
-                  return inactiveBase;
-                }
-                return Color.lerp(
-                      inactiveBase,
-                      colorScheme.primary.withValues(alpha: 0.55),
-                      (index % 3) / 3,
-                    ) ??
-                    inactiveBase;
-              },
+            effect: JumpingDotEffect(
+              dotHeight: 7,
+              dotWidth: 7,
+              spacing: 7,
+              verticalOffset: 0,
+              jumpScale: 1.6,
+              radius: 9,
+              activeDotColor: activeColor,
+              dotColor: inactiveColor,
             ),
           ),
         ),
