@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:card_stack_swiper/card_stack_swiper.dart';
 import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1604,6 +1605,9 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   static const String _presenceStateChannelName = '/whos-online/online';
   static const double _secondFloorBottomBarHeight = 52;
   static const double _secondFloorBottomNavReserveHeight = 64;
+  static const Duration _forumSwitchSwipeAnimationDuration = Duration(
+    milliseconds: 300,
+  );
 
   List<RiverSideCategoryOption> _categories = [];
   bool _loadingCategories = false;
@@ -1613,6 +1617,9 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   String? _selectedBoardName;
 
   late TabController _tabController;
+  final CardStackSwiperController _forumSwitchSwiperController =
+      CardStackSwiperController();
+  bool _forumSwitchBySwipeBusy = false;
   final List<RiverSideTopicFeed> _feeds = RiverSideTopicFeed.values;
 
   int _filterVersion = 0;
@@ -1732,6 +1739,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     widget.controller?._detach(this);
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    _forumSwitchSwiperController.dispose();
     _miniAppsChangedSubscription?.cancel();
     _miniAppsChangedSubscription = null;
     _secondFloorWeatherTimer?.cancel();
@@ -5440,7 +5448,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 20),
                                   _buildForumSwitchButton(theme),
                                 ],
                               ),
@@ -5607,84 +5615,114 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     final target = current == _PostsForumProvider.riverSide
         ? _PostsForumProvider.qingShuiHePan
         : _PostsForumProvider.riverSide;
+    final forums = <_PostsForumProvider>[current, target];
     final canSwitch = _isForumAvailable(target);
-    final switched = current == _PostsForumProvider.qingShuiHePan;
-    final iconColor = theme.colorScheme.onSurfaceVariant;
-    final background = theme.colorScheme.surfaceContainerHigh.withValues(
-      alpha: canSwitch ? 0.86 : 0.62,
-    );
 
     return Tooltip(
-      message: '切换论坛',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _toggleForum,
-          borderRadius: BorderRadius.circular(999),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            height: 30,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.34),
+      message: canSwitch ? '左右滑动切换论坛' : '目标论坛未登录',
+      child: SizedBox(
+        width: 34,
+        height: 34,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.96, end: 1).animate(animation),
+                child: child,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.shadowColor.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+            );
+          },
+          child: CardStackSwiper(
+            key: ValueKey<String>(
+              'forum_swiper_${current.name}_${target.name}',
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 180),
-                  opacity: switched ? 0.72 : 1,
-                  child: _buildForumSwitchLogo(current.logoAsset),
-                ),
-                const SizedBox(width: 6),
-                AnimatedRotation(
-                  turns: switched ? 0.5 : 0.0,
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.sync_alt_rounded,
-                      size: 11,
-                      color: iconColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 180),
-                  opacity: switched ? 1 : 0.72,
-                  child: _buildForumSwitchLogo(target.logoAsset),
-                ),
-              ],
-            ),
+            controller: _forumSwitchSwiperController,
+            cardsCount: forums.length,
+            initialIndex: 0,
+            isLoop: true,
+            threshold: 12,
+            swipeAnimationDuration: _forumSwitchSwipeAnimationDuration,
+            backCardOffset: const Offset(7, 0),
+            backCardScale: 0.9,
+            allowedSwipeDirection: canSwitch
+                ? const AllowedSwipeDirection.symmetric(horizontal: true)
+                : const AllowedSwipeDirection.none(),
+            onPressed: (_) => _toggleForum(),
+            onSwipe: (previousIndex, currentIndex, direction) {
+              if (direction != CardStackSwiperDirection.left &&
+                  direction != CardStackSwiperDirection.right) {
+                return false;
+              }
+              unawaited(_onForumSwitchSwipeGesture());
+              return true;
+            },
+            cardBuilder: (context, index, horizontalOffset, verticalOffset) {
+              final forum = forums[index];
+              return _buildForumSwitchSwipeCard(
+                theme: theme,
+                forum: forum,
+                canSwitch: index == 0 ? true : canSwitch,
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildForumSwitchLogo(String assetPath) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: Image.asset(assetPath, width: 14, height: 14, fit: BoxFit.cover),
+  Future<void> _onForumSwitchSwipeGesture() async {
+    if (_forumSwitchBySwipeBusy) {
+      return;
+    }
+    _forumSwitchBySwipeBusy = true;
+    try {
+      await Future<void>.delayed(_forumSwitchSwipeAnimationDuration);
+      if (!mounted) {
+        return;
+      }
+      await _toggleForum();
+    } finally {
+      _forumSwitchBySwipeBusy = false;
+    }
+  }
+
+  Widget _buildForumSwitchSwipeCard({
+    required ThemeData theme,
+    required _PostsForumProvider forum,
+    required bool canSwitch,
+  }) {
+    final cardBorderColor = theme.colorScheme.outlineVariant.withValues(
+      alpha: canSwitch ? 0.42 : 0.26,
+    );
+    final cardColor = theme.colorScheme.surface.withValues(
+      alpha: canSwitch ? 0.96 : 0.82,
+    );
+    return Card(
+      elevation: canSwitch ? 4 : 2,
+      margin: EdgeInsets.zero,
+      color: cardColor,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: cardBorderColor),
+      ),
+      child: Center(
+        child: Opacity(
+          opacity: canSwitch ? 1 : 0.62,
+          child: ClipOval(
+            child: Image.asset(
+              forum.logoAsset,
+              width: 20,
+              height: 20,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

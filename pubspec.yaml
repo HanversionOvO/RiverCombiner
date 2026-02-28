@@ -75,6 +75,7 @@ dependencies:
   wechat_camera_picker: ^4.4.0
   wechat_assets_picker: ^9.5.0
   features_tour: ^0.6.2
+  card_stack_swiper: ^1.1.1
 
 dev_dependencies:
   flutter_test:
