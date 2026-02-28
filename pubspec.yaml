@@ -86,6 +86,8 @@ dev_dependencies:
 dependency_overrides:
   adaptive_platform_ui:
     path: packages/adaptive_platform_ui
+  flutter_dynamic_icon:
+    path: packages/flutter_dynamic_icon
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

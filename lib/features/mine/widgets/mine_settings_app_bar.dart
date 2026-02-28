@@ -130,6 +130,25 @@ class MineSettingsPageScaffold extends StatelessWidget {
   }
 
   Widget? _injectTopPlaceholder(Widget body, Widget topPlaceholder) {
+    if (body is AnimatedBuilder) {
+      final topInset = _resolveTopInset(topPlaceholder);
+      return AnimatedBuilder(
+        animation: body.animation,
+        child: body.child,
+        builder: (context, child) {
+          final built = body.builder(context, child);
+          final injectedBuilt = _injectTopPlaceholder(built, topPlaceholder);
+          if (injectedBuilt != null) {
+            return injectedBuilt;
+          }
+          return Padding(
+            padding: EdgeInsets.only(top: topInset),
+            child: built,
+          );
+        },
+      );
+    }
+
     if (body is ListView && body.childrenDelegate is SliverChildListDelegate) {
       final delegate = body.childrenDelegate as SliverChildListDelegate;
       return ListView(
@@ -255,6 +274,13 @@ class MineSettingsPageScaffold extends StatelessWidget {
       }
     }
     return null;
+  }
+
+  double _resolveTopInset(Widget topPlaceholder) {
+    if (topPlaceholder is SizedBox && topPlaceholder.height != null) {
+      return topPlaceholder.height!;
+    }
+    return 0;
   }
 
   Widget? _replaceScrollableChild(Widget child, Widget topPlaceholder) {
