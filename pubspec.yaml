@@ -84,8 +84,6 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
 
 dependency_overrides:
-  adaptive_platform_ui:
-    path: packages/adaptive_platform_ui
   flutter_dynamic_icon:
     path: packages/flutter_dynamic_icon
 

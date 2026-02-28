@@ -1,8 +1,6 @@
 import 'dart:ui';
 
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
-// ignore: implementation_imports
-import 'package:adaptive_platform_ui/src/widgets/ios26/ios26_native_toolbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -368,10 +366,6 @@ class MineSettingsAppBar extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    if (_isIPhone(context)) {
-      return _buildIPhoneNativeToolbar(context);
-    }
-
     final theme = Theme.of(context);
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -481,27 +475,6 @@ class MineSettingsAppBar extends StatelessWidget
     );
   }
 
-  Widget _buildIPhoneNativeToolbar(BuildContext context) {
-    final safeTop = MediaQuery.paddingOf(context).top;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        IOS26NativeToolbar(
-          title: title,
-          onLeadingTap: () => Navigator.of(context).maybePop(),
-          height: 44,
-        ),
-        if (actions != null && actions!.isNotEmpty)
-          Positioned(
-            top: safeTop,
-            right: 6,
-            height: 44,
-            child: Row(mainAxisSize: MainAxisSize.min, children: actions!),
-          ),
-      ],
-    );
-  }
-
   String? _tag(String suffix) {
     if (heroTagPrefix == null || heroTagPrefix!.isEmpty) {
       return null;
@@ -567,9 +540,6 @@ class MineSettingsAppBar extends StatelessWidget
     );
   }
 
-  bool _isIPhone(BuildContext context) {
-    return _isIPhoneDevice(context);
-  }
 }
 
 bool _isIPhoneDevice(BuildContext context) {
