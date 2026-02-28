@@ -88,7 +88,36 @@ class _QuotePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasFloorRef = quote.ref.postNumber > 0;
     final preview = _toPlainPreview(quote.contentMarkdown);
+    final inlineStyle = quote.inlineStyle;
+    final contentTextStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      fontSize:
+          (Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14) *
+          (inlineStyle?.fontScale ?? 1),
+      color:
+          inlineStyle?.foregroundColor ??
+          Theme.of(context).colorScheme.onSurface,
+      fontWeight: FontWeight.w600,
+    );
+    final styledPreview = inlineStyle == null
+        ? null
+        : Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color:
+                  inlineStyle.backgroundColor ??
+                  Theme.of(context).colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              preview.isEmpty ? '查看引用内容' : preview,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: contentTextStyle,
+            ),
+          );
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(10),
@@ -111,19 +140,26 @@ class _QuotePreviewCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '\u56de\u590d @${quote.ref.username} \u7684 #${quote.ref.postNumber}',
+                      hasFloorRef
+                          ? '\u56de\u590d @${quote.ref.username} \u7684 #${quote.ref.postNumber}'
+                          : '\u5f15\u7528\u5185\u5bb9',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      preview.isEmpty
-                          ? '\u67e5\u770b\u88ab\u56de\u590d\u5185\u5bb9'
-                          : preview,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    if (styledPreview != null)
+                      styledPreview
+                    else
+                      Text(
+                        preview.isEmpty
+                            ? (hasFloorRef
+                                  ? '\u67e5\u770b\u88ab\u56de\u590d\u5185\u5bb9'
+                                  : '\u67e5\u770b\u5f15\u7528\u5185\u5bb9')
+                            : preview,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                   ],
                 ),
               ),

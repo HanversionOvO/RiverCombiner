@@ -39,10 +39,27 @@ class _MarkdownBlock extends _PostContentBlock {
 }
 
 class _QuoteBlock extends _PostContentBlock {
-  const _QuoteBlock({required this.ref, required this.contentMarkdown});
+  const _QuoteBlock({
+    required this.ref,
+    required this.contentMarkdown,
+    this.inlineStyle,
+  });
 
   final _QuoteRef ref;
   final String contentMarkdown;
+  final _QuoteInlineStyle? inlineStyle;
+}
+
+class _QuoteInlineStyle {
+  const _QuoteInlineStyle({
+    this.fontScale = 1,
+    this.foregroundColor,
+    this.backgroundColor,
+  });
+
+  final double fontScale;
+  final Color? foregroundColor;
+  final Color? backgroundColor;
 }
 
 class _QuoteRef {
@@ -64,7 +81,7 @@ List<_PostContentBlock> _parsePostContentBlocks(String source, int topicId) {
   }
 
   final matches = RegExp(
-    r'\[quote="([^"]+)"\]([\s\S]*?)\[/quote\]',
+    r'\[quote(?:="([^"]*)")?\]([\s\S]*?)\[/quote\]',
     caseSensitive: false,
   ).allMatches(content);
 
@@ -84,10 +101,12 @@ List<_PostContentBlock> _parsePostContentBlocks(String source, int topicId) {
 
     final header = (match.group(1) ?? '').trim();
     final quoted = (match.group(2) ?? '').trim();
+    final parsedQuote = _parseQuoteContent(quoted);
     blocks.add(
       _QuoteBlock(
         ref: _parseQuoteRef(header, topicId),
-        contentMarkdown: quoted,
+        contentMarkdown: parsedQuote.markdown,
+        inlineStyle: parsedQuote.inlineStyle,
       ),
     );
     cursor = match.end;
@@ -101,6 +120,113 @@ List<_PostContentBlock> _parsePostContentBlocks(String source, int topicId) {
   }
 
   return blocks;
+}
+
+class _ParsedQuoteContent {
+  const _ParsedQuoteContent({required this.markdown, this.inlineStyle});
+
+  final String markdown;
+  final _QuoteInlineStyle? inlineStyle;
+}
+
+_ParsedQuoteContent _parseQuoteContent(String source) {
+  final raw = source.trim();
+  if (raw.isEmpty) {
+    return const _ParsedQuoteContent(markdown: '');
+  }
+  final cleaned = raw
+      .replaceAll(
+        RegExp(
+          r'\[/?(?:size|color|bgcolor)(?:=[^\]]*)?\]',
+          caseSensitive: false,
+        ),
+        '',
+      )
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
+  final style = _extractQuoteInlineStyle(raw);
+  return _ParsedQuoteContent(
+    markdown: cleaned.isEmpty ? raw : cleaned,
+    inlineStyle: style,
+  );
+}
+
+_QuoteInlineStyle? _extractQuoteInlineStyle(String source) {
+  final sizeMatch = RegExp(
+    r'\[size=(\d+)\]',
+    caseSensitive: false,
+  ).firstMatch(source);
+  final sizePercent = int.tryParse((sizeMatch?.group(1) ?? '').trim());
+  final scale = sizePercent == null
+      ? 1.0
+      : (sizePercent / 100).clamp(0.8, 2.6).toDouble();
+
+  final colorMatch = RegExp(
+    r'\[color=([^\]]+)\]',
+    caseSensitive: false,
+  ).firstMatch(source);
+  final bgMatch = RegExp(
+    r'\[bgcolor=([^\]]+)\]',
+    caseSensitive: false,
+  ).firstMatch(source);
+  final fg = _parseBbcodeColor((colorMatch?.group(1) ?? '').trim());
+  final bg = _parseBbcodeColor((bgMatch?.group(1) ?? '').trim());
+
+  if ((scale - 1).abs() < 0.01 && fg == null && bg == null) {
+    return null;
+  }
+  return _QuoteInlineStyle(
+    fontScale: scale,
+    foregroundColor: fg,
+    backgroundColor: bg,
+  );
+}
+
+Color? _parseBbcodeColor(String raw) {
+  final value = raw.trim().toLowerCase();
+  if (value.isEmpty) {
+    return null;
+  }
+  switch (value) {
+    case 'red':
+      return Colors.red;
+    case 'yellow':
+      return Colors.yellow;
+    case 'orange':
+      return Colors.orange;
+    case 'blue':
+      return Colors.blue;
+    case 'green':
+      return Colors.green;
+    case 'black':
+      return Colors.black;
+    case 'white':
+      return Colors.white;
+    case 'grey':
+    case 'gray':
+      return Colors.grey;
+    case 'purple':
+      return Colors.purple;
+    case 'pink':
+      return Colors.pink;
+    default:
+      final hex = value.startsWith('#') ? value.substring(1) : value;
+      if (hex.length == 6) {
+        final parsed = int.tryParse(hex, radix: 16);
+        if (parsed == null) {
+          return null;
+        }
+        return Color(0xFF000000 | parsed);
+      }
+      if (hex.length == 8) {
+        final parsed = int.tryParse(hex, radix: 16);
+        if (parsed == null) {
+          return null;
+        }
+        return Color(parsed);
+      }
+      return null;
+  }
 }
 
 _QuoteRef _parseQuoteRef(String header, int fallbackTopicId) {

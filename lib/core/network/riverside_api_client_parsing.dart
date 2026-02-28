@@ -39,6 +39,13 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
       cookedHtml: cooked,
       uploadsRaw: post['uploads'],
     );
+    final votedOptionIdsByPoll = _parsePollVotesMap(post['polls_votes']);
+    final polls = _extractTopicPolls(
+      post['polls'],
+      canVote: true,
+      votedOptionIdsByPoll: votedOptionIdsByPoll,
+    );
+    final canVotePoll = polls.any((item) => item.canVote);
     final reactions = _extractPostReactions(post['reactions']);
     final currentUserReaction = _extractCurrentUserReaction(
       post['current_user_reaction'],
@@ -58,6 +65,11 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
     final isOnline = onlineValue is bool
         ? onlineValue
         : (onlineValue is String ? onlineValue.toLowerCase() == 'true' : null);
+    final normalizedMarkdown = _normalizePostRawMarkdown(
+      resolvedRawMarkdown.isNotEmpty
+          ? resolvedRawMarkdown
+          : _cookHtmlToMarkdown(cooked),
+    );
 
     return RiverSideTopicPostDetail(
       id: id,
@@ -69,9 +81,7 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
       authorAvatarUrl: _normalizeAvatarUrl(avatarTemplate),
       authorTitle: authorTitle,
       isOnline: isOnline,
-      contentMarkdown: resolvedRawMarkdown.isNotEmpty
-          ? resolvedRawMarkdown
-          : _cookHtmlToMarkdown(cooked),
+      contentMarkdown: normalizedMarkdown,
       createdAt: createdAt,
       editCount: editCount,
       likeCount: _extractLikeCount(post['actions_summary']),
@@ -80,6 +90,8 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
       reactionUsersCount: reactionUsersCount,
       replyToPostNumber: replyToPostNumber,
       replyToUsername: replyToUsername,
+      polls: polls,
+      canVotePoll: canVotePoll,
     );
   }
 
@@ -375,5 +387,190 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
     }
 
     return 0;
+  }
+
+  String _normalizePostRawMarkdown(String source) {
+    if (source.trim().isEmpty) {
+      return '';
+    }
+    var normalized = source.replaceAll('\r\n', '\n');
+    normalized = normalized.replaceAll('\r', '\n');
+    normalized = _stripPollBlocks(normalized);
+    normalized = normalized.replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+    return normalized;
+  }
+
+  String _stripPollBlocks(String source) {
+    if (source.trim().isEmpty) {
+      return '';
+    }
+    return source.replaceAll(
+      RegExp(r'\[poll[^\]]*\][\s\S]*?\[/poll\]', caseSensitive: false),
+      '',
+    );
+  }
+
+  List<RiverSideTopicPoll> _extractTopicPolls(
+    dynamic rawPolls, {
+    required bool canVote,
+    Map<String, Set<String>> votedOptionIdsByPoll =
+        const <String, Set<String>>{},
+  }) {
+    if (rawPolls is! List) {
+      return const <RiverSideTopicPoll>[];
+    }
+    final polls = <RiverSideTopicPoll>[];
+    for (final rawPoll in rawPolls) {
+      final parsed = _parseTopicPoll(
+        rawPoll,
+        canVote: canVote,
+        votedOptionIdsByPoll: votedOptionIdsByPoll,
+      );
+      if (parsed != null) {
+        polls.add(parsed);
+      }
+    }
+    return polls;
+  }
+
+  RiverSideTopicPoll? _parseTopicPoll(
+    dynamic rawPoll, {
+    required bool canVote,
+    Map<String, Set<String>> votedOptionIdsByPoll =
+        const <String, Set<String>>{},
+  }) {
+    final poll = _toStringMap(rawPoll);
+    if (poll.isEmpty) {
+      return null;
+    }
+    final pollId = _asInt(poll['id']) ?? 0;
+    final pollName = (poll['name'] ?? '').toString().trim();
+    final optionsRaw = poll['options'];
+    if (pollName.isEmpty || optionsRaw is! List) {
+      return null;
+    }
+    final selectedOptionIds = votedOptionIdsByPoll[pollName] ?? <String>{};
+    final preloadedVotersByOptionId = _parsePollPreloadedVoters(
+      poll['preloaded_voters'],
+    );
+    final options = <RiverSideTopicPollOption>[];
+    for (final rawOption in optionsRaw) {
+      final option = _toStringMap(rawOption);
+      if (option.isEmpty) {
+        continue;
+      }
+      final optionId = (option['id'] ?? '').toString().trim();
+      if (optionId.isEmpty) {
+        continue;
+      }
+      options.add(
+        RiverSideTopicPollOption(
+          id: optionId,
+          html: (option['html'] ?? option['title'] ?? '').toString(),
+          votes: _asInt(option['votes']) ?? 0,
+          selected:
+              selectedOptionIds.contains(optionId) ||
+              _asBool(option['selected']) ||
+              _asBool(option['is_selected']) ||
+              _asBool(option['is_chosen']) ||
+              _asBool(option['chosen']),
+          voters:
+              preloadedVotersByOptionId[optionId] ??
+              const <RiverSideTopicPollVoter>[],
+        ),
+      );
+    }
+    if (options.isEmpty) {
+      return null;
+    }
+
+    final status = (poll['status'] ?? '').toString().trim();
+    final isOpen = status.toLowerCase() == 'open';
+    return RiverSideTopicPoll(
+      id: pollId,
+      name: pollName,
+      title: (poll['title'] ?? '').toString().trim(),
+      type: (poll['type'] ?? '').toString().trim(),
+      status: status,
+      public: _asBool(poll['public']),
+      dynamic: _asBool(poll['dynamic']),
+      results: (poll['results'] ?? '').toString().trim(),
+      chartType: (poll['chart_type'] ?? '').toString().trim(),
+      voters: _asInt(poll['voters']) ?? 0,
+      options: options,
+      canVote:
+          canVote &&
+          isOpen &&
+          !_asBool(poll['closed']) &&
+          !_asBool(poll['readonly']),
+    );
+  }
+
+  Map<String, Set<String>> _parsePollVotesMap(dynamic rawVotes) {
+    if (rawVotes is! Map) {
+      return const <String, Set<String>>{};
+    }
+    final result = <String, Set<String>>{};
+    rawVotes.forEach((key, value) {
+      final pollName = '$key'.trim();
+      if (pollName.isEmpty) {
+        return;
+      }
+      final ids = _asStringList(value).map((item) => item.trim()).where((item) {
+        return item.isNotEmpty;
+      }).toSet();
+      if (ids.isNotEmpty) {
+        result[pollName] = ids;
+      }
+    });
+    return result;
+  }
+
+  List<String> _asStringList(dynamic raw) {
+    if (raw is! List) {
+      return const <String>[];
+    }
+    return raw.map((item) => '$item').toList(growable: false);
+  }
+
+  Map<String, List<RiverSideTopicPollVoter>> _parsePollPreloadedVoters(
+    dynamic rawPreloadedVoters,
+  ) {
+    if (rawPreloadedVoters is! Map) {
+      return const <String, List<RiverSideTopicPollVoter>>{};
+    }
+    final byOptionId = <String, List<RiverSideTopicPollVoter>>{};
+    rawPreloadedVoters.forEach((key, value) {
+      final optionId = '$key'.trim();
+      if (optionId.isEmpty || value is! List) {
+        return;
+      }
+      final voters = <RiverSideTopicPollVoter>[];
+      for (final rawUser in value) {
+        final user = _toStringMap(rawUser);
+        if (user.isEmpty) {
+          continue;
+        }
+        final username = (user['username'] ?? '').toString().trim();
+        if (username.isEmpty) {
+          continue;
+        }
+        final displayNameRaw = (user['name'] ?? '').toString().trim();
+        final displayName = displayNameRaw.isEmpty ? username : displayNameRaw;
+        voters.add(
+          RiverSideTopicPollVoter(
+            id: _asInt(user['id']) ?? 0,
+            username: username,
+            displayName: displayName,
+            avatarUrl: _normalizeAvatarUrl(
+              (user['avatar_template'] ?? '').toString(),
+            ),
+            title: (user['title'] ?? '').toString().trim(),
+          ),
+        );
+      }
+      byOptionId[optionId] = voters;
+    });
+    return byOptionId;
   }
 }

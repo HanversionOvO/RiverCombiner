@@ -163,6 +163,174 @@ extension RiverSideApiClientPostMethods on RiverSideApiClient {
     return parsed;
   }
 
+  Future<RiverSideTopicPoll> votePostPoll({
+    required int postId,
+    required String pollName,
+    required List<String> optionIds,
+    required String cookieHeader,
+  }) async {
+    final cookie = cookieHeader.trim();
+    if (cookie.isEmpty) {
+      throw const RiverSideApiException('Cookie header is empty.');
+    }
+    final name = pollName.trim();
+    if (name.isEmpty) {
+      throw const RiverSideApiException('Poll name is empty.');
+    }
+    final selectedOptions = optionIds
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (postId <= 0 || selectedOptions.isEmpty) {
+      throw const RiverSideApiException('Poll vote payload is invalid.');
+    }
+
+    final csrf = await fetchSessionCsrfToken(cookieHeader: cookie);
+    final body = <String>[
+      'post_id=${Uri.encodeQueryComponent('$postId')}',
+      'poll_name=${Uri.encodeQueryComponent(name)}',
+      for (final optionId in selectedOptions)
+        '${Uri.encodeQueryComponent('options[]')}=${Uri.encodeQueryComponent(optionId)}',
+    ].join('&');
+    final response = await http.put(
+      Uri.parse('$riverSideBaseUrl/polls/vote'),
+      headers: <String, String>{
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Cookie': cookie,
+        'X-CSRF-Token': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': riverSideBaseUrl,
+        'Referer': '$riverSideBaseUrl/t/topic',
+      },
+      body: body,
+      encoding: utf8,
+    );
+
+    if (response.statusCode == 404 || response.statusCode == 405) {
+      throw const RiverSideApiException('当前站点未开放投票提交接口。');
+    }
+    if (response.statusCode == 403) {
+      throw const RiverSideApiException(
+        'Login session expired. Please sign in again.',
+      );
+    }
+    if (response.statusCode == 422) {
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(
+        message.isEmpty ? '提交投票失败，请检查选项后重试。' : message,
+      );
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(
+        message.isEmpty ? '提交投票失败，HTTP ${response.statusCode}' : message,
+      );
+    }
+
+    final decoded = _decodeJsonObject(
+      response,
+      fallbackMessage: 'Invalid poll vote response format',
+    );
+    final poll = _extractPollFromVotePayload(
+      decoded,
+      pollName: name,
+      votedOptionIds: selectedOptions,
+    );
+    if (poll != null) {
+      return poll;
+    }
+
+    final refreshedPost = await fetchPostById(
+      postId: postId,
+      cookieHeader: cookie,
+    );
+    for (final item in refreshedPost.polls) {
+      if (item.name == name) {
+        return item;
+      }
+    }
+    throw const RiverSideApiException('投票已提交，但返回数据缺失。');
+  }
+
+  Future<RiverSideTopicPoll> clearPostPollVote({
+    required int postId,
+    required String pollName,
+    required String cookieHeader,
+  }) async {
+    final cookie = cookieHeader.trim();
+    if (cookie.isEmpty) {
+      throw const RiverSideApiException('Cookie header is empty.');
+    }
+    final name = pollName.trim();
+    if (name.isEmpty || postId <= 0) {
+      throw const RiverSideApiException('Poll vote payload is invalid.');
+    }
+
+    final csrf = await fetchSessionCsrfToken(cookieHeader: cookie);
+    final body = <String>[
+      'post_id=${Uri.encodeQueryComponent('$postId')}',
+      'poll_name=${Uri.encodeQueryComponent(name)}',
+    ].join('&');
+    final response = await http.delete(
+      Uri.parse('$riverSideBaseUrl/polls/vote'),
+      headers: <String, String>{
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Cookie': cookie,
+        'X-CSRF-Token': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': riverSideBaseUrl,
+        'Referer': '$riverSideBaseUrl/t/topic',
+      },
+      body: body,
+      encoding: utf8,
+    );
+    if (response.statusCode == 404 || response.statusCode == 405) {
+      throw const RiverSideApiException('当前站点未开放撤销投票接口。');
+    }
+    if (response.statusCode == 403) {
+      throw const RiverSideApiException(
+        'Login session expired. Please sign in again.',
+      );
+    }
+    if (response.statusCode == 422) {
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(message.isEmpty ? '撤销投票失败，请稍后重试。' : message);
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(
+        message.isEmpty ? '撤销投票失败，HTTP ${response.statusCode}' : message,
+      );
+    }
+
+    final decoded = _decodeJsonObject(
+      response,
+      fallbackMessage: 'Invalid clear poll vote response format',
+    );
+    final poll = _extractPollFromVotePayload(
+      decoded,
+      pollName: name,
+      votedOptionIds: const <String>[],
+    );
+    if (poll != null) {
+      return poll;
+    }
+
+    final refreshedPost = await fetchPostById(
+      postId: postId,
+      cookieHeader: cookie,
+    );
+    for (final item in refreshedPost.polls) {
+      if (item.name == name) {
+        return item;
+      }
+    }
+    throw const RiverSideApiException('撤销投票已提交，但返回数据缺失。');
+  }
+
   Future<RiverSideTopicPostDetail> editPost({
     required int postId,
     required int topicId,
@@ -733,5 +901,58 @@ extension RiverSideApiClientPostMethods on RiverSideApiClient {
     }
     _csrfTokenCacheByCookieKey[cacheKey] = csrf;
     return csrf;
+  }
+
+  RiverSideTopicPoll? _extractPollFromVotePayload(
+    Map<String, dynamic> payload, {
+    required String pollName,
+    List<String> votedOptionIds = const <String>[],
+  }) {
+    final votedByPoll = <String, Set<String>>{};
+    final votedFromPayload = _asStringListFromDynamic(payload['vote']);
+    if (votedFromPayload.isNotEmpty) {
+      votedByPoll[pollName] = votedFromPayload.map((item) => item.trim()).where(
+        (item) {
+          return item.isNotEmpty;
+        },
+      ).toSet();
+    } else if (votedOptionIds.isNotEmpty) {
+      votedByPoll[pollName] = votedOptionIds.toSet();
+    }
+
+    final directPoll = _parseTopicPoll(
+      payload['poll'],
+      canVote: true,
+      votedOptionIdsByPoll: votedByPoll,
+    );
+    if (directPoll != null) {
+      return directPoll;
+    }
+    final direct = _parseTopicPoll(
+      payload,
+      canVote: true,
+      votedOptionIdsByPoll: votedByPoll,
+    );
+    if (direct != null) {
+      return direct;
+    }
+    final polls = _extractTopicPolls(
+      payload['polls'],
+      canVote: true,
+      votedOptionIdsByPoll: votedByPoll,
+    );
+    for (final poll in polls) {
+      if (poll.name == pollName) {
+        return poll;
+      }
+    }
+    return polls.isEmpty ? null : polls.first;
+  }
+
+  List<String> _asStringListFromDynamic(dynamic raw) {
+    if (raw is! List) {
+      return const <String>[];
+    }
+    return raw.map((item) => '$item').toList(growable: false);
   }
 }

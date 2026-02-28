@@ -19,6 +19,9 @@ class AppearanceSettingsPage extends StatefulWidget {
 
 class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
   static const String _systemDefaultToken = '__system_default__';
+  static const List<String> _builtInFontFamilies = <String>[
+    AppSettingsController.defaultFontFamilyName,
+  ];
 
   static const List<Color> _themeColorOptions = <Color>[
     Color(0xFF12457A),
@@ -275,7 +278,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
   }
 
   List<String> _effectiveFonts(String? current) {
-    final set = <String>{..._systemFonts};
+    final set = <String>{..._builtInFontFamilies, ..._systemFonts};
     if (current != null && current.trim().isNotEmpty) {
       set.add(current.trim());
     }

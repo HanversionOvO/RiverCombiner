@@ -60,6 +60,7 @@ class AppSettingsController extends ChangeNotifier {
       'app.home_widget_feed_preference';
 
   static const Color defaultSeedColor = Color(0xFF12457A);
+  static const String defaultFontFamilyName = 'HarmonyOS Sans';
   static const String defaultAiBaseUrl =
       'https://api.deepseek.com/v1/chat/completions';
   static const String defaultAiModel = 'deepseek-chat';
@@ -70,7 +71,7 @@ class AppSettingsController extends ChangeNotifier {
   Color _themeSeedColor = defaultSeedColor;
   double _fontScale = 1.0;
   AppFontWeightPreset _fontWeightPreset = AppFontWeightPreset.medium;
-  String? _fontFamilyName;
+  String? _fontFamilyName = defaultFontFamilyName;
   AppAppIconPreset _iconPreset = AppAppIconPreset.origin;
   AppCornerPreset _cornerPreset = AppCornerPreset.standard;
   bool _compactDensity = false;
@@ -168,7 +169,8 @@ class AppSettingsController extends ChangeNotifier {
       _fontFamilyName = trimmed.isEmpty ? null : trimmed;
     } else {
       final legacyPreset = _prefs?.getString(_legacyFontFamilyPresetKey);
-      _fontFamilyName = _mapLegacyFontPresetToFamily(legacyPreset);
+      _fontFamilyName =
+          _mapLegacyFontPresetToFamily(legacyPreset) ?? defaultFontFamilyName;
     }
 
     final iconPresetRaw = _normalizeLegacyIconPresetName(

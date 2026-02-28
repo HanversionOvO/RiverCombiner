@@ -13,6 +13,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
 import 'package:river/core/constants.dart';
 import 'package:river/core/navigation/river_page_route.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
@@ -130,7 +131,6 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
   }
 
   Future<void> _showImageActions(RiverImageViewerItem item) async {
-    final qrContent = await _resolveQrCodeContent(item);
     final actions = <RiverImageViewerAction>[
       RiverImageViewerAction(
         id: _actionSaveOriginal,
@@ -144,20 +144,27 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
         icon: Icons.tune_rounded,
         onSelected: (context, selected) => _editImage(selected),
       ),
-      if (qrContent != null && qrContent.trim().isNotEmpty)
-        RiverImageViewerAction(
-          id: _actionRecognizeQr,
-          label: _labelRecognizeQr,
-          icon: Icons.qr_code_2_rounded,
-          onSelected: (context, selected) =>
-              _showQrRecognitionResult(qrContent),
-        ),
       ...widget.extraActions,
     ];
     if (actions.isEmpty) {
       return;
     }
-    final selected = await _showModernImageActionSheet(actions);
+    final selected = await _showModernImageActionSheet(
+      actions,
+      asyncAction: _resolveQrCodeContent(item).then((qrContent) {
+        if (qrContent == null || qrContent.trim().isEmpty) {
+          return null;
+        }
+        return RiverImageViewerAction(
+          id: _actionRecognizeQr,
+          label: _labelRecognizeQr,
+          icon: Icons.qr_code_2_rounded,
+          onSelected: (context, selected) =>
+              _showQrRecognitionResult(qrContent),
+        );
+      }),
+      insertBeforeTailCount: widget.extraActions.length,
+    );
     if (!mounted || selected == null) {
       return;
     }
@@ -175,80 +182,117 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
   }
 
   Future<RiverImageViewerAction?> _showModernImageActionSheet(
-    List<RiverImageViewerAction> actions,
-  ) {
+    List<RiverImageViewerAction> initialActions, {
+    Future<RiverImageViewerAction?>? asyncAction,
+    int insertBeforeTailCount = 0,
+  }) {
+    final actions = List<RiverImageViewerAction>.from(initialActions);
+    var asyncStarted = false;
     return showModalBottomSheet<RiverImageViewerAction>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: false,
       builder: (sheetContext) {
-        final theme = Theme.of(sheetContext);
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-            child: Material(
-              clipBehavior: Clip.antiAlias,
-              color: theme.colorScheme.surface.withValues(alpha: 0.96),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-                side: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.36,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            if (!asyncStarted && asyncAction != null) {
+              asyncStarted = true;
+              unawaited(() async {
+                RiverImageViewerAction? resolved;
+                try {
+                  resolved = await asyncAction;
+                } catch (_) {
+                  // Ignore async action failures.
+                }
+                if (!sheetContext.mounted) {
+                  return;
+                }
+                final resolvedAction = resolved;
+                setModalState(() {
+                  if (resolvedAction != null &&
+                      actions.every((item) => item.id != resolvedAction.id)) {
+                    var insertionIndex = actions.length - insertBeforeTailCount;
+                    if (insertionIndex < 0) {
+                      insertionIndex = 0;
+                    }
+                    if (insertionIndex > actions.length) {
+                      insertionIndex = actions.length;
+                    }
+                    actions.insert(insertionIndex, resolvedAction);
+                  }
+                });
+              }());
+            }
+
+            final theme = Theme.of(sheetContext);
+            return SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                child: Material(
+                  clipBehavior: Clip.antiAlias,
+                  color: theme.colorScheme.surface.withValues(alpha: 0.96),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    side: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.36,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 10),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.72,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _labelActionSheetTitle,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                        itemCount: actions.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final action = actions[index];
+                          return _ViewerActionTile(
+                            icon: action.icon,
+                            label: action.label,
+                            onTap: () => Navigator.of(sheetContext).pop(action),
+                          );
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(sheetContext).pop(),
+                            child: const Text(_labelActionCancel),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 10),
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.72,
-                      ),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _labelActionSheetTitle,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ListView.separated(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-                    itemCount: actions.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final action = actions[index];
-                      return _ViewerActionTile(
-                        icon: action.icon,
-                        label: action.label,
-                        onTap: () => Navigator.of(sheetContext).pop(action),
-                      );
-                    },
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(),
-                        child: const Text(_labelActionCancel),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -537,9 +581,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
       designMode: useCupertino
           ? ImageEditorDesignMode.cupertino
           : ImageEditorDesignMode.material,
-      theme: appTheme.copyWith(
-        scaffoldBackgroundColor: canvasColor,
-      ),
+      theme: appTheme.copyWith(scaffoldBackgroundColor: canvasColor),
       mainEditor: MainEditorConfigs(
         safeArea: const EditorSafeArea.none(),
         style: MainEditorStyle(
@@ -880,8 +922,22 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
       return false;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final status = await Permission.photosAddOnly.request();
-      return status.isGranted || status.isLimited;
+      final addOnlyStatus = await Permission.photosAddOnly.status;
+      if (addOnlyStatus.isGranted || addOnlyStatus.isLimited) {
+        return true;
+      }
+      final photosStatus = await Permission.photos.status;
+      if (photosStatus.isGranted || photosStatus.isLimited) {
+        return true;
+      }
+
+      final addOnlyRequested = await Permission.photosAddOnly.request();
+      if (addOnlyRequested.isGranted || addOnlyRequested.isLimited) {
+        return true;
+      }
+
+      final photosRequested = await Permission.photos.request();
+      return photosRequested.isGranted || photosRequested.isLimited;
     }
     if (defaultTargetPlatform != TargetPlatform.android) {
       return true;
@@ -1094,6 +1150,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
               child: IgnorePointer(
                 ignoring: !_showOverlay,
                 child: _PageIndicator(
+                  controller: _pageController,
                   itemCount: widget.items.length,
                   currentIndex: _currentIndex,
                 ),

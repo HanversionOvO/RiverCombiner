@@ -112,6 +112,8 @@ class RiverSideTopicPostDetail {
     this.reactionUsersCount = 0,
     this.replyToPostNumber,
     this.replyToUsername = '',
+    this.polls = const <RiverSideTopicPoll>[],
+    this.canVotePoll = false,
   });
 
   final int id;
@@ -132,6 +134,8 @@ class RiverSideTopicPostDetail {
   final int reactionUsersCount;
   final int? replyToPostNumber;
   final String replyToUsername;
+  final List<RiverSideTopicPoll> polls;
+  final bool canVotePoll;
 
   RiverSideTopicPostDetail copyWith({
     int? id,
@@ -154,6 +158,8 @@ class RiverSideTopicPostDetail {
     int? reactionUsersCount,
     int? replyToPostNumber,
     String? replyToUsername,
+    List<RiverSideTopicPoll>? polls,
+    bool? canVotePoll,
   }) {
     return RiverSideTopicPostDetail(
       id: id ?? this.id,
@@ -178,8 +184,120 @@ class RiverSideTopicPostDetail {
       reactionUsersCount: reactionUsersCount ?? this.reactionUsersCount,
       replyToPostNumber: replyToPostNumber ?? this.replyToPostNumber,
       replyToUsername: replyToUsername ?? this.replyToUsername,
+      polls: polls ?? this.polls,
+      canVotePoll: canVotePoll ?? this.canVotePoll,
     );
   }
+}
+
+class RiverSideTopicPoll {
+  const RiverSideTopicPoll({
+    required this.id,
+    required this.name,
+    required this.title,
+    required this.type,
+    required this.status,
+    required this.public,
+    required this.dynamic,
+    required this.results,
+    required this.chartType,
+    required this.voters,
+    required this.options,
+    this.canVote = false,
+  });
+
+  final int id;
+  final String name;
+  final String title;
+  final String type;
+  final String status;
+  final bool public;
+  final bool dynamic;
+  final String results;
+  final String chartType;
+  final int voters;
+  final List<RiverSideTopicPollOption> options;
+  final bool canVote;
+
+  bool get isOpen => status.toLowerCase() == 'open';
+
+  RiverSideTopicPoll copyWith({
+    int? id,
+    String? name,
+    String? title,
+    String? type,
+    String? status,
+    bool? public,
+    bool? dynamic,
+    String? results,
+    String? chartType,
+    int? voters,
+    List<RiverSideTopicPollOption>? options,
+    bool? canVote,
+  }) {
+    return RiverSideTopicPoll(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      public: public ?? this.public,
+      dynamic: dynamic ?? this.dynamic,
+      results: results ?? this.results,
+      chartType: chartType ?? this.chartType,
+      voters: voters ?? this.voters,
+      options: options ?? this.options,
+      canVote: canVote ?? this.canVote,
+    );
+  }
+}
+
+class RiverSideTopicPollOption {
+  const RiverSideTopicPollOption({
+    required this.id,
+    required this.html,
+    required this.votes,
+    this.selected = false,
+    this.voters = const <RiverSideTopicPollVoter>[],
+  });
+
+  final String id;
+  final String html;
+  final int votes;
+  final bool selected;
+  final List<RiverSideTopicPollVoter> voters;
+
+  RiverSideTopicPollOption copyWith({
+    String? id,
+    String? html,
+    int? votes,
+    bool? selected,
+    List<RiverSideTopicPollVoter>? voters,
+  }) {
+    return RiverSideTopicPollOption(
+      id: id ?? this.id,
+      html: html ?? this.html,
+      votes: votes ?? this.votes,
+      selected: selected ?? this.selected,
+      voters: voters ?? this.voters,
+    );
+  }
+}
+
+class RiverSideTopicPollVoter {
+  const RiverSideTopicPollVoter({
+    required this.id,
+    required this.username,
+    required this.displayName,
+    required this.avatarUrl,
+    required this.title,
+  });
+
+  final int id;
+  final String username;
+  final String displayName;
+  final String avatarUrl;
+  final String title;
 }
 
 class RiverSideTopicDetail {

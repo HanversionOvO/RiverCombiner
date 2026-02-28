@@ -59,6 +59,9 @@ class _MainPostCard extends StatefulWidget {
     this.showReplyAction = true,
     this.isJumpHighlighted = false,
     this.jumpHighlightToken = 0,
+    this.submittingPollKeys = const <String>{},
+    required this.onPollVote,
+    required this.onPollClear,
   });
 
   final RiverSideTopicDetail detail;
@@ -91,6 +94,10 @@ class _MainPostCard extends StatefulWidget {
   final bool showReplyAction;
   final bool isJumpHighlighted;
   final int jumpHighlightToken;
+  final Set<String> submittingPollKeys;
+  final Future<bool> Function(RiverSideTopicPoll poll, List<String> optionIds)
+  onPollVote;
+  final Future<bool> Function(RiverSideTopicPoll poll) onPollClear;
 
   @override
   State<_MainPostCard> createState() => _MainPostCardState();
@@ -146,6 +153,17 @@ class _MainPostCardState extends State<_MainPostCard>
           onMentionTap: widget.onMentionTap,
           onTopicLinkTap: widget.onTopicLinkTap,
         ),
+        if (post.polls.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _TopicPollSection(
+            postId: post.id,
+            polls: post.polls,
+            canVote: post.canVotePoll,
+            submittingPollKeys: widget.submittingPollKeys,
+            onSubmit: widget.onPollVote,
+            onClear: widget.onPollClear,
+          ),
+        ],
         const SizedBox(height: 12),
         _PostReactionBar(
           post: post,
@@ -244,6 +262,449 @@ class _MainPostCardState extends State<_MainPostCard>
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopicPollSection extends StatefulWidget {
+  const _TopicPollSection({
+    required this.postId,
+    required this.polls,
+    required this.canVote,
+    required this.submittingPollKeys,
+    required this.onSubmit,
+    required this.onClear,
+  });
+
+  final int postId;
+  final List<RiverSideTopicPoll> polls;
+  final bool canVote;
+  final Set<String> submittingPollKeys;
+  final Future<bool> Function(RiverSideTopicPoll poll, List<String> optionIds)
+  onSubmit;
+  final Future<bool> Function(RiverSideTopicPoll poll) onClear;
+
+  @override
+  State<_TopicPollSection> createState() => _TopicPollSectionState();
+}
+
+class _TopicPollSectionState extends State<_TopicPollSection> {
+  final Map<String, Set<String>> _selectedOptionIdsByPollName =
+      <String, Set<String>>{};
+
+  bool _isMultipleChoicePoll(RiverSideTopicPoll poll) {
+    final type = poll.type.trim().toLowerCase();
+    return type == 'multiple' || type == 'number' || type == 'ranked';
+  }
+
+  bool _isSubmitting(RiverSideTopicPoll poll) {
+    return widget.submittingPollKeys.contains(
+      '${widget.postId}:${poll.name.trim()}',
+    );
+  }
+
+  Set<String> _selectionForPoll(RiverSideTopicPoll poll) {
+    return _selectedOptionIdsByPollName[poll.name] ?? <String>{};
+  }
+
+  bool _hasLocalSelection(RiverSideTopicPoll poll) {
+    return _selectedOptionIdsByPollName.containsKey(poll.name);
+  }
+
+  String _optionText(String html) {
+    if (html.trim().isEmpty) {
+      return '未命名选项';
+    }
+    return html
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .trim();
+  }
+
+  int _fallbackVoteTotal(RiverSideTopicPoll poll) {
+    var total = 0;
+    for (final option in poll.options) {
+      total += option.votes;
+    }
+    return total;
+  }
+
+  Set<String> _votedOptionIdsFromPoll(RiverSideTopicPoll poll) {
+    return poll.options
+        .where((item) => item.selected)
+        .map((item) => item.id)
+        .toSet();
+  }
+
+  Future<void> _submitPoll(RiverSideTopicPoll poll) async {
+    final selected = _selectionForPoll(poll);
+    if (selected.isEmpty) {
+      ScaffoldMessenger.of(context).showRiverSnackBar('请先选择投票选项');
+      return;
+    }
+    final success = await widget.onSubmit(
+      poll,
+      selected.toList(growable: false),
+    );
+    if (!mounted || !success) {
+      return;
+    }
+    setState(() {
+      _selectedOptionIdsByPollName.remove(poll.name);
+    });
+  }
+
+  Future<void> _clearPoll(RiverSideTopicPoll poll) async {
+    final success = await widget.onClear(poll);
+    if (!mounted || !success) {
+      return;
+    }
+    setState(() {
+      _selectedOptionIdsByPollName.remove(poll.name);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (widget.polls.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index < widget.polls.length; index++) ...[
+          () {
+            final poll = widget.polls[index];
+            final localSelected = _selectionForPoll(poll);
+            final votedOptionIds = _votedOptionIdsFromPoll(poll);
+            final selectedForAction = _hasLocalSelection(poll)
+                ? localSelected
+                : votedOptionIds;
+            final onClear =
+                votedOptionIds.isNotEmpty && !_hasLocalSelection(poll)
+                ? () => _clearPoll(poll)
+                : null;
+            return _TopicPollCard(
+              poll: poll,
+              canVote: widget.canVote && poll.canVote,
+              selected: selectedForAction,
+              submitting: _isSubmitting(poll),
+              optionTextBuilder: _optionText,
+              fallbackVoteTotalBuilder: _fallbackVoteTotal,
+              multipleChoiceResolver: _isMultipleChoicePoll,
+              onSelectionChanged: (next) {
+                setState(() {
+                  _selectedOptionIdsByPollName[poll.name] = next;
+                });
+              },
+              onSubmit: () => _submitPoll(poll),
+              onClear: onClear,
+            );
+          }(),
+          if (index != widget.polls.length - 1)
+            SizedBox(height: theme.visualDensity.vertical * 2 + 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _TopicPollCard extends StatelessWidget {
+  const _TopicPollCard({
+    required this.poll,
+    required this.canVote,
+    required this.selected,
+    required this.submitting,
+    required this.optionTextBuilder,
+    required this.fallbackVoteTotalBuilder,
+    required this.multipleChoiceResolver,
+    required this.onSelectionChanged,
+    required this.onSubmit,
+    this.onClear,
+  });
+
+  final RiverSideTopicPoll poll;
+  final bool canVote;
+  final Set<String> selected;
+  final bool submitting;
+  final String Function(String html) optionTextBuilder;
+  final int Function(RiverSideTopicPoll poll) fallbackVoteTotalBuilder;
+  final bool Function(RiverSideTopicPoll poll) multipleChoiceResolver;
+  final ValueChanged<Set<String>> onSelectionChanged;
+  final VoidCallback onSubmit;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final multipleChoice = multipleChoiceResolver(poll);
+    final voterTotal =
+        (poll.voters > 0 ? poll.voters : fallbackVoteTotalBuilder(poll)).clamp(
+          1,
+          1 << 30,
+        );
+    final pollTitle = poll.title.trim().isEmpty ? '投票' : poll.title.trim();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.poll_rounded, size: 18, color: colors.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  pollTitle,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '${poll.voters} 人参与',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final option in poll.options) ...[
+            _TopicPollOptionTile(
+              option: option,
+              optionText: optionTextBuilder(option.html),
+              selected: selected.contains(option.id) || option.selected,
+              multipleChoice: multipleChoice,
+              canVote: canVote && poll.isOpen,
+              voterTotal: voterTotal,
+              showVoters: poll.public,
+              onTap: () {
+                if (!(canVote && poll.isOpen) || submitting) {
+                  return;
+                }
+                final next = <String>{...selected};
+                if (multipleChoice) {
+                  if (!next.add(option.id)) {
+                    next.remove(option.id);
+                  }
+                } else {
+                  if (next.contains(option.id)) {
+                    next.clear();
+                  } else {
+                    next
+                      ..clear()
+                      ..add(option.id);
+                  }
+                }
+                onSelectionChanged(next);
+              },
+            ),
+            if (option != poll.options.last) const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  canVote && poll.isOpen
+                      ? (multipleChoice ? '可多选' : '单选')
+                      : (poll.isOpen ? '暂不可投票' : '投票已结束'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: canVote && poll.isOpen && !submitting
+                    ? onSubmit
+                    : null,
+                icon: submitting
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.how_to_vote_rounded, size: 16),
+                label: Text(submitting ? '提交中' : '提交投票'),
+              ),
+              if (onClear != null) ...[
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: canVote && poll.isOpen && !submitting
+                      ? onClear
+                      : null,
+                  icon: const Icon(Icons.undo_rounded, size: 16),
+                  label: const Text('撤销'),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopicPollOptionTile extends StatelessWidget {
+  const _TopicPollOptionTile({
+    required this.option,
+    required this.optionText,
+    required this.selected,
+    required this.multipleChoice,
+    required this.canVote,
+    required this.voterTotal,
+    required this.showVoters,
+    required this.onTap,
+  });
+
+  final RiverSideTopicPollOption option;
+  final String optionText;
+  final bool selected;
+  final bool multipleChoice;
+  final bool canVote;
+  final int voterTotal;
+  final bool showVoters;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final ratio = (option.votes / voterTotal).clamp(0.0, 1.0);
+
+    return Material(
+      color: selected
+          ? colors.primaryContainer.withValues(alpha: 0.38)
+          : colors.surfaceContainerHighest.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: canVote ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    multipleChoice
+                        ? (selected
+                              ? Icons.check_box_rounded
+                              : Icons.check_box_outline_blank_rounded)
+                        : (selected
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded),
+                    size: 18,
+                    color: selected
+                        ? colors.primary
+                        : colors.onSurfaceVariant.withValues(alpha: 0.85),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      optionText,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${option.votes}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  minHeight: 6,
+                  value: ratio,
+                  backgroundColor: colors.outlineVariant.withValues(
+                    alpha: 0.25,
+                  ),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    selected
+                        ? colors.primary
+                        : colors.primary.withValues(alpha: 0.58),
+                  ),
+                ),
+              ),
+              if (showVoters && option.voters.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: option.voters
+                      .map((voter) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colors.surface.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: colors.outlineVariant.withValues(
+                                alpha: 0.35,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 8,
+                                backgroundImage: voter.avatarUrl.isEmpty
+                                    ? null
+                                    : NetworkImage(voter.avatarUrl),
+                                child: voter.avatarUrl.isEmpty
+                                    ? const Icon(Icons.person, size: 10)
+                                    : null,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                voter.displayName,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      })
+                      .toList(growable: false),
+                ),
+              ],
+            ],
           ),
         ),
       ),

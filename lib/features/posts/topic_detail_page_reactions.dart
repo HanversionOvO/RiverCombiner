@@ -370,6 +370,176 @@ extension _TopicDetailPageReactions on _TopicDetailPageState {
       ).showRiverSnackBar('\u52a0\u8f7d\u70b9\u8d5e\u7528\u6237\u5931\u8d25');
     }
   }
+
+  String _pollSubmitKey({required int postId, required String pollName}) {
+    return '$postId:${pollName.trim()}';
+  }
+
+  Future<bool> _clearPollVote({
+    required int postId,
+    required RiverSideTopicPoll poll,
+  }) async {
+    if (_isQingShuiHePanTopic) {
+      ScaffoldMessenger.of(context).showRiverSnackBar('当前论坛暂不支持投票');
+      return false;
+    }
+    final cookieHeader = _activeCookieHeader();
+    if (cookieHeader == null || cookieHeader.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReactionNotReady);
+      return false;
+    }
+    final pollName = poll.name.trim();
+    if (pollName.isEmpty) {
+      return false;
+    }
+    final key = _pollSubmitKey(postId: postId, pollName: pollName);
+    if (_submittingPollKeys.contains(key)) {
+      return false;
+    }
+    _mutateState(() {
+      _submittingPollKeys.add(key);
+    });
+    try {
+      final updatedPoll = await widget
+          .dependencies
+          .accountStore
+          .riverSideApiClient
+          .clearPostPollVote(
+            postId: postId,
+            pollName: pollName,
+            cookieHeader: cookieHeader,
+          );
+      if (!mounted) {
+        return false;
+      }
+      _applyUpdatedMainPostPoll(postId: postId, updatedPoll: updatedPoll);
+      ScaffoldMessenger.of(context).showRiverSnackBar('已撤销投票');
+      return true;
+    } on RiverSideApiException catch (error) {
+      if (!mounted) {
+        return false;
+      }
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
+      return false;
+    } catch (_) {
+      if (!mounted) {
+        return false;
+      }
+      ScaffoldMessenger.of(context).showRiverSnackBar('撤销投票失败，请稍后重试');
+      return false;
+    } finally {
+      _mutateState(() {
+        _submittingPollKeys.remove(key);
+      });
+    }
+  }
+
+  void _applyUpdatedMainPostPoll({
+    required int postId,
+    required RiverSideTopicPoll updatedPoll,
+  }) {
+    final detail = _detail;
+    if (detail == null) {
+      return;
+    }
+    final mainPost = detail.mainPost;
+    if (mainPost.id != postId) {
+      return;
+    }
+    final nextPolls = <RiverSideTopicPoll>[];
+    var replaced = false;
+    for (final item in mainPost.polls) {
+      if (item.name == updatedPoll.name) {
+        nextPolls.add(updatedPoll);
+        replaced = true;
+      } else {
+        nextPolls.add(item);
+      }
+    }
+    if (!replaced) {
+      nextPolls.add(updatedPoll);
+    }
+    _mutateState(() {
+      _detail = detail.copyWith(
+        mainPost: mainPost.copyWith(
+          polls: nextPolls,
+          canVotePoll: nextPolls.any((item) => item.canVote),
+        ),
+      );
+    });
+  }
+
+  Future<bool> _submitPollVote({
+    required int postId,
+    required RiverSideTopicPoll poll,
+    required List<String> optionIds,
+  }) async {
+    if (_isQingShuiHePanTopic) {
+      ScaffoldMessenger.of(context).showRiverSnackBar('当前论坛暂不支持投票');
+      return false;
+    }
+    final cookieHeader = _activeCookieHeader();
+    if (cookieHeader == null || cookieHeader.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showRiverSnackBar(_TopicDetailPageState._labelReactionNotReady);
+      return false;
+    }
+    final pollName = poll.name.trim();
+    if (pollName.isEmpty || optionIds.isEmpty) {
+      ScaffoldMessenger.of(context).showRiverSnackBar('请先选择投票选项');
+      return false;
+    }
+
+    final key = _pollSubmitKey(postId: postId, pollName: pollName);
+    if (_submittingPollKeys.contains(key)) {
+      return false;
+    }
+    _mutateState(() {
+      _submittingPollKeys.add(key);
+    });
+
+    try {
+      final updatedPoll = await widget
+          .dependencies
+          .accountStore
+          .riverSideApiClient
+          .votePostPoll(
+            postId: postId,
+            pollName: pollName,
+            optionIds: optionIds,
+            cookieHeader: cookieHeader,
+          );
+      if (!mounted) {
+        return false;
+      }
+      final detail = _detail;
+      if (detail == null) {
+        return false;
+      }
+      _applyUpdatedMainPostPoll(postId: postId, updatedPoll: updatedPoll);
+      ScaffoldMessenger.of(context).showRiverSnackBar('投票成功');
+      return true;
+    } on RiverSideApiException catch (error) {
+      if (!mounted) {
+        return false;
+      }
+      ScaffoldMessenger.of(context).showRiverSnackBar(error.message);
+      return false;
+    } catch (_) {
+      if (!mounted) {
+        return false;
+      }
+      ScaffoldMessenger.of(context).showRiverSnackBar('投票失败，请稍后重试');
+      return false;
+    } finally {
+      _mutateState(() {
+        _submittingPollKeys.remove(key);
+      });
+    }
+  }
 }
 
 class _ReactionPickerSheet extends StatefulWidget {

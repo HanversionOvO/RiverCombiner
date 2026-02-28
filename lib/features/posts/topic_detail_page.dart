@@ -234,6 +234,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
   List<RiverSideTopicPostDetail> _comments = const <RiverSideTopicPostDetail>[];
   final Set<int> _loadedPostIds = <int>{};
   final Set<int> _reactingPostIds = <int>{};
+  final Set<String> _submittingPollKeys = <String>{};
   final Map<int, String> _pendingReactionHeroByPostId = <int, String>{};
   final Map<int, int> _reactionPulseTokenByPostId = <int, int>{};
   final Set<int> _qingLikedPostIds = <int>{};
@@ -1497,8 +1498,9 @@ class _TopicDetailPageState extends State<TopicDetailPage>
 
   Future<void> _showQuoteBottomSheet(_QuoteBlock quote) async {
     final cookieHeader = _activeCookieHeader();
+    final hasFloorRef = quote.ref.postNumber > 0;
     final Future<RiverSideTopicPostDetail>? quotedPostFuture =
-        !_isQingShuiHePanTopic && quote.ref.postNumber > 0
+        !_isQingShuiHePanTopic && hasFloorRef
         ? widget.dependencies.accountStore.riverSideApiClient
               .fetchTopicPostByNumber(
                 topicId: quote.ref.topicId,
@@ -1584,7 +1586,9 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '回复 @${quote.ref.username} 的 #${quote.ref.postNumber}',
+                                  hasFloorRef
+                                      ? '回复 @${quote.ref.username} 的 #${quote.ref.postNumber}'
+                                      : '引用内容',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleSmall?.copyWith(
@@ -1592,7 +1596,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                   ),
                                 ),
                                 Text(
-                                  '查看完整被回复内容',
+                                  hasFloorRef ? '查看完整被回复内容' : '查看完整引用内容',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -1704,51 +1708,56 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                Navigator.of(sheetContext).pop();
-                                await _jumpToPostNumber(
-                                  postNumber: quote.ref.postNumber,
-                                  topicId: quote.ref.topicId,
-                                );
-                              },
-                              icon: const Icon(Icons.numbers_rounded, size: 18),
-                              label: const Text(_labelJumpToFloor),
+                      if (hasFloorRef) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  Navigator.of(sheetContext).pop();
+                                  await _jumpToPostNumber(
+                                    postNumber: quote.ref.postNumber,
+                                    topicId: quote.ref.topicId,
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.numbers_rounded,
+                                  size: 18,
+                                ),
+                                label: const Text(_labelJumpToFloor),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: () async {
-                                Navigator.of(sheetContext).pop();
-                                final detailTopicId = _detail?.topicId;
-                                if (detailTopicId == null ||
-                                    quote.ref.topicId != detailTopicId) {
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).showRiverSnackBar(_labelCrossTopicQuote);
-                                  return;
-                                }
-                                await _openReplyComposer(
-                                  topicId: quote.ref.topicId,
-                                  replyToPostNumber: quote.ref.postNumber,
-                                  quoteUsername: quote.ref.username,
-                                  quoteTopicId: quote.ref.topicId,
-                                  quoteContent: _stripQuotedMarkdown(
-                                    quote.contentMarkdown,
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.reply_rounded, size: 18),
-                              label: const Text(_labelReplyContent),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () async {
+                                  Navigator.of(sheetContext).pop();
+                                  final detailTopicId = _detail?.topicId;
+                                  if (detailTopicId == null ||
+                                      quote.ref.topicId != detailTopicId) {
+                                    ScaffoldMessenger.of(
+                                      context,
+                                    ).showRiverSnackBar(_labelCrossTopicQuote);
+                                    return;
+                                  }
+                                  await _openReplyComposer(
+                                    topicId: quote.ref.topicId,
+                                    replyToPostNumber: quote.ref.postNumber,
+                                    quoteUsername: quote.ref.username,
+                                    quoteTopicId: quote.ref.topicId,
+                                    quoteContent: _stripQuotedMarkdown(
+                                      quote.contentMarkdown,
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.reply_rounded, size: 18),
+                                label: const Text(_labelReplyContent),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -2578,6 +2587,16 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                       .mainPost
                                       .id] ??
                                   0,
+                              submittingPollKeys: _submittingPollKeys,
+                              onPollVote: (poll, optionIds) => _submitPollVote(
+                                postId: detail.mainPost.id,
+                                poll: poll,
+                                optionIds: optionIds,
+                              ),
+                              onPollClear: (poll) => _clearPollVote(
+                                postId: detail.mainPost.id,
+                                poll: poll,
+                              ),
                               onAiSummaryPressed: _onAiSummaryPressed,
                               aiSummaryLoading: _loadingAiSummary,
                               showAiSummaryMarquee: _showAiSummaryMarquee,

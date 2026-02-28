@@ -553,15 +553,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: hasSelection
-                    ? colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
-                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-              const SizedBox(width: 2),
+              const SizedBox(width: 4),
               Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 18,

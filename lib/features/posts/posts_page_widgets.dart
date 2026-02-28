@@ -522,9 +522,10 @@ class _TopicListTabState extends State<_TopicListTab>
   }
 
   void _openDetail(BuildContext sourceContext, RiverSideTopicSummary topic) {
-    final avatarHeroTag = _buildAuthorAvatarHeroTag(topic);
-    final nameHeroTag = _buildAuthorNameHeroTag(topic);
-    final titleHeroTag = 'title_${topic.id}';
+    // Disable Hero linkage for list -> detail transition on Posts page.
+    final avatarHeroTag = 'topic_detail_avatar_nohero_${topic.id}';
+    final nameHeroTag = 'topic_detail_name_nohero_${topic.id}';
+    final titleHeroTag = 'topic_detail_title_nohero_${topic.id}';
     final provider = widget.forumProvider == _PostsForumProvider.qingShuiHePan
         ? AccountProvider.qingShuiHePan
         : AccountProvider.riverSide;

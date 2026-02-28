@@ -64,35 +64,62 @@ class _ViewerActionTile extends StatelessWidget {
 }
 
 class _PageIndicator extends StatelessWidget {
-  const _PageIndicator({required this.itemCount, required this.currentIndex});
+  const _PageIndicator({
+    required this.controller,
+    required this.itemCount,
+    required this.currentIndex,
+  });
 
+  final PageController controller;
   final int itemCount;
   final int currentIndex;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final inactiveBase = Colors.white.withValues(alpha: 0.35);
+    final activeColor = colorScheme.primary.withValues(alpha: 0.96);
+
     return Center(
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.black54,
-          borderRadius: BorderRadius.circular(16),
+          color: Colors.black.withValues(alpha: 0.52),
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(itemCount, (index) {
-              final active = index == currentIndex;
-              return Container(
-                width: active ? 14 : 6,
-                height: 6,
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                decoration: BoxDecoration(
-                  color: active ? Colors.white : Colors.white54,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              );
-            }),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: SmoothPageIndicator(
+            controller: controller,
+            count: itemCount,
+            effect: CustomizableEffect(
+              spacing: 6,
+              activeDotDecoration: DotDecoration(
+                width: 32,
+                height: 12,
+                color: activeColor,
+                rotationAngle: 180,
+                verticalOffset: -10,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              dotDecoration: DotDecoration(
+                width: 24,
+                height: 12,
+                color: inactiveBase,
+                borderRadius: BorderRadius.circular(16),
+                verticalOffset: 0,
+              ),
+              inActiveColorOverride: (index) {
+                if (index == currentIndex) {
+                  return inactiveBase;
+                }
+                return Color.lerp(
+                      inactiveBase,
+                      colorScheme.primary.withValues(alpha: 0.55),
+                      (index % 3) / 3,
+                    ) ??
+                    inactiveBase;
+              },
+            ),
           ),
         ),
       ),
