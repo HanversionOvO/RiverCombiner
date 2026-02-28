@@ -27,11 +27,7 @@ class RiverAiService {
     );
 
     final response = await http
-        .post(
-          endpoint,
-          headers: _headers(),
-          body: jsonEncode(payload),
-        )
+        .post(endpoint, headers: _headers(), body: jsonEncode(payload))
         .timeout(const Duration(seconds: 30));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -109,14 +105,8 @@ class RiverAiService {
       'stream': stream,
       'temperature': settings.aiTemperature,
       'messages': <Map<String, String>>[
-        <String, String>{
-          'role': 'system',
-          'content': settings.aiSystemPrompt,
-        },
-        <String, String>{
-          'role': 'user',
-          'content': userPrompt,
-        },
+        <String, String>{'role': 'system', 'content': settings.aiSystemPrompt},
+        <String, String>{'role': 'user', 'content': userPrompt},
       ],
     };
   }
@@ -169,9 +159,7 @@ class RiverAiService {
     return (decoded['content'] ?? '').toString().trim();
   }
 
-  Stream<String> _parseSseContentChunks(
-    Stream<List<int>> byteStream,
-  ) async* {
+  Stream<String> _parseSseContentChunks(Stream<List<int>> byteStream) async* {
     await for (final line
         in byteStream.transform(utf8.decoder).transform(const LineSplitter())) {
       final raw = line.trim();

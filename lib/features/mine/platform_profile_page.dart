@@ -8,6 +8,7 @@ import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class PlatformProfilePage extends StatefulWidget {
   const PlatformProfilePage({
     super.key,
@@ -153,7 +154,7 @@ class _PlatformProfilePageState extends State<PlatformProfilePage>
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _refreshOverview,
-                  child: CustomScrollView(
+                  child: RiverAutoAnimatedCustomScrollView(
                     slivers: [
                       SliverToBoxAdapter(
                         child: Padding(
@@ -428,7 +429,7 @@ class _ProfileActivityList extends StatelessWidget {
         if (items.isEmpty) {
           return _ProfileEmptyView(onRefresh: onRefresh);
         }
-        return ListView.separated(
+        return RiverAutoAnimatedListView.separated(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 18),
           itemCount: items.length,
           separatorBuilder: (_, index) => const SizedBox(height: 8),
@@ -565,3 +566,6 @@ class _TabHeaderDelegate extends SliverPersistentHeaderDelegate {
     return oldDelegate.child != child || oldDelegate.color != color;
   }
 }
+
+
+

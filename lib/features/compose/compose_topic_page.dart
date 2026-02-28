@@ -19,6 +19,7 @@ import 'package:river/core/qing/qing_emoji_catalog.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/core/widgets/riverside_category_picker_sheet.dart';
 import 'package:river/core/widgets/river_markdown_editor.dart';
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 import 'package:river/features/compose/compose_topic_preview_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';

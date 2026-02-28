@@ -699,7 +699,7 @@ class _TopicListTabState extends State<_TopicListTab>
         RefreshIndicator(
           onRefresh: _handleRefresh,
           notificationPredicate: (notification) => notification.depth == 0,
-          child: ListView.separated(
+          child: RiverAutoAnimatedListView.separated(
             key: _listViewKey,
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 92),
@@ -812,7 +812,7 @@ class _TopicListTabState extends State<_TopicListTab>
     });
     return Skeletonizer(
       enabled: true,
-      child: ListView.separated(
+      child: RiverAutoAnimatedListView.separated(
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 92),
         itemCount: skeletonTopics.length,
@@ -1343,3 +1343,5 @@ class _SkeletonBox extends StatelessWidget {
     );
   }
 }
+
+

@@ -12,6 +12,7 @@ import 'package:river/core/mini_apps/river_mini_app_repository.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_search_models.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/features/mine/riverside_profile_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';

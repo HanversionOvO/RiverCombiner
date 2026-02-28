@@ -72,9 +72,7 @@ class RiverJPushService {
     try {
       final launchEvent = await _jpush.getLaunchAppNotification();
       if (launchEvent is Map && launchEvent.isNotEmpty) {
-        _openedNotificationController.add(
-          launchEvent.cast<String, dynamic>(),
-        );
+        _openedNotificationController.add(launchEvent.cast<String, dynamic>());
       }
     } catch (_) {
       // no-op

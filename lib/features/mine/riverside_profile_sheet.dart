@@ -12,6 +12,7 @@ import 'package:river/features/mine/riverside_profile_page.dart';
 import 'package:river/features/notifications/chat_detail_page.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 Future<void> showRiverSideUserProfileSheet({
   required BuildContext context,
   required AppDependencies dependencies,
@@ -573,7 +574,7 @@ class _RiverSideUserProfileSheetState
                     if (snapshot.hasData) {
                       _resolvedAccount = snapshot.data!.account;
                     }
-                    return ListView(
+                    return RiverAutoAnimatedListView(
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       children: [
@@ -884,3 +885,6 @@ RiverSideProfileOverview _mapQingOverview(dynamic rawOverview) {
     isFollowing: false,
   );
 }
+
+
+

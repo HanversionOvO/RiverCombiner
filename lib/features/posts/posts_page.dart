@@ -37,6 +37,7 @@ import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 // -----------------------------------------------------------------------------
 
 part 'posts_page_widgets.dart';
@@ -685,7 +686,7 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
                             ),
                           ),
                           Expanded(
-                            child: ListView(
+                            child: RiverAutoAnimatedListView(
                               padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                               children: [
                                 _buildWeatherCard(theme),
@@ -2938,7 +2939,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                         ),
                       ),
                     Expanded(
-                      child: ListView(
+                      child: RiverAutoAnimatedListView(
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
                         children: [
@@ -3960,7 +3961,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                 )
                               else
                                 Expanded(
-                                  child: ListView.separated(
+                                  child: RiverAutoAnimatedListView.separated(
                                     itemCount: recommendedApps.length,
                                     separatorBuilder: (context, index) =>
                                         const SizedBox(height: 8),
@@ -4011,7 +4012,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                               ),
                             ),
                           )
-                        : ListView.separated(
+                        : RiverAutoAnimatedListView.separated(
                             shrinkWrap: true,
                             itemCount: results.length,
                             separatorBuilder: (_, _) =>
@@ -4965,7 +4966,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                               )
                             else
                               Flexible(
-                                child: ListView.separated(
+                                child: RiverAutoAnimatedListView.separated(
                                   padding: const EdgeInsets.fromLTRB(
                                     8,
                                     2,
@@ -5805,3 +5806,6 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
 }
 
 // -----------------------------------------------------------------------------
+
+
+

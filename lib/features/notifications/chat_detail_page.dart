@@ -17,6 +17,7 @@ import 'package:river/core/realtime/riverside_message_bus_poller.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/core/widgets/river_image_viewer.dart';
 import 'package:river/core/widgets/river_markdown_editor.dart';
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';

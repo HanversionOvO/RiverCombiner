@@ -4,6 +4,7 @@ import 'package:river/core/account/account_models.dart';
 import 'package:river/features/login/riverside_password_login_service.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 Future<UserAccount?> showRiverSideCredentialLoginSheet({
   required BuildContext context,
   required AppDependencies dependencies,
@@ -244,7 +245,7 @@ class _RiverSideCredentialLoginSheetBodyState
             ),
           ),
           Flexible(
-            child: SingleChildScrollView(
+            child: RiverAutoAnimatedSingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
               child: Form(
                 key: _formKey,
@@ -358,3 +359,6 @@ class _RiverSideCredentialLoginSheetBodyState
     );
   }
 }
+
+
+

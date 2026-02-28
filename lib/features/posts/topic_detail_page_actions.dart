@@ -729,7 +729,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       builder: (sheetContext) {
         return SafeArea(
           top: false,
-          child: ListView.builder(
+          child: RiverAutoAnimatedListView.builder(
             shrinkWrap: true,
             itemCount: options.length,
             itemBuilder: (context, index) {
@@ -2311,7 +2311,7 @@ class _CrossPostTransferSheet extends StatelessWidget {
                     constraints: BoxConstraints(
                       maxHeight: MediaQuery.sizeOf(context).height * 0.28,
                     ),
-                    child: SingleChildScrollView(
+                    child: RiverAutoAnimatedSingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       child: _PostContent(
                         markdown: markdown,
@@ -2492,3 +2492,5 @@ class _CrossPostTransferSheet extends StatelessWidget {
     );
   }
 }
+
+

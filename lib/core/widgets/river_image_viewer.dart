@@ -17,6 +17,7 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 part 'river_image_viewer_components.dart';
 
 class RiverImageViewerItem {
@@ -262,7 +263,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ListView.separated(
+                      RiverAutoAnimatedListView.separated(
                         shrinkWrap: true,
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
                         itemCount: actions.length,
@@ -1192,3 +1193,6 @@ String _buildImageCacheKey(String url, Map<String, String>? headers) {
   }
   return '$url#auth';
 }
+
+
+

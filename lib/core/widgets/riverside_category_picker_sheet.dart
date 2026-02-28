@@ -3,6 +3,7 @@ import 'package:river/core/categories/riverside_category_utils.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 typedef RiverSideCategoryLoader =
     Future<List<RiverSideCategoryOption>> Function({bool forceRefresh});
 
@@ -114,7 +115,7 @@ class _RiverSideCategoryPickerSheetState
               ),
             ),
             Flexible(
-              child: ListView(
+              child: RiverAutoAnimatedListView(
                 shrinkWrap: true,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 children: [
@@ -341,3 +342,6 @@ class _BoardGroupCard extends StatelessWidget {
     );
   }
 }
+
+
+

@@ -363,7 +363,7 @@ extension _SearchPageView on _SearchPageState {
   Widget _buildLoadingState() {
     return Skeletonizer(
       enabled: true,
-      child: ListView.separated(
+      child: RiverAutoAnimatedListView.separated(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 18),
@@ -404,7 +404,7 @@ extension _SearchPageView on _SearchPageState {
     }
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      child: ListView.separated(
+      child: RiverAutoAnimatedListView.separated(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 6, 12, 16),
@@ -479,7 +479,7 @@ extension _SearchPageView on _SearchPageState {
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
 
-    return ListView(
+    return RiverAutoAnimatedListView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
@@ -637,7 +637,7 @@ extension _SearchPageView on _SearchPageState {
 
     return RefreshIndicator(
       onRefresh: _loadRecentSearches,
-      child: ListView(
+      child: RiverAutoAnimatedListView(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
@@ -738,7 +738,7 @@ extension _SearchPageView on _SearchPageState {
     if (_postItems.isEmpty) {
       return RefreshIndicator(
         onRefresh: _onRefresh,
-        child: ListView(
+        child: RiverAutoAnimatedListView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -754,7 +754,7 @@ extension _SearchPageView on _SearchPageState {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      child: ListView.builder(
+      child: RiverAutoAnimatedListView.builder(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 6, 12, 16),
@@ -936,7 +936,7 @@ extension _SearchPageView on _SearchPageState {
     if (items.isEmpty) {
       return RefreshIndicator(
         onRefresh: _onRefresh,
-        child: ListView(
+        child: RiverAutoAnimatedListView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -952,7 +952,7 @@ extension _SearchPageView on _SearchPageState {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      child: ListView.builder(
+      child: RiverAutoAnimatedListView.builder(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
@@ -1020,7 +1020,7 @@ extension _SearchPageView on _SearchPageState {
     if (_miniAppItems.isEmpty) {
       return RefreshIndicator(
         onRefresh: _onRefresh,
-        child: ListView(
+        child: RiverAutoAnimatedListView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -1036,7 +1036,7 @@ extension _SearchPageView on _SearchPageState {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      child: ListView.builder(
+      child: RiverAutoAnimatedListView.builder(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
@@ -1485,3 +1485,5 @@ class _MiniAppMetaBadge extends StatelessWidget {
     );
   }
 }
+
+

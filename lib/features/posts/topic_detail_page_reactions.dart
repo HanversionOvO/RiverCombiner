@@ -879,7 +879,7 @@ class _ReactionUsersSheet extends StatelessWidget {
                   else
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 460),
-                      child: ListView.separated(
+                      child: RiverAutoAnimatedListView.separated(
                         shrinkWrap: true,
                         physics: const BouncingScrollPhysics(),
                         itemCount: users.length,
@@ -958,3 +958,5 @@ class _ReactionUserTile extends StatelessWidget {
     );
   }
 }
+
+

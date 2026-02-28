@@ -5,6 +5,7 @@ import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class MiniAppPermissionsPage extends StatefulWidget {
   const MiniAppPermissionsPage({
     super.key,
@@ -81,7 +82,7 @@ class _MiniAppPermissionsPageState extends State<MiniAppPermissionsPage> {
       body: _loading
           ? Skeletonizer(
               enabled: true,
-              child: ListView(
+              child: RiverAutoAnimatedListView(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
                 children: [
                   _PermissionSection(
@@ -106,7 +107,7 @@ class _MiniAppPermissionsPageState extends State<MiniAppPermissionsPage> {
                 ],
               ),
             )
-          : ListView(
+          : RiverAutoAnimatedListView(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
               children: [
                 _PermissionSection(
@@ -250,3 +251,6 @@ class _PermissionTile extends StatelessWidget {
     );
   }
 }
+
+
+

@@ -1076,7 +1076,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
                 ),
               );
             } else {
-              body = ListView.separated(
+              body = RiverAutoAnimatedListView.separated(
                 shrinkWrap: true,
                 itemCount: topics.length,
                 separatorBuilder: (_, unused) => const Divider(height: 1),
@@ -2027,3 +2027,5 @@ class _QingTransferTopicDetail {
   final String markdown;
   final int? boardId;
 }
+
+

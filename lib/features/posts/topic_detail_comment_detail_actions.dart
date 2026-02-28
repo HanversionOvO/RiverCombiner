@@ -814,7 +814,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
                 const SizedBox(height: 8),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 320),
-                  child: SingleChildScrollView(
+                  child: RiverAutoAnimatedSingleChildScrollView(
                     child: _MarkdownContent(
                       markdown: quote.contentMarkdown,
                       cookieHeader: _activeCookieHeader(),
@@ -830,3 +830,5 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
     );
   }
 }
+
+

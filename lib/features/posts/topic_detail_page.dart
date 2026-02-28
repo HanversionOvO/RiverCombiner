@@ -41,6 +41,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 part 'topic_detail_comment_detail_page.dart';
 part 'topic_detail_comment_detail_actions.dart';
 part 'topic_detail_comment_detail_ui.dart';
@@ -118,7 +119,7 @@ Widget _commentCardHeroShuttleBuilder(
     child: LayoutBuilder(
       builder: (context, constraints) {
         return ClipRect(
-          child: SingleChildScrollView(
+          child: RiverAutoAnimatedSingleChildScrollView(
             physics: const NeverScrollableScrollPhysics(),
             child: ConstrainedBox(
               constraints: BoxConstraints(minWidth: constraints.maxWidth),
@@ -582,7 +583,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                         ),
                         const SizedBox(height: 12),
                         Expanded(
-                          child: SingleChildScrollView(
+                          child: RiverAutoAnimatedSingleChildScrollView(
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             child: RepaintBoundary(
                               key: posterKey,
@@ -1631,7 +1632,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                             child: quotedPostFuture == null
-                                ? SingleChildScrollView(
+                                ? RiverAutoAnimatedSingleChildScrollView(
                                     child: _MarkdownContent(
                                       markdown: quote.contentMarkdown,
                                       cookieHeader: cookieHeader,
@@ -1669,7 +1670,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                       }
 
                                       if (snapshot.hasError) {
-                                        return SingleChildScrollView(
+                                        return RiverAutoAnimatedSingleChildScrollView(
                                           child: Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
@@ -1697,7 +1698,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                       final markdown =
                                           snapshot.data?.contentMarkdown ??
                                           quote.contentMarkdown;
-                                      return SingleChildScrollView(
+                                      return RiverAutoAnimatedSingleChildScrollView(
                                         child: _MarkdownContent(
                                           markdown: markdown,
                                           cookieHeader: cookieHeader,
@@ -2017,7 +2018,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                     ),
                   ],
                   Flexible(
-                    child: SingleChildScrollView(
+                    child: RiverAutoAnimatedSingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
                       child: DecoratedBox(
                         decoration: BoxDecoration(
@@ -2132,7 +2133,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
       backgroundColor: theme.colorScheme.surface,
       body: Skeletonizer(
         enabled: true,
-        child: CustomScrollView(
+        child: RiverAutoAnimatedCustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverAppBar(
@@ -2411,7 +2412,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
             RefreshIndicator(
               onRefresh: _onRefresh,
               edgeOffset: 140,
-              child: CustomScrollView(
+              child: RiverAutoAnimatedCustomScrollView(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
@@ -3647,3 +3648,6 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.showRealtimeHint != showRealtimeHint;
   }
 }
+
+
+

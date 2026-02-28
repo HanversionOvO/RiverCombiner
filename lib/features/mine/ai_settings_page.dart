@@ -5,6 +5,7 @@ import 'package:river/core/config/server_config.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class AiSettingsPage extends StatefulWidget {
   const AiSettingsPage({super.key, required this.settingsController});
 
@@ -137,7 +138,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       subtitle: '服务商与模型配置',
       icon: Icons.auto_awesome_rounded,
       heroTagPrefix: 'mine_settings_ai',
-      body: ListView(
+      body: RiverAutoAnimatedListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [
           _SettingsSection(
@@ -335,3 +336,6 @@ class _SettingsSection extends StatelessWidget {
     );
   }
 }
+
+
+

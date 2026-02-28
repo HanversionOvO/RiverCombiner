@@ -18,7 +18,7 @@ extension _CommentDetailPageUi on _CommentDetailPageState {
         ),
         body: RefreshIndicator(
           onRefresh: _onRefresh,
-          child: ListView(
+          child: RiverAutoAnimatedListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
             children: [
@@ -237,3 +237,5 @@ extension _CommentDetailPageUi on _CommentDetailPageState {
     );
   }
 }
+
+

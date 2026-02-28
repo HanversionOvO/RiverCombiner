@@ -124,7 +124,7 @@ class _CategoryEntriesSheet extends StatelessWidget {
                           ),
                         ),
                       )
-                    : ListView.separated(
+                    : RiverAutoAnimatedListView.separated(
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                         itemCount: entries.length,
@@ -329,7 +329,7 @@ class _LargestEntriesSheet extends StatelessWidget {
                           ),
                         ),
                       )
-                    : ListView.separated(
+                    : RiverAutoAnimatedListView.separated(
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                         itemCount: entries.length,
@@ -1004,3 +1004,5 @@ class _MergedEntry {
   final String category;
   final CacheEntryInfo entry;
 }
+
+

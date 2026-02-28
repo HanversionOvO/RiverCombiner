@@ -8,6 +8,7 @@ import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 typedef RiverMarkdownSubmitCallback = Future<bool> Function(String markdown);
 typedef RiverMarkdownImageUploadCallback =
     Future<String?> Function(String fileName, List<int> bytes);
@@ -327,7 +328,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
         }
 
         return SafeArea(
-          child: ListView.separated(
+          child: RiverAutoAnimatedListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
             itemCount: drafts.length,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -1382,7 +1383,7 @@ class _EditorToolbar extends StatelessWidget {
             color: colorScheme.outlineVariant.withValues(alpha: 0.25),
           ),
         ),
-        child: SingleChildScrollView(
+        child: RiverAutoAnimatedSingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
@@ -1910,7 +1911,7 @@ class _AiToolsSheet extends StatelessWidget {
                       behavior: const MaterialScrollBehavior().copyWith(
                         overscroll: false,
                       ),
-                      child: ListView.separated(
+                      child: RiverAutoAnimatedListView.separated(
                         physics: const ClampingScrollPhysics(),
                         padding: EdgeInsets.fromLTRB(
                           14,
@@ -2200,7 +2201,7 @@ class _RiverStructuredEmojiPickerState
                         children: [
                           SizedBox(
                             width: 72,
-                            child: ListView.builder(
+                            child: RiverAutoAnimatedListView.builder(
                               physics: const ClampingScrollPhysics(),
                               padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
                               itemCount: _categories.length,
@@ -2319,7 +2320,7 @@ class _RiverStructuredEmojiPickerState
                                       ),
                                     );
                                   },
-                                  child: GridView.builder(
+                                  child: RiverAutoAnimatedGridView.builder(
                                     key: ValueKey<String>(selected.name),
                                     physics: const ClampingScrollPhysics(),
                                     clipBehavior: Clip.hardEdge,
@@ -2399,3 +2400,6 @@ class _RiverStructuredEmojiPickerState
     );
   }
 }
+
+
+

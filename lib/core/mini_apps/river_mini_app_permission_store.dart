@@ -161,7 +161,9 @@ class RiverMiniAppPermissionPolicy {
 
   final Map<RiverMiniAppNativePermission, RiverMiniAppPermissionState> states;
 
-  RiverMiniAppPermissionState? stateOf(RiverMiniAppNativePermission permission) {
+  RiverMiniAppPermissionState? stateOf(
+    RiverMiniAppNativePermission permission,
+  ) {
     return states[permission];
   }
 
@@ -186,8 +188,10 @@ class RiverMiniAppPermissionPolicy {
     required bool granted,
     required bool prompted,
   }) {
-    final next = Map<RiverMiniAppNativePermission, RiverMiniAppPermissionState>
-        .from(states);
+    final next =
+        Map<RiverMiniAppNativePermission, RiverMiniAppPermissionState>.from(
+          states,
+        );
     next[permission] = RiverMiniAppPermissionState(
       granted: granted,
       prompted: prompted,
@@ -204,7 +208,8 @@ class RiverMiniAppPermissionPolicy {
   }
 
   static RiverMiniAppPermissionPolicy fromJson(Map<String, dynamic> json) {
-    final states = <RiverMiniAppNativePermission, RiverMiniAppPermissionState>{};
+    final states =
+        <RiverMiniAppNativePermission, RiverMiniAppPermissionState>{};
     for (final permission in RiverMiniAppNativePermission.values) {
       final raw = json[permission.key];
       if (raw is Map) {
@@ -277,4 +282,3 @@ class RiverMiniAppPermissionStore {
     return next;
   }
 }
-

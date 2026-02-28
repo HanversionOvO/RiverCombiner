@@ -4,6 +4,7 @@ import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class MineSettingsToolbarAction {
   const MineSettingsToolbarAction({
     this.iosSymbol,
@@ -152,7 +153,7 @@ class MineSettingsPageScaffold extends StatelessWidget {
 
     if (body is ListView && body.childrenDelegate is SliverChildListDelegate) {
       final delegate = body.childrenDelegate as SliverChildListDelegate;
-      return ListView(
+      return RiverAutoAnimatedListView(
         key: body.key,
         scrollDirection: body.scrollDirection,
         reverse: body.reverse,
@@ -175,7 +176,7 @@ class MineSettingsPageScaffold extends StatelessWidget {
     }
 
     if (body is CustomScrollView) {
-      return CustomScrollView(
+      return RiverAutoAnimatedCustomScrollView(
         key: body.key,
         scrollDirection: body.scrollDirection,
         reverse: body.reverse,
@@ -539,7 +540,6 @@ class MineSettingsAppBar extends StatelessWidget
       ),
     );
   }
-
 }
 
 bool _isIPhoneDevice(BuildContext context) {
@@ -548,3 +548,6 @@ bool _isIPhoneDevice(BuildContext context) {
   }
   return MediaQuery.sizeOf(context).shortestSide < 600;
 }
+
+
+

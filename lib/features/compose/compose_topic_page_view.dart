@@ -42,7 +42,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                     opacity: _fadeAnim,
                     child: SlideTransition(
                       position: _slideAnim,
-                      child: ListView(
+                      child: RiverAutoAnimatedListView(
                         controller: _pageScrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         physics: const BouncingScrollPhysics(),
@@ -770,3 +770,5 @@ class _ToolButton extends StatelessWidget {
     );
   }
 }
+
+

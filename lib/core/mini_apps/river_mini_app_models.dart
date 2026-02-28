@@ -142,10 +142,10 @@ class RiverMiniAppEntry {
       appCode: '${json['app_code'] ?? json['appCode'] ?? ''}'.trim(),
       submissionId: '${json['submission_id'] ?? json['submissionId'] ?? ''}'
           .trim(),
-      developerName:
-          '${json['developer_name'] ?? json['developerName'] ?? ''}'.trim(),
-      updatedAtRaw:
-          '${json['updated_at_raw'] ?? json['updatedAtRaw'] ?? ''}'.trim(),
+      developerName: '${json['developer_name'] ?? json['developerName'] ?? ''}'
+          .trim(),
+      updatedAtRaw: '${json['updated_at_raw'] ?? json['updatedAtRaw'] ?? ''}'
+          .trim(),
       reviewStatus: '${json['review_status'] ?? json['reviewStatus'] ?? ''}'
           .trim(),
       version: '${json['version'] ?? ''}'.trim(),

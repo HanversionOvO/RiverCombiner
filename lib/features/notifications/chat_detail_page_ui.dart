@@ -176,7 +176,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
       ),
       child: Skeletonizer(
         enabled: true,
-        child: ListView.builder(
+        child: RiverAutoAnimatedListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
           itemCount: 8,
@@ -276,14 +276,14 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
             ),
           ),
           child: _messages.isEmpty
-              ? ListView(
+              ? RiverAutoAnimatedListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.only(top: 220),
                   children: const [
                     Center(child: Text(_ChatDetailPageState._labelNoMessages)),
                   ],
                 )
-              : ListView.builder(
+              : RiverAutoAnimatedListView.builder(
                   controller: _scrollController,
                   reverse: true,
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -1459,3 +1459,5 @@ class _ChatComposerRichController extends TextEditingController {
     return TextSpan(style: baseStyle, children: spans);
   }
 }
+
+

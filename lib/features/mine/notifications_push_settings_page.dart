@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class NotificationsPushSettingsPage extends StatelessWidget {
   const NotificationsPushSettingsPage({
     super.key,
@@ -20,7 +21,7 @@ class NotificationsPushSettingsPage extends StatelessWidget {
       body: AnimatedBuilder(
         animation: settingsController,
         builder: (context, _) {
-          return ListView(
+          return RiverAutoAnimatedListView(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
             children: [
               _SettingsSection(
@@ -184,3 +185,6 @@ class _SwitchTile extends StatelessWidget {
     );
   }
 }
+
+
+

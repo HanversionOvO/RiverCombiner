@@ -273,7 +273,7 @@ extension _NotificationsPageView on _NotificationsPageState {
       onRefresh: onRefresh,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          return SingleChildScrollView(
+          return RiverAutoAnimatedSingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: SizedBox(
               height: constraints.maxHeight,
@@ -309,7 +309,7 @@ extension _NotificationsPageView on _NotificationsPageState {
 
     return RefreshIndicator(
       onRefresh: _refreshCurrentTab,
-      child: ListView.separated(
+      child: RiverAutoAnimatedListView.separated(
         controller: _notificationsScrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
@@ -601,7 +601,7 @@ extension _NotificationsPageView on _NotificationsPageState {
 
     return RefreshIndicator(
       onRefresh: _refreshCurrentTab,
-      child: ListView.separated(
+      child: RiverAutoAnimatedListView.separated(
         controller: controller,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
@@ -821,7 +821,7 @@ extension _NotificationsPageView on _NotificationsPageState {
     });
     return Skeletonizer(
       enabled: true,
-      child: ListView.separated(
+      child: RiverAutoAnimatedListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         itemCount: fakeItems.length,
@@ -849,7 +849,7 @@ extension _NotificationsPageView on _NotificationsPageState {
     });
     return Skeletonizer(
       enabled: true,
-      child: ListView.separated(
+      child: RiverAutoAnimatedListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         itemCount: fakeItems.length,
@@ -1074,3 +1074,5 @@ extension _NotificationsPageView on _NotificationsPageState {
     return '${time.month}月${time.day}日';
   }
 }
+
+

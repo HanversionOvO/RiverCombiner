@@ -764,8 +764,8 @@ class PlatformProfileRepository {
       }
     }
 
-    final activeUsername =
-        dependencies.accountStore.activeQingShuiHePanUsername?.trim();
+    final activeUsername = dependencies.accountStore.activeQingShuiHePanUsername
+        ?.trim();
     if (activeUsername != null && activeUsername.isNotEmpty) {
       final active = dependencies.accountStore.qingShuiHePanAuthFor(
         activeUsername,

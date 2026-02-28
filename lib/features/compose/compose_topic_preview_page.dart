@@ -4,6 +4,7 @@ import 'package:river/core/account/account_models.dart';
 import 'package:river/core/constants.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class ComposeTopicPreviewPage extends StatelessWidget {
   const ComposeTopicPreviewPage({
     super.key,
@@ -30,7 +31,7 @@ class ComposeTopicPreviewPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('发帖预览')),
-      body: ListView(
+      body: RiverAutoAnimatedListView(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
         children: [
           Text(
@@ -194,3 +195,6 @@ class _Meta extends StatelessWidget {
     );
   }
 }
+
+
+

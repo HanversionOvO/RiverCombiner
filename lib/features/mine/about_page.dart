@@ -6,6 +6,7 @@ import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class AboutPage extends StatefulWidget {
   const AboutPage({
     super.key,
@@ -113,7 +114,7 @@ class _AboutPageState extends State<AboutPage> {
               ),
             ),
           ),
-          ListView(
+          RiverAutoAnimatedListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
             children: [
               Container(
@@ -315,3 +316,6 @@ class _AboutBadge extends StatelessWidget {
     );
   }
 }
+
+
+

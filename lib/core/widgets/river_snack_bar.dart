@@ -198,7 +198,11 @@ class _RiverSnackBarCardState extends State<_RiverSnackBarCard>
                                         color: iconBg,
                                       ),
                                       alignment: Alignment.center,
-                                      child: Icon(icon, size: 16, color: accent),
+                                      child: Icon(
+                                        icon,
+                                        size: 16,
+                                        color: accent,
+                                      ),
                                     ),
                                   ),
                                 ),

@@ -9,6 +9,7 @@ import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
+import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class DeveloperSettingsPage extends StatefulWidget {
   const DeveloperSettingsPage({super.key, required this.dependencies});
 
@@ -182,7 +183,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                 top: 10,
                 bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
               ),
-              child: ListView(
+              child: RiverAutoAnimatedListView(
                 shrinkWrap: true,
                 children: [
                   Text(
@@ -298,7 +299,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
       subtitle: '调试与本地小程序安装',
       icon: Icons.developer_mode_rounded,
       heroTagPrefix: 'mine_settings_developer',
-      body: ListView(
+      body: RiverAutoAnimatedListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [
           _SettingsSection(
@@ -469,3 +470,6 @@ class _Field extends StatelessWidget {
     );
   }
 }
+
+
+
