@@ -338,16 +338,19 @@ extension _NotificationsPageView on _NotificationsPageState {
               ),
             );
           }
-          return _buildNotificationCard(theme, _notifications[index]);
+          return _buildNotificationCard(
+            theme: theme,
+            item: _notifications[index],
+          );
         },
       ),
     );
   }
 
-  Widget _buildNotificationCard(
-    ThemeData theme,
-    RiverSideNotificationItem item,
-  ) {
+  Widget _buildNotificationCard({
+    required ThemeData theme,
+    required RiverSideNotificationItem item,
+  }) {
     // Resolve visual style by notification type.
     IconData typeIcon;
     Color typeColor;
@@ -397,167 +400,180 @@ extension _NotificationsPageView on _NotificationsPageState {
       clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _openNotificationTopic(item),
-          child: Stack(
-            children: [
-              // Unread indicator strip.
-              if (isUnread)
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 4,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        bottomLeft: Radius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 澶村儚涓庤鏍?
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.5),
-                              width: 1,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 22,
-                            backgroundColor: theme.colorScheme.surfaceContainer,
-                            backgroundImage: item.avatarUrl.isNotEmpty
-                                ? NetworkImage(item.avatarUrl)
-                                : null,
-                            child: item.avatarUrl.isEmpty
-                                ? Icon(
-                                    Icons.person,
-                                    size: 22,
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  )
-                                : null,
+        child: Builder(
+          builder: (cardContext) {
+            return InkWell(
+              onTap: () => _openNotificationTopic(cardContext, item),
+              child: Stack(
+                children: [
+                  // Unread indicator strip.
+                  if (isUnread)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 4,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            bottomLeft: Radius.circular(16),
                           ),
                         ),
-                        Positioned(
-                          right: -4,
-                          bottom: -4,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
+                      ),
+                    ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 澶村儚涓庤鏍?
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
                               decoration: BoxDecoration(
-                                color: iconBgColor,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: typeColor.withValues(alpha: 0.1),
+                                  color: theme
+                                      .colorScheme
+                                      .surfaceContainerHighest
+                                      .withValues(alpha: 0.5),
                                   width: 1,
                                 ),
                               ),
-                              child: Icon(typeIcon, size: 12, color: typeColor),
+                              child: CircleAvatar(
+                                radius: 22,
+                                backgroundColor:
+                                    theme.colorScheme.surfaceContainer,
+                                backgroundImage: item.avatarUrl.isNotEmpty
+                                    ? NetworkImage(item.avatarUrl)
+                                    : null,
+                                child: item.avatarUrl.isEmpty
+                                    ? Icon(
+                                        Icons.person,
+                                        size: 22,
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                      )
+                                    : null,
+                              ),
                             ),
-                          ),
+                            Positioned(
+                              right: -4,
+                              bottom: -4,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: iconBgColor,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: typeColor.withValues(alpha: 0.1),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    typeIcon,
+                                    size: 12,
+                                    color: typeColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    // 鍐呭
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        const SizedBox(width: 16),
+                        // 鍐呭
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text.rich(
                                       TextSpan(
-                                        text: item.username,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
+                                        children: [
+                                          TextSpan(
+                                            text: item.username,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          TextSpan(
+                                            text: '  ${item.actionText}',
+                                            style: TextStyle(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      TextSpan(
-                                        text: '  ${item.actionText}',
-                                        style: TextStyle(
-                                          color: theme
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatTime(item.createdAt),
+                                    style: TextStyle(
+                                      color: theme.colorScheme.outline,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              if (item.title.isNotEmpty)
+                                Text(
+                                  item.title,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: theme.colorScheme.onSurface,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              Text(
-                                _formatTime(item.createdAt),
-                                style: TextStyle(
-                                  color: theme.colorScheme.outline,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                              if (item.excerpt.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  item.excerpt.replaceAll('\n', ' '),
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 13,
+                                    height: 1.4,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
+                              ],
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          if (item.title.isNotEmpty)
-                            Text(
-                              item.title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          if (item.excerpt.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              item.excerpt.replaceAll('\n', ' '),
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -811,7 +827,7 @@ extension _NotificationsPageView on _NotificationsPageState {
         itemCount: fakeItems.length,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          return _buildNotificationCard(theme, fakeItems[index]);
+          return _buildNotificationCard(theme: theme, item: fakeItems[index]);
         },
       ),
     );

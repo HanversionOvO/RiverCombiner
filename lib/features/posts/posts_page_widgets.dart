@@ -38,6 +38,7 @@ class _TopicListTab extends StatefulWidget {
     required this.showInlineRealtimeHint,
     this.onConsumeRealtimeUpdate,
     this.onDismissRealtimeUpdate,
+    this.onTakeStartupPreloadedTopics,
     this.onTopicsSnapshotChanged,
     this.onScrollOffsetChanged,
   });
@@ -51,6 +52,8 @@ class _TopicListTab extends StatefulWidget {
   final bool showInlineRealtimeHint;
   final Future<void> Function()? onConsumeRealtimeUpdate;
   final VoidCallback? onDismissRealtimeUpdate;
+  final Future<List<RiverSideTopicSummary>?> Function()?
+  onTakeStartupPreloadedTopics;
   final ValueChanged<List<RiverSideTopicSummary>>? onTopicsSnapshotChanged;
   final ValueChanged<double>? onScrollOffsetChanged;
 
@@ -72,6 +75,7 @@ class _TopicListTabState extends State<_TopicListTab>
   int _page = 0;
   int _requestSerial = 0;
   int? _realtimeHintAnchorIndex;
+  bool _startupPreloadChecked = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -226,6 +230,27 @@ class _TopicListTabState extends State<_TopicListTab>
 
   Future<void> _loadFirstPage() async {
     final serial = ++_requestSerial;
+    if (!_startupPreloadChecked) {
+      _startupPreloadChecked = true;
+      final startupTopics = await widget.onTakeStartupPreloadedTopics?.call();
+      if (startupTopics != null && startupTopics.isNotEmpty) {
+        if (!mounted || serial != _requestSerial) {
+          return;
+        }
+        setState(() {
+          _topics = List<RiverSideTopicSummary>.from(startupTopics);
+          _topicItemKeys.clear();
+          _isLoading = false;
+          _hasMore = _topics.isNotEmpty;
+          _page = 0;
+          _error = null;
+        });
+        widget.onTopicsSnapshotChanged?.call(
+          List<RiverSideTopicSummary>.unmodifiable(_topics),
+        );
+        return;
+      }
+    }
     setState(() {
       _isLoading = true;
       _error = null;

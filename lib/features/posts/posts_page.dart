@@ -3147,6 +3147,22 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     return _loadQingShuiHePanCategories(forceRefresh: forceRefresh);
   }
 
+  Future<List<RiverSideTopicSummary>?> _takeStartupPreloadedTopicsForFeed(
+    RiverSideTopicFeed feed,
+  ) {
+    if (_selectedBoardId != null) {
+      return Future<List<RiverSideTopicSummary>?>.value(null);
+    }
+    if (_forumProvider == _PostsForumProvider.riverSide) {
+      return widget.dependencies.postsStartupPreloadStore
+          .takeRiverTopicsFirstPage(feed: feed, waitForRunningTask: true);
+    }
+    return widget.dependencies.postsStartupPreloadStore.takeQingTopicsFirstPage(
+      feed: feed,
+      waitForRunningTask: true,
+    );
+  }
+
   Future<List<RiverSideCategoryOption>> _loadRiverSideCategories({
     required bool forceRefresh,
   }) async {
@@ -3156,12 +3172,25 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       final cookie = _activeCookieHeader();
       final activeUsername =
           widget.dependencies.accountStore.activeRiverSideUsername;
-      var categories = await RiverSideCategoryStore.instance.load(
-        apiClient: widget.dependencies.accountStore.riverSideApiClient,
-        username: activeUsername,
-        cookieHeader: cookie,
-        forceRefresh: forceRefresh,
-      );
+      List<RiverSideCategoryOption> categories =
+          const <RiverSideCategoryOption>[];
+      if (!forceRefresh) {
+        final startupCategories = await widget
+            .dependencies
+            .postsStartupPreloadStore
+            .takeRiverCategories(waitForRunningTask: true);
+        if (startupCategories != null && startupCategories.isNotEmpty) {
+          categories = startupCategories;
+        }
+      }
+      if (categories.isEmpty) {
+        categories = await RiverSideCategoryStore.instance.load(
+          apiClient: widget.dependencies.accountStore.riverSideApiClient,
+          username: activeUsername,
+          cookieHeader: cookie,
+          forceRefresh: forceRefresh,
+        );
+      }
       if (!forceRefresh &&
           cookie != null &&
           cookie.trim().isNotEmpty &&
@@ -3247,6 +3276,42 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
           });
         }
         return _qingCategories;
+      }
+
+      if (!forceRefresh) {
+        final startupCategories = await widget
+            .dependencies
+            .postsStartupPreloadStore
+            .takeQingCategories(waitForRunningTask: true);
+        if (startupCategories != null && startupCategories.isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _qingCategories = List<RiverSideCategoryOption>.from(
+                startupCategories,
+              );
+              if (_forumProvider == _PostsForumProvider.qingShuiHePan) {
+                _categories = List<RiverSideCategoryOption>.from(
+                  startupCategories,
+                );
+              }
+              if (_selectedBoardId != null) {
+                final selected = findRiverSideCategoryById(
+                  id: _selectedBoardId,
+                  categories: startupCategories,
+                );
+                _selectedBoardName = selected == null
+                    ? null
+                    : displayRiverSideCategoryName(
+                        category: selected,
+                        allCategories: startupCategories,
+                      );
+              }
+              _qingSelectedBoardId = _selectedBoardId;
+              _qingSelectedBoardName = _selectedBoardName;
+            });
+          }
+          return startupCategories;
+        }
       }
 
       final endpoint =
@@ -5153,6 +5218,8 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                     _consumeRealtimeTopicUpdate,
                                 onDismissRealtimeUpdate:
                                     _dismissRealtimeTopicUpdateHint,
+                                onTakeStartupPreloadedTopics: () =>
+                                    _takeStartupPreloadedTopicsForFeed(feed),
                                 onTopicsSnapshotChanged: (topics) =>
                                     _onTabTopicsSnapshotChanged(index, topics),
                                 onScrollOffsetChanged: (offset) {

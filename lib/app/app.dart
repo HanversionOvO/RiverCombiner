@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -97,6 +96,9 @@ class _RiverAppState extends State<RiverApp> {
       setState(() {});
     }
     await _dependencies.accountStore.initialize();
+    _dependencies.postsStartupPreloadStore.start(
+      accountStore: _dependencies.accountStore,
+    );
     await _dependencies.updateChecker.initialize();
     final elapsed = DateTime.now().difference(_launchStartedAt);
     if (elapsed < _minLaunchDisplay) {
@@ -861,33 +863,24 @@ class _StartupTunnelExitTransition extends StatelessWidget {
     return AnimatedBuilder(
       animation: animation,
       builder: (context, _) {
+        // 在 AnimatedSwitcher 的退出阶段，animation.value 从 1 变到 0
         final t = (1 - animation.value).clamp(0.0, 1.0);
-        final curved = Curves.easeInOutCubicEmphasized.transform(t);
-        final fade = Curves.easeIn.transform((t * 1.08).clamp(0.0, 1.0));
-        final scale = 1 + (3.2 * curved);
-        final opacity = (1 - fade).clamp(0.0, 1.0);
-        final veilAlpha = (0.04 + curved * 0.22).clamp(0.0, 0.28);
+
+        // 使用三次曲线让动画更加柔和自然
+        final curved = Curves.easeInOutCubic.transform(t);
+
+        // 取消了原来夸张的 3 倍放大，改为仅放大 10% (1.0 -> 1.1)
+        // 营造一种启动页轻轻“向前推开”并消散的灵动感
+        final scale = 1.0 + (0.1 * curved);
+
+        // 平滑淡出
+        final opacity = (1 - t).clamp(0.0, 1.0);
+
         return Opacity(
           opacity: opacity,
           child: Transform.scale(
             scale: scale,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                child,
-                IgnorePointer(
-                  child: ColoredBox(
-                    color: Colors.black.withValues(alpha: veilAlpha),
-                  ),
-                ),
-                IgnorePointer(
-                  child: _TunnelRingBurst(
-                    progress: curved,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
+            child: child, // 移除了之前的深色遮罩(veilAlpha)和光环爆发动画
           ),
         );
       },
@@ -910,77 +903,22 @@ class _HomeTunnelEnterTransition extends StatelessWidget {
       animation: animation,
       builder: (context, _) {
         final t = animation.value.clamp(0.0, 1.0);
-        final curved = Curves.easeOutQuart.transform(t);
-        final reveal = Curves.easeOutCubic.transform(
-          ((t - 0.22) / 0.78).clamp(0.0, 1.0),
-        );
-        final opacity = Curves.easeOut.transform(
-          ((t - 0.18) / 0.82).clamp(0.0, 1.0),
-        );
-        final blur = (1 - reveal) * 9.5;
+        // 进入曲线
+        final curved = Curves.easeOutCubic.transform(t);
+
+        // 微微从下方 20 像素处浮现
+        final dy = (1 - curved) * 20.0;
+        // 柔和渐显
+        final opacity = Curves.easeOut.transform(t);
+
+        // 移除了旧版本中的高斯模糊(Blur)和缩放，采用纯粹的透明度+位移
+        // 这样不仅性能更好，也更符合扁平极简的调性
         return Opacity(
           opacity: opacity,
-          child: Transform.translate(
-            offset: Offset(0, (1 - curved) * 26),
-            child: Transform.scale(
-              scale: 0.9 + 0.1 * curved,
-              child: ImageFiltered(
-                imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                child: child,
-              ),
-            ),
-          ),
+          child: Transform.translate(offset: Offset(0, dy), child: child),
         );
       },
     );
-  }
-}
-
-class _TunnelRingBurst extends StatelessWidget {
-  const _TunnelRingBurst({required this.progress, required this.color});
-
-  final double progress;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _TunnelRingBurstPainter(progress: progress, color: color),
-    );
-  }
-}
-
-class _TunnelRingBurstPainter extends CustomPainter {
-  const _TunnelRingBurstPainter({required this.progress, required this.color});
-
-  final double progress;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final maxRadius =
-        math.sqrt(size.width * size.width + size.height * size.height) * 0.58;
-    final ringCount = 10;
-    for (var i = 0; i < ringCount; i++) {
-      final offset = i / ringCount;
-      final local = (progress - offset * 0.08).clamp(0.0, 1.0);
-      if (local <= 0.001) {
-        continue;
-      }
-      final radius = maxRadius * local;
-      final opacity = (1 - local).clamp(0.0, 1.0) * 0.26;
-      final paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8 + (1 - local) * 1.4
-        ..color = color.withValues(alpha: opacity);
-      canvas.drawCircle(center, radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _TunnelRingBurstPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }
 
@@ -995,29 +933,26 @@ class _RiverStartupScreen extends StatefulWidget {
 
 class _RiverStartupScreenState extends State<_RiverStartupScreen>
     with TickerProviderStateMixin {
-  late final AnimationController _pulseController = AnimationController(
+  late final AnimationController _rippleController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1800),
-  )..repeat(reverse: true);
-  late final AnimationController _orbitController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 9800),
+    duration: const Duration(milliseconds: 2400),
   )..repeat();
-  late final AnimationController _dotsController = AnimationController(
+
+  late final AnimationController _floatController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 980),
-  )..repeat();
-  late final AnimationController _logoTiltController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2600),
+    duration: const Duration(milliseconds: 3000),
   )..repeat(reverse: true);
+
+  late final AnimationController _loadingController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
 
   @override
   void dispose() {
-    _pulseController.dispose();
-    _orbitController.dispose();
-    _dotsController.dispose();
-    _logoTiltController.dispose();
+    _rippleController.dispose();
+    _floatController.dispose();
+    _loadingController.dispose();
     super.dispose();
   }
 
@@ -1025,27 +960,23 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
     final isDark = theme.brightness == Brightness.dark;
     if (isDark) {
       return _StartupPalette(
-        moodLabel: '冷调',
-        bgTop: const Color(0xFF061426),
-        bgMid: const Color(0xFF081A2F),
-        bgBottom: const Color(0xFF0A1E35),
-        accentA: const Color(0xFF3BA4FF),
-        accentB: const Color(0xFF6BD4FF),
-        accentC: const Color(0xFF728DFF),
-        textColor: Colors.white.withValues(alpha: 0.96),
-        subTextColor: Colors.white.withValues(alpha: 0.72),
+        bgTop: const Color(0xFF0F1712),
+        bgBottom: const Color(0xFF1A2A1E),
+        accentPrimary: const Color(0xFF66BB6A),
+        accentSecondary: const Color(0xFF81C784).withValues(alpha: 0.15),
+        textColor: const Color(0xFFE8F0EA),
+        subTextColor: const Color(0xFF9EB0A5),
+        logoBg: const Color(0xFF25382A),
       );
     }
     return _StartupPalette(
-      moodLabel: '暖调',
-      bgTop: const Color(0xFFFFF4E9),
-      bgMid: const Color(0xFFFFF8F2),
-      bgBottom: const Color(0xFFFFFFFF),
-      accentA: const Color(0xFFFF8A4B),
-      accentB: const Color(0xFFFFB26B),
-      accentC: const Color(0xFFEF6B8D),
-      textColor: const Color(0xFF2A1D16),
-      subTextColor: const Color(0xFF7D6355),
+      bgTop: const Color(0xFFF4F9F5),
+      bgBottom: const Color(0xFFDFF0E3),
+      accentPrimary: const Color(0xFF81C784),
+      accentSecondary: const Color(0xFFC8E6C9).withValues(alpha: 0.4),
+      textColor: const Color(0xFF2D3B31),
+      subTextColor: const Color(0xFF758A7A),
+      logoBg: const Color(0xFFFFFFFF),
     );
   }
 
@@ -1069,138 +1000,77 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
     final theme = Theme.of(context);
     final palette = _resolvePalette(theme);
     final startupIconAsset = _iconAssetForPreset(widget.iconPreset);
+
     return Scaffold(
+      backgroundColor: palette.bgTop,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [palette.bgTop, palette.bgMid, palette.bgBottom],
+            colors: [palette.bgTop, palette.bgBottom],
           ),
         ),
         child: Stack(
           children: [
-            AnimatedBuilder(
-              animation: _orbitController,
-              builder: (context, _) {
-                final t = _orbitController.value * math.pi * 2;
-                return Stack(
-                  children: [
-                    Positioned(
-                      left: 18 + math.sin(t * 1.00) * 12,
-                      top: 88 + math.cos(t * 0.66) * 22,
-                      child: _LaunchGlowOrb(
-                        size: 160,
-                        color: palette.accentA.withValues(alpha: 0.15),
-                      ),
-                    ),
-                    Positioned(
-                      right: 12 + math.cos(t * 0.93) * 14,
-                      top: 220 + math.sin(t * 0.72) * 18,
-                      child: _LaunchGlowOrb(
-                        size: 184,
-                        color: palette.accentB.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    Positioned(
-                      left: 44 + math.sin(t * 0.78) * 10,
-                      bottom: 140 + math.cos(t * 0.61) * 16,
-                      child: _LaunchGlowOrb(
-                        size: 116,
-                        color: palette.accentC.withValues(alpha: 0.10),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(
-                    width: 236,
-                    height: 236,
+                    width: 240,
+                    height: 240,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        ScaleTransition(
-                          scale: Tween<double>(begin: 0.92, end: 1.06).animate(
-                            CurvedAnimation(
-                              parent: _pulseController,
-                              curve: Curves.easeInOutCubic,
-                            ),
-                          ),
+                        // 扁平化水波纹动效
+                        AnimatedBuilder(
+                          animation: _rippleController,
+                          builder: (context, child) {
+                            return CustomPaint(
+                              size: const Size(240, 240),
+                              painter: _FlatRipplePainter(
+                                progress: _rippleController.value,
+                                color: palette.accentPrimary,
+                              ),
+                            );
+                          },
+                        ),
+                        // 呼吸悬浮 Logo
+                        AnimatedBuilder(
+                          animation: _floatController,
+                          builder: (context, child) {
+                            final dy =
+                                math.sin(_floatController.value * math.pi) * 6;
+                            return Transform.translate(
+                              offset: Offset(0, dy),
+                              child: child,
+                            );
+                          },
                           child: Container(
-                            width: 212,
-                            height: 212,
+                            width: 108,
+                            height: 108,
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
+                              color: palette.logoBg,
+                              borderRadius: BorderRadius.circular(32),
                               border: Border.all(
-                                color: palette.accentA.withValues(alpha: 0.22),
-                                width: 1.5,
+                                color: palette.accentSecondary,
+                                width: 2,
                               ),
-                            ),
-                          ),
-                        ),
-                        RotationTransition(
-                          turns: Tween<double>(begin: 0, end: 1).animate(
-                            CurvedAnimation(
-                              parent: _orbitController,
-                              curve: Curves.linear,
-                            ),
-                          ),
-                          child: CustomPaint(
-                            size: const Size(186, 186),
-                            painter: _OrbitDotsPainter(
-                              color: palette.accentB.withValues(alpha: 0.9),
-                            ),
-                          ),
-                        ),
-                        RotationTransition(
-                          turns: Tween<double>(begin: -0.012, end: 0.012)
-                              .animate(
-                                CurvedAnimation(
-                                  parent: _logoTiltController,
-                                  curve: Curves.easeInOut,
-                                ),
-                              ),
-                          child: Container(
-                            width: 122,
-                            height: 122,
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(28),
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.96),
-                                  palette.accentB.withValues(alpha: 0.55),
-                                ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: palette.accentA.withValues(
-                                    alpha: 0.28,
-                                  ),
-                                  blurRadius: 30,
-                                  offset: const Offset(0, 12),
-                                ),
-                              ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(22),
+                              borderRadius: BorderRadius.circular(28),
                               child: Image.asset(
                                 startupIconAsset,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return ColoredBox(
-                                    color: palette.accentA,
+                                    color: palette.accentPrimary,
                                     child: const Icon(
                                       Icons.waves_rounded,
                                       color: Colors.white,
-                                      size: 46,
+                                      size: 42,
                                     ),
                                   );
                                 },
@@ -1211,27 +1081,28 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
                   Text(
                     '聚河畔',
                     style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       color: palette.textColor,
-                      letterSpacing: 0.6,
+                      letterSpacing: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     '连接 RiverSide 与 清水河畔',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: palette.subTextColor,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _StartupLoadingDots(
-                    animation: _dotsController,
-                    color: palette.accentA,
+                  const SizedBox(height: 32),
+                  _FluidLoadingIndicator(
+                    animation: _loadingController,
+                    color: palette.accentPrimary,
                   ),
                 ],
               ),
@@ -1239,13 +1110,14 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
             Positioned(
               left: 0,
               right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom + 24,
+              bottom: MediaQuery.paddingOf(context).bottom + 32,
               child: Text(
-                '即将进入河畔时空隧道',
+                '即将进入河畔',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: palette.subTextColor,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: palette.subTextColor.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w600,
+                  letterSpacing: 1.5,
                 ),
               ),
             ),
@@ -1258,77 +1130,59 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
 
 class _StartupPalette {
   const _StartupPalette({
-    required this.moodLabel,
     required this.bgTop,
-    required this.bgMid,
     required this.bgBottom,
-    required this.accentA,
-    required this.accentB,
-    required this.accentC,
+    required this.accentPrimary,
+    required this.accentSecondary,
     required this.textColor,
     required this.subTextColor,
+    required this.logoBg,
   });
 
-  final String moodLabel;
   final Color bgTop;
-  final Color bgMid;
   final Color bgBottom;
-  final Color accentA;
-  final Color accentB;
-  final Color accentC;
+  final Color accentPrimary;
+  final Color accentSecondary;
   final Color textColor;
   final Color subTextColor;
+  final Color logoBg;
 }
 
-class _LaunchGlowOrb extends StatelessWidget {
-  const _LaunchGlowOrb({required this.size, required this.color});
+class _FlatRipplePainter extends CustomPainter {
+  const _FlatRipplePainter({required this.progress, required this.color});
 
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
-        ),
-      ),
-    );
-  }
-}
-
-class _OrbitDotsPainter extends CustomPainter {
-  const _OrbitDotsPainter({required this.color});
-
+  final double progress;
   final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width, size.height) / 2 - 5;
-    final dotPaint = Paint()..color = color;
-    for (var i = 0; i < 18; i++) {
-      final t = i / 18 * math.pi * 2;
-      final x = center.dx + math.cos(t) * radius;
-      final y = center.dy + math.sin(t) * radius;
-      final dotRadius = i % 3 == 0 ? 2.2 : 1.6;
-      dotPaint.color = color.withValues(alpha: i % 2 == 0 ? 0.85 : 0.45);
-      canvas.drawCircle(Offset(x, y), dotRadius, dotPaint);
+    final maxRadius = size.width / 2;
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 3; i++) {
+      // 计算错开的进度，让波纹有层次感
+      double currentProgress = (progress + (i * 0.33)) % 1.0;
+      // 使用曲线让动画显得更有弹性 (EaseOut)
+      double curvedProgress = Curves.easeOutCubic.transform(currentProgress);
+
+      double radius = 40 + (maxRadius - 40) * curvedProgress;
+      // 随着范围扩大，透明度逐渐降为 0
+      double opacity = (1.0 - curvedProgress).clamp(0.0, 1.0) * 0.15;
+
+      paint.color = color.withValues(alpha: opacity);
+      canvas.drawCircle(center, radius, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _OrbitDotsPainter oldDelegate) {
-    return oldDelegate.color != color;
+  bool shouldRepaint(covariant _FlatRipplePainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }
 
-class _StartupLoadingDots extends StatelessWidget {
-  const _StartupLoadingDots({required this.animation, required this.color});
+class _FluidLoadingIndicator extends StatelessWidget {
+  const _FluidLoadingIndicator({required this.animation, required this.color});
 
   final Animation<double> animation;
   final Color color;
@@ -1341,26 +1195,22 @@ class _StartupLoadingDots extends StatelessWidget {
         final progress = animation.value;
         return Row(
           mainAxisSize: MainAxisSize.min,
-          children: List<Widget>.generate(4, (index) {
-            final offset = (progress - index * 0.18).abs();
-            final normalized = (1 - offset.clamp(0.0, 1.0)).clamp(0.0, 1.0);
-            final scale = 0.70 + normalized * 0.46;
-            final opacity = 0.30 + normalized * 0.70;
+          children: List<Widget>.generate(3, (index) {
+            // 为每个胶囊计算相位差
+            final offset = (progress - index * 0.2).abs();
+            final normalized = (1 - (offset * 2).clamp(0.0, 1.0));
+            // 胶囊高度变化
+            final height = 6.0 + normalized * 8.0;
+            // 胶囊透明度变化
+            final opacity = 0.4 + normalized * 0.6;
+
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              child: Opacity(
-                opacity: opacity,
-                child: Transform.scale(
-                  scale: scale,
-                  child: Container(
-                    width: 8.6,
-                    height: 8.6,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
+              width: 6,
+              height: height,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: opacity),
+                borderRadius: BorderRadius.circular(3),
               ),
             );
           }),

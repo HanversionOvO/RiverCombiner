@@ -280,7 +280,10 @@ extension _NotificationsPageActions on _NotificationsPageState {
     }
   }
 
-  Future<void> _openNotificationTopic(RiverSideNotificationItem item) async {
+  Future<void> _openNotificationTopic(
+    BuildContext sourceContext,
+    RiverSideNotificationItem item,
+  ) async {
     if (item.topicId == null || item.topicId! <= 0) {
       return;
     }
@@ -320,11 +323,27 @@ extension _NotificationsPageActions on _NotificationsPageState {
       }
     }
 
+    final title = item.title.trim().isEmpty ? '帖子详情' : item.title.trim();
+    final authorName = item.username.trim().isEmpty ? '未知用户' : item.username;
+    final avatarHeroTag = 'notification_topic_avatar_nohero_${item.id}';
+    final nameHeroTag = 'notification_topic_name_nohero_${item.id}';
+    final titleHeroTag = 'notification_topic_title_nohero_${item.id}';
+
     await Navigator.of(context).push(
-      riverPageRoute<void>(
+      DraggableRoute<void>(
+        source: sourceContext,
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: item.topicId!,
+          preview: TopicDetailPreview(
+            title: title,
+            authorDisplayName: authorName,
+            authorUsername: authorName,
+            authorAvatarUrl: item.avatarUrl,
+            titleHeroTag: titleHeroTag,
+            authorAvatarHeroTag: avatarHeroTag,
+            authorNameHeroTag: nameHeroTag,
+          ),
         ),
       ),
     );
