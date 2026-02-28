@@ -6,8 +6,6 @@ import 'package:river/core/storage/app_cache_service.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 part 'storage_settings_widgets.dart';
 
 class StorageSettingsPage extends StatefulWidget {
@@ -395,7 +393,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
       heroTagPrefix: 'mine_settings_storage',
       body: RefreshIndicator(
         onRefresh: _refreshAll,
-        child: RiverAutoAnimatedListView(
+        child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
           children: [
             _SettingsSection(
@@ -447,7 +445,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 132,
-                    child: RiverAutoAnimatedListView.separated(
+                    child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: smartCategories.length,
                       separatorBuilder: (_, _) => const SizedBox(width: 10),
@@ -649,7 +647,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
             _SettingsSection(
               title: '管理工具',
               subtitle: '多维清理与分析工具',
-              child: RiverAutoAnimatedGridView.count(
+              child: GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),

@@ -8,7 +8,6 @@ import 'package:river/core/update/app_update_checker.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class ServerSettingsPage extends StatefulWidget {
   const ServerSettingsPage({
     super.key,
@@ -267,7 +266,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
       subtitle: '主域名与更新源',
       icon: Icons.dns_outlined,
       heroTagPrefix: 'mine_settings_server',
-      body: RiverAutoAnimatedListView(
+      body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [
           _SettingsSection(
@@ -410,7 +409,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
           const SizedBox(height: 14),
           _SettingsSection(
             title: '小程序目录链接',
-            subtitle: '支持 legacy 清单与平台 catalog 接口（推送上报会自动复用其主地址）',
+            subtitle: '支持 legacy 清单与平台 catalog 接口',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -563,6 +562,3 @@ class _SettingsSection extends StatelessWidget {
     );
   }
 }
-
-
-

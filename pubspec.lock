@@ -33,14 +33,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.13.0"
-  auto_animated:
-    dependency: "direct main"
-    description:
-      name: auto_animated
-      sha256: f62311033d043d2709c25444551debdfd08649138c2923b0298d776792291149
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "3.2.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -564,14 +556,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.20.2"
-  jpush_flutter:
-    dependency: "direct main"
-    description:
-      name: jpush_flutter
-      sha256: "42e9315293ca0305a9f5bdda739aec0e5fdcf2081a648386fb012f5a5ddff3a2"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "3.4.3"
   js:
     dependency: transitive
     description:

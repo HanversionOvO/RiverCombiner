@@ -489,7 +489,7 @@ class _TitleBadgePickerSheet extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: RiverAutoAnimatedListView.separated(
+              child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
                 itemCount: options.length + 1,
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -838,7 +838,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                     ? Skeletonizer(
                         key: const ValueKey<String>('loading'),
                         enabled: true,
-                        child: RiverAutoAnimatedListView.separated(
+                        child: ListView.separated(
                           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                           itemCount: 5,
                           separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -912,7 +912,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                           ),
                         ),
                       )
-                    : RiverAutoAnimatedListView.separated(
+                    : ListView.separated(
                         key: const ValueKey<String>('list'),
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                         itemCount: _items.length,

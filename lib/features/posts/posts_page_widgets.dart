@@ -699,7 +699,7 @@ class _TopicListTabState extends State<_TopicListTab>
         RefreshIndicator(
           onRefresh: _handleRefresh,
           notificationPredicate: (notification) => notification.depth == 0,
-          child: RiverAutoAnimatedListView.separated(
+          child: ListView.separated(
             key: _listViewKey,
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 92),
@@ -812,7 +812,7 @@ class _TopicListTabState extends State<_TopicListTab>
     });
     return Skeletonizer(
       enabled: true,
-      child: RiverAutoAnimatedListView.separated(
+      child: ListView.separated(
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 92),
         itemCount: skeletonTopics.length,

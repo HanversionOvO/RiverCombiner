@@ -3,8 +3,6 @@ import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/features/login/qingshuihepan_login_service.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 Future<UserAccount?> showQingShuiHePanCredentialLoginSheet({
   required BuildContext context,
   required AppDependencies dependencies,
@@ -214,7 +212,7 @@ class _QingShuiHePanCredentialLoginSheetBodyState
             ),
           ),
           Flexible(
-            child: RiverAutoAnimatedSingleChildScrollView(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
               child: Form(
                 key: _formKey,

@@ -184,7 +184,7 @@ class _ActivityTabSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: RiverAutoAnimatedListView.separated(
+      child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: 6,
         separatorBuilder: (_, index) => const SizedBox(height: 12),
@@ -203,7 +203,7 @@ class _BadgesTabSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: RiverAutoAnimatedListView.separated(
+      child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: 8,
         separatorBuilder: (_, index) => const SizedBox(height: 12),
@@ -222,7 +222,7 @@ class _UsersTabSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: RiverAutoAnimatedListView.separated(
+      child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         itemCount: 10,
         separatorBuilder: (_, index) => const SizedBox(height: 8),

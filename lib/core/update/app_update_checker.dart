@@ -6,8 +6,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:river/core/constants.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class AppUpdateInfo {
   const AppUpdateInfo({
     required this.version,
@@ -568,7 +566,7 @@ class _RiverUpdatePromptCard extends StatelessWidget {
           ),
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 360),
-            child: RiverAutoAnimatedSingleChildScrollView(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

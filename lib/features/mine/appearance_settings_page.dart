@@ -5,8 +5,6 @@ import 'package:river/core/platform/app_icon_switcher.dart';
 import 'package:river/core/platform/system_fonts_bridge.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 part 'appearance_settings_widgets.dart';
 
 class AppearanceSettingsPage extends StatefulWidget {
@@ -338,7 +336,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
           );
           final fontName = settings.fontFamilyName;
           final fontCount = _effectiveFonts(fontName).length + 1;
-          return RiverAutoAnimatedListView(
+          return ListView(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             children: [
               _SettingsSection(
@@ -563,7 +561,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
               _SettingsSection(
                 title: '应用图标',
                 subtitle: '左右滑动查看更多图标',
-                child: RiverAutoAnimatedSingleChildScrollView(
+                child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [

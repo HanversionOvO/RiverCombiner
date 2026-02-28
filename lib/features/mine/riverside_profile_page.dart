@@ -14,8 +14,6 @@ import 'package:river/features/notifications/chat_detail_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 part 'riverside_profile_page_widgets.dart';
 
 class RiverSideProfilePage extends StatefulWidget {
@@ -1166,7 +1164,7 @@ class _ActivityTabState extends State<_ActivityTab>
                         }
                         return false;
                       },
-                      child: RiverAutoAnimatedListView.separated(
+                      child: ListView.separated(
                         key: PageStorageKey<String>(
                           'profile_activity_list_${widget.kind.name}',
                         ),
@@ -1426,7 +1424,7 @@ class _BadgesTabState extends State<_BadgesTab>
                   key: ValueKey<String>('badges_list_${items.length}'),
                   child: RefreshIndicator(
                     onRefresh: _handleRefresh,
-                    child: RiverAutoAnimatedListView.separated(
+                    child: ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: items.length,
                       separatorBuilder: (_, index) =>
@@ -1538,7 +1536,7 @@ class _UsersTabState extends State<_UsersTab>
                   key: ValueKey<String>('users_list_${items.length}'),
                   child: RefreshIndicator(
                     onRefresh: _handleRefresh,
-                    child: RiverAutoAnimatedListView.builder(
+                    child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       itemCount: items.length,
                       itemBuilder: (context, index) {

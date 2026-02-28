@@ -27,6 +27,7 @@ import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_message_bus_models.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/realtime/riverside_message_bus_poller.dart';
+import 'package:river/core/widgets/river_ai_action_button.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
@@ -36,8 +37,6 @@ import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 // -----------------------------------------------------------------------------
 
 part 'posts_page_widgets.dart';
@@ -428,100 +427,12 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
     );
   }
 
-  Widget _buildAiActionButton(ThemeData theme) {
-    return AnimatedBuilder(
-      animation: _fxController,
-      builder: (context, _) {
-        final phase = _fxController.value * math.pi * 2;
-        final breathe = 0.92 + 0.08 * (math.sin(phase) * 0.5 + 0.5);
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: widget.aiSummarizing ? null : widget.onAiSummaryTap,
-            borderRadius: BorderRadius.circular(999),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: SizedBox(
-                height: 36,
-                child: Stack(
-                  children: [
-                    CustomPaint(
-                      painter: _AiSpectrumPainter(
-                        phase: phase,
-                        opacity: widget.aiSummarizing ? 0.78 : 1,
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          color: theme.brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.14)
-                              : Colors.white.withValues(alpha: 0.3),
-                          border: Border.all(
-                            color: theme.brightness == Brightness.dark
-                                ? Colors.white.withValues(alpha: 0.52)
-                                : Colors.white.withValues(alpha: 0.62),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Transform.scale(
-                        scale: breathe,
-                        child: widget.aiSummarizing
-                            ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 12,
-                                    height: 12,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 1.8,
-                                      color: theme.colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'AI思考中',
-                                    style: theme.textTheme.labelMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: theme.colorScheme.onSurface,
-                                        ),
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.auto_awesome_rounded,
-                                    size: 15,
-                                    color: theme.colorScheme.onSurface,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'AI一下',
-                                    style: theme.textTheme.labelMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                          color: theme.colorScheme.onSurface,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+  Widget _buildAiActionButton() {
+    return RiverAiActionButton(
+      onPressed: widget.onAiSummaryTap,
+      loading: widget.aiSummarizing,
+      idleText: 'AI一下',
+      loadingText: 'AI思考中...',
     );
   }
 
@@ -665,10 +576,7 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
                                   ),
                                 ),
                                 const Spacer(),
-                                SizedBox(
-                                  width: 104,
-                                  child: _buildAiActionButton(theme),
-                                ),
+                                _buildAiActionButton(),
                                 const SizedBox(width: 6),
                                 IconButton(
                                   tooltip: '搜索小程序',
@@ -686,7 +594,7 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
                             ),
                           ),
                           Expanded(
-                            child: RiverAutoAnimatedListView(
+                            child: ListView(
                               padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                               children: [
                                 _buildWeatherCard(theme),
@@ -1144,66 +1052,6 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
         ),
       ],
     );
-  }
-}
-
-class _AiSpectrumPainter extends CustomPainter {
-  const _AiSpectrumPainter({required this.phase, required this.opacity});
-
-  final double phase;
-  final double opacity;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final base = Paint()
-      ..color = const Color(0xFFFDF9FF).withValues(alpha: 0.92);
-    canvas.drawRect(rect, base);
-
-    final dx1 = math.sin(phase) * size.width * 0.22;
-    final dx2 = math.cos(phase * 1.14) * size.width * 0.22;
-    final dx3 = math.sin(phase * 0.88 + 1.5) * size.width * 0.22;
-    const c1 = Color(0xFFFFCEDA);
-    const c2 = Color(0xFFCFF9DA);
-    const c3 = Color(0xFFCCE0FF);
-
-    final first = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          c1.withValues(alpha: 0.7 * opacity),
-          c1.withValues(alpha: 0),
-        ],
-      ).createShader(rect.shift(Offset(dx1, 0)));
-    canvas.drawRect(rect, first);
-
-    final second = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.topRight,
-        colors: [
-          c2.withValues(alpha: 0.68 * opacity),
-          c2.withValues(alpha: 0),
-        ],
-      ).createShader(rect.shift(Offset(dx2, 0)));
-    canvas.drawRect(rect, second);
-
-    final third = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.centerRight,
-        end: Alignment.topLeft,
-        colors: [
-          c3.withValues(alpha: 0.7 * opacity),
-          c3.withValues(alpha: 0),
-        ],
-      ).createShader(rect.shift(Offset(dx3, 0)));
-    canvas.drawRect(rect, third);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AiSpectrumPainter oldDelegate) {
-    return oldDelegate.phase != phase || oldDelegate.opacity != opacity;
   }
 }
 
@@ -2939,7 +2787,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                         ),
                       ),
                     Expanded(
-                      child: RiverAutoAnimatedListView(
+                      child: ListView(
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
                         children: [
@@ -3961,7 +3809,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                 )
                               else
                                 Expanded(
-                                  child: RiverAutoAnimatedListView.separated(
+                                  child: ListView.separated(
                                     itemCount: recommendedApps.length,
                                     separatorBuilder: (context, index) =>
                                         const SizedBox(height: 8),
@@ -4012,7 +3860,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                               ),
                             ),
                           )
-                        : RiverAutoAnimatedListView.separated(
+                        : ListView.separated(
                             shrinkWrap: true,
                             itemCount: results.length,
                             separatorBuilder: (_, _) =>
@@ -4966,7 +4814,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                               )
                             else
                               Flexible(
-                                child: RiverAutoAnimatedListView.separated(
+                                child: ListView.separated(
                                   padding: const EdgeInsets.fromLTRB(
                                     8,
                                     2,
@@ -5806,6 +5654,3 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
 }
 
 // -----------------------------------------------------------------------------
-
-
-

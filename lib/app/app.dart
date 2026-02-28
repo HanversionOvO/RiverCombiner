@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -10,22 +9,17 @@ import 'package:home_widget/home_widget.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/app/app_settings_controller.dart';
-import 'package:river/core/account/account_models.dart';
 import 'package:river/core/account/account_store.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
-import 'package:river/core/mini_apps/river_mini_app_platform_client.dart';
 import 'package:river/core/platform/app_icon_switcher.dart';
 import 'package:river/core/platform/riverside_cookie_bridge.dart';
-import 'package:river/core/push/river_jpush_service.dart';
-import 'package:river/core/push/river_push_registration_reporter.dart';
 import 'package:river/core/update/app_update_checker.dart';
 import 'package:river/features/home/home_shell_page.dart';
 import 'package:river/features/login/login_page.dart';
 import 'package:river/core/widgets/river_home_widget_service.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
-import 'package:river/core/widgets/river_snack_bar.dart';
 
 class RiverApp extends StatefulWidget {
   const RiverApp({super.key});
@@ -41,8 +35,6 @@ class _RiverAppState extends State<RiverApp> {
   static const String _shortcutLatestReplied = 'river.quick.latest_replied';
 
   late final AppDependencies _dependencies;
-  late final RiverJPushService _jPushService;
-  late final RiverPushRegistrationReporter _pushRegistrationReporter;
   late final RiverHomeWidgetService _homeWidgetService;
   final QuickActions _quickActions = const QuickActions();
   final HomeShellController _homeShellController = HomeShellController();
@@ -52,11 +44,8 @@ class _RiverAppState extends State<RiverApp> {
   static const Duration _minLaunchDisplay = Duration(milliseconds: 1250);
   bool _initialized = false;
   bool _didAutoCheckUpdate = false;
-  StreamSubscription<Map<String, dynamic>>? _jPushOpenSubscription;
   StreamSubscription<Uri?>? _homeWidgetClickSubscription;
-  Timer? _pushSyncDebounceTimer;
   Timer? _homeWidgetSyncDebounceTimer;
-  String? _lastPushReportSignature;
 
   @override
   void initState() {
@@ -69,15 +58,11 @@ class _RiverAppState extends State<RiverApp> {
       ),
       updateChecker: AppUpdateChecker(),
     );
-    _jPushService = RiverJPushService();
-    _pushRegistrationReporter = RiverPushRegistrationReporter();
     _homeWidgetService = RiverHomeWidgetService(
       apiClient: _dependencies.accountStore.riverSideApiClient,
       accountStore: _dependencies.accountStore,
       settingsController: _dependencies.settingsController,
     );
-    _dependencies.accountStore.addListener(_schedulePushIdentitySync);
-    _dependencies.settingsController.addListener(_schedulePushIdentitySync);
     _dependencies.accountStore.addListener(_scheduleHomeWidgetSync);
     _dependencies.settingsController.addListener(_scheduleHomeWidgetSync);
 
@@ -111,7 +96,6 @@ class _RiverAppState extends State<RiverApp> {
     setState(() {
       _initialized = true;
     });
-    unawaited(_initializePush());
     unawaited(_initializeHomeWidgetBridge());
     _scheduleAutoUpdateCheck();
     unawaited(_dependencies.accountStore.syncActiveRiverSideCookieToWebView());
@@ -197,71 +181,6 @@ class _RiverAppState extends State<RiverApp> {
     }
   }
 
-  Future<void> _initializePush() async {
-    try {
-      await _jPushService.initialize();
-      _jPushOpenSubscription = _jPushService.onNotificationOpened.listen(
-        _handleJPushOpenEvent,
-        onError: (Object error) {
-          debugPrint('[JPush] onNotificationOpened error: $error');
-        },
-      );
-      final rid = _jPushService.registrationId.value;
-      if (rid != null && rid.isNotEmpty) {
-        debugPrint('[JPush] registrationId=$rid');
-      }
-      _jPushService.registrationId.addListener(_schedulePushIdentitySync);
-      _schedulePushIdentitySync();
-    } catch (error) {
-      debugPrint('[JPush] initialize failed: $error');
-    }
-  }
-
-  Future<void> _handleJPushOpenEvent(Map<String, dynamic> event) async {
-    debugPrint('[JPush] onOpenNotification: $event');
-    final context = _appNavigatorKey.currentContext;
-    if (context == null || !context.mounted) {
-      return;
-    }
-
-    final payload = _flattenPushPayload(event);
-    final topicId = _extractInt(payload, const <String>[
-      'topicId',
-      'topic_id',
-      'tid',
-    ]);
-    if (topicId != null && topicId > 0) {
-      final provider = _extractProvider(payload);
-      final qingBoardId = _extractInt(payload, const <String>[
-        'boardId',
-        'board_id',
-        'fid',
-      ]);
-      await Navigator.of(context).push(
-        riverPageRoute<void>(
-          builder: (_) => TopicDetailPage(
-            dependencies: _dependencies,
-            topicId: topicId,
-            provider: provider,
-            qingBoardId: provider == AccountProvider.qingShuiHePan
-                ? qingBoardId
-                : null,
-          ),
-        ),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showRiverSnackBar('已打开推送消息');
-  }
-
-  void _schedulePushIdentitySync() {
-    _pushSyncDebounceTimer?.cancel();
-    _pushSyncDebounceTimer = Timer(const Duration(milliseconds: 360), () {
-      unawaited(_syncPushIdentity());
-    });
-  }
-
   void _scheduleHomeWidgetSync() {
     _homeWidgetSyncDebounceTimer?.cancel();
     _homeWidgetSyncDebounceTimer = Timer(const Duration(milliseconds: 680), () {
@@ -334,144 +253,6 @@ class _RiverAppState extends State<RiverApp> {
     }
   }
 
-  Future<void> _syncPushIdentity() async {
-    final rid = _jPushService.registrationId.value?.trim() ?? '';
-    if (rid.isEmpty) {
-      return;
-    }
-
-    final riverUsername = _dependencies.accountStore.activeRiverSideUsername;
-    final qingUsername = _dependencies.accountStore.activeQingShuiHePanUsername;
-    final guest = _dependencies.accountStore.isGuestBrowsing;
-
-    final alias = _buildJPushAlias(
-      riverUsername: riverUsername,
-      qingUsername: qingUsername,
-      isGuest: guest,
-    );
-    final tags = <String>[
-      if (riverUsername != null && riverUsername.isNotEmpty) 'riverside',
-      if (qingUsername != null && qingUsername.isNotEmpty) 'qingshuihepan',
-      if (guest) 'guest',
-      'river_app',
-    ];
-
-    await _jPushService.bindAlias(alias);
-    await _jPushService.bindTags(tags);
-
-    final endpointUrl = _resolvePushRegisterEndpointUrl();
-    if (endpointUrl == null || endpointUrl.isEmpty) {
-      return;
-    }
-    final signature =
-        '$endpointUrl|$rid|$riverUsername|$qingUsername|${guest ? 1 : 0}';
-    if (_lastPushReportSignature == signature) {
-      return;
-    }
-
-    try {
-      await _pushRegistrationReporter.report(
-        endpointUrl: endpointUrl,
-        payload: <String, dynamic>{
-          'registrationId': rid,
-          'platform': 'android',
-          'app': 'river',
-          'riverSideUsername': riverUsername,
-          'qingShuiHePanUsername': qingUsername,
-          'guest': guest,
-          'tags': tags,
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        },
-      );
-      _lastPushReportSignature = signature;
-      debugPrint('[JPush] registration report success');
-    } catch (error) {
-      debugPrint('[JPush] registration report failed: $error');
-    }
-  }
-
-  String? _resolvePushRegisterEndpointUrl() {
-    final catalogUrl = _dependencies.settingsController.miniAppsManifestUrl
-        .trim();
-    if (catalogUrl.isEmpty) {
-      return null;
-    }
-    try {
-      final baseUrl = RiverMiniAppPlatformClient().resolvePlatformBaseUrl(
-        catalogUrl,
-      );
-      final baseUri = Uri.parse(baseUrl);
-      final normalizedBasePath = baseUri.path.replaceAll(RegExp(r'/+$'), '');
-      final endpointPath = normalizedBasePath.isEmpty
-          ? '/api/public/push/register'
-          : '$normalizedBasePath/api/public/push/register';
-      return baseUri.replace(path: endpointPath, query: '').toString();
-    } catch (_) {
-      // Non-platform catalog link: skip push registration reporting.
-      return null;
-    }
-  }
-
-  String _buildJPushAlias({
-    required String? riverUsername,
-    required String? qingUsername,
-    required bool isGuest,
-  }) {
-    if (riverUsername != null && riverUsername.isNotEmpty) {
-      return 'river_${riverUsername.toLowerCase()}';
-    }
-    if (qingUsername != null && qingUsername.isNotEmpty) {
-      return 'qing_${qingUsername.toLowerCase()}';
-    }
-    if (isGuest) {
-      return 'guest';
-    }
-    return 'anonymous';
-  }
-
-  Map<String, dynamic> _flattenPushPayload(Map<String, dynamic> event) {
-    final payload = <String, dynamic>{...event};
-    final extras = event['extras'];
-    if (extras is Map) {
-      payload.addAll(extras.cast<String, dynamic>());
-    } else if (extras is String) {
-      try {
-        final decoded = jsonDecode(extras);
-        if (decoded is Map) {
-          payload.addAll(decoded.cast<String, dynamic>());
-        }
-      } catch (_) {
-        // Ignore invalid extras JSON.
-      }
-    }
-    return payload;
-  }
-
-  int? _extractInt(Map<String, dynamic> payload, List<String> keys) {
-    for (final key in keys) {
-      final value = payload[key];
-      if (value is int) {
-        return value;
-      }
-      final parsed = int.tryParse('${value ?? ''}'.trim());
-      if (parsed != null) {
-        return parsed;
-      }
-    }
-    return null;
-  }
-
-  AccountProvider _extractProvider(Map<String, dynamic> payload) {
-    final raw = (payload['provider'] ?? payload['forum'] ?? payload['site'])
-        ?.toString()
-        .trim()
-        .toLowerCase();
-    if (raw == 'qingshuihepan' || raw == 'qing' || raw == 'hp') {
-      return AccountProvider.qingShuiHePan;
-    }
-    return AccountProvider.riverSide;
-  }
-
   void _scheduleAutoUpdateCheck() {
     if (_didAutoCheckUpdate) {
       return;
@@ -502,14 +283,8 @@ class _RiverAppState extends State<RiverApp> {
 
   @override
   void dispose() {
-    _jPushOpenSubscription?.cancel();
     _homeWidgetClickSubscription?.cancel();
-    _pushSyncDebounceTimer?.cancel();
     _homeWidgetSyncDebounceTimer?.cancel();
-    _jPushService.registrationId.removeListener(_schedulePushIdentitySync);
-    unawaited(_jPushService.dispose());
-    _dependencies.accountStore.removeListener(_schedulePushIdentitySync);
-    _dependencies.settingsController.removeListener(_schedulePushIdentitySync);
     _dependencies.accountStore.removeListener(_scheduleHomeWidgetSync);
     _dependencies.settingsController.removeListener(_scheduleHomeWidgetSync);
     _dependencies.settingsController.dispose();

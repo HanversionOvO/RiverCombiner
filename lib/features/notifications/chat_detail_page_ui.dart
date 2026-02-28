@@ -176,7 +176,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
       ),
       child: Skeletonizer(
         enabled: true,
-        child: RiverAutoAnimatedListView.builder(
+        child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
           itemCount: 8,
@@ -276,14 +276,14 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
             ),
           ),
           child: _messages.isEmpty
-              ? RiverAutoAnimatedListView(
+              ? ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.only(top: 220),
                   children: const [
                     Center(child: Text(_ChatDetailPageState._labelNoMessages)),
                   ],
                 )
-              : RiverAutoAnimatedListView.builder(
+              : ListView.builder(
                   controller: _scrollController,
                   reverse: true,
                   physics: const AlwaysScrollableScrollPhysics(),

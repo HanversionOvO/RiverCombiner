@@ -1076,7 +1076,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
                 ),
               );
             } else {
-              body = RiverAutoAnimatedListView.separated(
+              body = ListView.separated(
                 shrinkWrap: true,
                 itemCount: topics.length,
                 separatorBuilder: (_, unused) => const Divider(height: 1),

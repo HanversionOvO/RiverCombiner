@@ -11,8 +11,6 @@ import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 part 'riverside_account_settings_page_widgets.dart';
 
 class RiverSideAccountSettingsPage extends StatefulWidget {
@@ -608,7 +606,7 @@ class _RiverSideAccountSettingsPageState
   Widget _buildLoadingSkeleton(ThemeData theme) {
     return Skeletonizer(
       enabled: true,
-      child: RiverAutoAnimatedListView(
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
         children: const [
           _SettingsSectionCard(
@@ -703,7 +701,7 @@ class _RiverSideAccountSettingsPageState
           ? _ErrorStateCard(text: '未读取到账号信息。', onRetry: _loadInitial)
           : RefreshIndicator(
               onRefresh: _loadInitial,
-              child: RiverAutoAnimatedListView(
+              child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
                 children: [
                   _SettingsSectionCard(

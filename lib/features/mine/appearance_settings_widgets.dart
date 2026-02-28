@@ -543,7 +543,7 @@ class _FontPickerSheetState extends State<_FontPickerSheet> {
               ),
             ),
             Expanded(
-              child: RiverAutoAnimatedListView.builder(
+              child: ListView.builder(
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                 itemCount: visible.length,
                 itemBuilder: (context, index) {

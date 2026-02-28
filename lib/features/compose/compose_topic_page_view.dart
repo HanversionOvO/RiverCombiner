@@ -42,7 +42,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                     opacity: _fadeAnim,
                     child: SlideTransition(
                       position: _slideAnim,
-                      child: RiverAutoAnimatedListView(
+                      child: ListView(
                         controller: _pageScrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         physics: const BouncingScrollPhysics(),

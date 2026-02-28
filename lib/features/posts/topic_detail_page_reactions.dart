@@ -879,7 +879,7 @@ class _ReactionUsersSheet extends StatelessWidget {
                   else
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 460),
-                      child: RiverAutoAnimatedListView.separated(
+                      child: ListView.separated(
                         shrinkWrap: true,
                         physics: const BouncingScrollPhysics(),
                         itemCount: users.length,

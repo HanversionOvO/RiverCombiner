@@ -3,8 +3,6 @@ import 'dart:ui';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class MineSettingsToolbarAction {
   const MineSettingsToolbarAction({
     this.iosSymbol,
@@ -153,7 +151,7 @@ class MineSettingsPageScaffold extends StatelessWidget {
 
     if (body is ListView && body.childrenDelegate is SliverChildListDelegate) {
       final delegate = body.childrenDelegate as SliverChildListDelegate;
-      return RiverAutoAnimatedListView(
+      return ListView(
         key: body.key,
         scrollDirection: body.scrollDirection,
         reverse: body.reverse,
@@ -176,7 +174,7 @@ class MineSettingsPageScaffold extends StatelessWidget {
     }
 
     if (body is CustomScrollView) {
-      return RiverAutoAnimatedCustomScrollView(
+      return CustomScrollView(
         key: body.key,
         scrollDirection: body.scrollDirection,
         reverse: body.reverse,

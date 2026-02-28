@@ -385,7 +385,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                 )
               else
                 Flexible(
-                  child: RiverAutoAnimatedListView(
+                  child: ListView(
                     shrinkWrap: true,
                     padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
                     children: [

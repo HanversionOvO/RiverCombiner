@@ -24,8 +24,6 @@ import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 import 'package:river/features/mine/riverside_profile_page.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 class MineQrScanPage extends StatefulWidget {
   const MineQrScanPage({
     super.key,
@@ -1030,7 +1028,7 @@ class _MineIdentityQrPageState extends State<MineIdentityQrPage> {
                 color: style.colors[1].withValues(alpha: 0.16),
               ),
             ),
-            RiverAutoAnimatedListView(
+            ListView(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
               children: [
                 if (hasBoth)
@@ -1086,7 +1084,7 @@ class _MineIdentityQrPageState extends State<MineIdentityQrPage> {
                   const SizedBox(height: 10),
                   SizedBox(
                     height: 82,
-                    child: RiverAutoAnimatedListView.separated(
+                    child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: _styles.length,
                       separatorBuilder: (_, unused) =>

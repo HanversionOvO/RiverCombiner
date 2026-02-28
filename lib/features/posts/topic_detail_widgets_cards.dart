@@ -177,9 +177,11 @@ class _MainPostCardState extends State<_MainPostCard>
           pulseToken: widget.reactionPulseToken,
           showReplyAction: widget.showReplyAction,
           leadingAction: widget.showAiSummaryAction
-              ? _AiSummaryButton(
+              ? RiverAiActionButton(
                   onPressed: widget.onAiSummaryPressed,
                   loading: widget.aiSummaryLoading,
+                  idleText: 'AI总结',
+                  loadingText: 'AI总结中...',
                 )
               : null,
         ),
@@ -708,142 +710,6 @@ class _TopicPollOptionTile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _AiSummaryButton extends StatefulWidget {
-  const _AiSummaryButton({required this.onPressed, required this.loading});
-
-  final VoidCallback onPressed;
-  final bool loading;
-
-  @override
-  State<_AiSummaryButton> createState() => _AiSummaryButtonState();
-}
-
-class _AiSummaryButtonState extends State<_AiSummaryButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 5200),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final foreground = isDark
-        ? Colors.white.withValues(alpha: 0.92)
-        : theme.colorScheme.onSurface.withValues(alpha: 0.88);
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        final phase = _controller.value * math.pi * 2;
-        final pulse = 0.55 + 0.45 * (math.sin(phase) * 0.5 + 0.5);
-        final gradientBegin = Alignment(
-          math.cos(phase) * 0.45,
-          math.sin(phase) * 0.45,
-        );
-        final gradientEnd = Alignment(
-          -math.cos(phase) * 0.45,
-          -math.sin(phase) * 0.45,
-        );
-
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Ink(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                gradient: LinearGradient(
-                  begin: gradientBegin,
-                  end: gradientEnd,
-                  colors: [
-                    const Color(
-                      0xFFAED8FF,
-                    ).withValues(alpha: (isDark ? 0.30 : 0.40) * pulse),
-                    const Color(
-                      0xFFCDB8FF,
-                    ).withValues(alpha: (isDark ? 0.28 : 0.38) * pulse),
-                    const Color(
-                      0xFFFFCFE1,
-                    ).withValues(alpha: (isDark ? 0.26 : 0.36) * pulse),
-                    const Color(
-                      0xFFBDEDE3,
-                    ).withValues(alpha: (isDark ? 0.24 : 0.34) * pulse),
-                  ],
-                ),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: isDark ? 0.24 : 0.42),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(
-                      0xFF9CC8FF,
-                    ).withValues(alpha: (isDark ? 0.14 : 0.12) * pulse),
-                    blurRadius: 14,
-                    spreadRadius: 0.3,
-                  ),
-                ],
-              ),
-              child: Material(
-                color: theme.colorScheme.surface.withValues(
-                  alpha: isDark ? 0.22 : 0.14,
-                ),
-                borderRadius: BorderRadius.circular(999),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(999),
-                  onTap: widget.loading ? null : widget.onPressed,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 7,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.loading)
-                          SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                foreground,
-                              ),
-                            ),
-                          )
-                        else
-                          Icon(
-                            Icons.auto_awesome_rounded,
-                            size: 16,
-                            color: foreground,
-                          ),
-                        const SizedBox(width: 6),
-                        Text(
-                          widget.loading ? 'AI总结中...' : 'AI总结',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: foreground,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

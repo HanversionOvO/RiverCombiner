@@ -26,8 +26,6 @@ import 'package:river/features/mine/server_settings_page.dart';
 import 'package:river/features/mine/storage_settings_page.dart'; // 引入新页面
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
-
-import 'package:river/core/widgets/river_auto_animated_scroll.dart';
 part 'mine_page_widgets.dart';
 
 class MinePage extends StatefulWidget {
@@ -591,7 +589,7 @@ class _MinePageState extends State<MinePage> {
             children: [
               _buildTopHeader(theme, easedHeaderFactor, account, qingAccount),
               Expanded(
-                child: RiverAutoAnimatedCustomScrollView(
+                child: CustomScrollView(
                   controller: _scrollController,
                   slivers: [
                     SliverToBoxAdapter(

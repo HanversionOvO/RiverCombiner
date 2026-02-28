@@ -853,7 +853,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
                         ),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
-                            return RiverAutoAnimatedSingleChildScrollView(
+                            return SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(
