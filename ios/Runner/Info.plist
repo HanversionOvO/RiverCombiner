@@ -35,82 +35,64 @@
 		<dict>
 			<key>AppIconQuality</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconQuality</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconQuality</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
 			<key>AppIconPixel</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconPixel</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconPixel</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
 			<key>AppIconCloud</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconCloud</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconCloud</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
 			<key>AppIconNeon</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconNeon</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconNeon</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
 			<key>AppIconVaporwave</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconVaporwave</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconVaporwave</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
 			<key>AppIconChina</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconChina</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconChina</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
 			<key>AppIconChengdu</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconChengdu</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconChengdu</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
 			<key>AppIconAnimation</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconAnimation</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconAnimation</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
 			<key>AppIconSweet</key>
 			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>AppIconSweet</string>
-				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconSweet</string>
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>

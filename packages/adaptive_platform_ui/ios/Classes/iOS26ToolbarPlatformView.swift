@@ -84,16 +84,20 @@ class iOS26ToolbarPlatformView: NSObject, FlutterPlatformView {
     private func setupNavigationBar() {
         containerView.backgroundColor = .clear
 
-        // Keep the native toolbar transparent so page content can pass through.
         navigationBar.translatesAutoresizingMaskIntoConstraints = false
         navigationBar.items = [navigationItem]
+        navigationBar.isTranslucent = true
 
-        // Configure transparent appearance
+        // Configure native translucent appearance (Liquid Glass-like)
         if #available(iOS 13.0, *) {
             let appearance = UINavigationBarAppearance()
-            appearance.configureWithTransparentBackground()
-            appearance.backgroundColor = .clear
+            appearance.configureWithDefaultBackground()
+            appearance.backgroundEffect = UIBlurEffect(style: .systemMaterial)
+            appearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.72)
             appearance.shadowColor = .clear
+            appearance.titleTextAttributes = [
+                .foregroundColor: UIColor.label
+            ]
             navigationBar.standardAppearance = appearance
             navigationBar.scrollEdgeAppearance = appearance
             if #available(iOS 15.0, *) {

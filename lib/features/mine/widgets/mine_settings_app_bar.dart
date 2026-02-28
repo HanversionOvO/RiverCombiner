@@ -123,6 +123,9 @@ class MineSettingsPageScaffold extends StatelessWidget {
     if (injected != null) {
       return injected;
     }
+    if (body is Stack) {
+      return body;
+    }
     return Padding(
       padding: EdgeInsets.only(top: placeholderHeight),
       child: body,
@@ -251,6 +254,28 @@ class MineSettingsPageScaffold extends StatelessWidget {
         bottom: body.bottom,
         minimum: body.minimum,
         maintainBottomViewPadding: body.maintainBottomViewPadding,
+        child: injected,
+      );
+    }
+
+    if (body is RefreshIndicator) {
+      final injected = _injectTopPlaceholder(body.child, topPlaceholder);
+      if (injected == null) {
+        return null;
+      }
+      return RefreshIndicator(
+        key: body.key,
+        displacement: body.displacement,
+        edgeOffset: body.edgeOffset,
+        onRefresh: body.onRefresh,
+        color: body.color,
+        backgroundColor: body.backgroundColor,
+        notificationPredicate: body.notificationPredicate,
+        semanticsLabel: body.semanticsLabel,
+        semanticsValue: body.semanticsValue,
+        strokeWidth: body.strokeWidth,
+        triggerMode: body.triggerMode,
+        elevation: body.elevation,
         child: injected,
       );
     }
