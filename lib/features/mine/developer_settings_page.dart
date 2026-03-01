@@ -21,6 +21,19 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
   final RiverMiniAppInstallStore _miniAppInstallStore =
       RiverMiniAppInstallStore();
 
+  void _toggleRemotePreview(bool value) {
+    widget.dependencies.settingsController.updateMiniAppRemotePreviewEnabled(
+      value,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    ScaffoldMessenger.of(
+      context,
+    ).showRiverSnackBar(value ? '已启用远程预览模式' : '已关闭远程预览模式');
+  }
+
   Future<void> _exitDeveloperMode() async {
     final confirmed = await showRiverConfirmDialog(
       context: context,
@@ -292,6 +305,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final settingsController = widget.dependencies.settingsController;
     return MineSettingsPageScaffold(
       title: '开发者模式',
       subtitle: '调试与本地小程序安装',
@@ -306,6 +320,14 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                _SwitchActionTile(
+                  icon: Icons.wifi_tethering_rounded,
+                  title: '启用远程预览',
+                  subtitle: '允许通过局域网二维码打开真机预览小程序',
+                  value: settingsController.miniAppRemotePreviewEnabled,
+                  onChanged: _toggleRemotePreview,
+                ),
+                const SizedBox(height: 10),
                 _ActionTile(
                   icon: Icons.tour_rounded,
                   title: '清除引导状态',
@@ -441,6 +463,61 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
+class _SwitchActionTile extends StatelessWidget {
+  const _SwitchActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        onTap: () => onChanged(!value),
+        leading: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.38),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 18, color: theme.colorScheme.primary),
+        ),
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
 class _Field extends StatelessWidget {
   const _Field({
     required this.controller,
@@ -468,6 +545,5 @@ class _Field extends StatelessWidget {
     );
   }
 }
-
 
 

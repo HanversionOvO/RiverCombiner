@@ -61,6 +61,8 @@ class AppSettingsController extends ChangeNotifier {
   static const String _homeForumPreferenceKey = 'app.home_forum_preference';
   static const String _homeWidgetFeedPreferenceKey =
       'app.home_widget_feed_preference';
+  static const String _miniAppRemotePreviewEnabledKey =
+      'app.mini_app_remote_preview_enabled';
 
   static const Color defaultSeedColor = Color(0xFF12457A);
   static const String defaultFontFamilyName = 'HarmonyOS Sans';
@@ -98,6 +100,7 @@ class AppSettingsController extends ChangeNotifier {
       AppHomeForumPreference.riverSide;
   AppHomeWidgetFeedPreference _homeWidgetFeedPreference =
       AppHomeWidgetFeedPreference.latestReplied;
+  bool _miniAppRemotePreviewEnabled = false;
 
   SharedPreferences? _prefs;
 
@@ -130,6 +133,7 @@ class AppSettingsController extends ChangeNotifier {
   AppHomeForumPreference get homeForumPreference => _homeForumPreference;
   AppHomeWidgetFeedPreference get homeWidgetFeedPreference =>
       _homeWidgetFeedPreference;
+  bool get miniAppRemotePreviewEnabled => _miniAppRemotePreviewEnabled;
   bool get aiConfigured =>
       _aiBaseUrl.trim().isNotEmpty &&
       _aiModel.trim().isNotEmpty &&
@@ -314,6 +318,8 @@ class AppSettingsController extends ChangeNotifier {
         }
       }
     }
+    _miniAppRemotePreviewEnabled =
+        _prefs?.getBool(_miniAppRemotePreviewEnabledKey) ?? false;
 
     RiverServerConfig.instance.apply(
       baseUrl: _riverSideBaseUrl,
@@ -592,6 +598,15 @@ class AppSettingsController extends ChangeNotifier {
     unawaited(_saveHomeWidgetFeedPreference());
   }
 
+  void updateMiniAppRemotePreviewEnabled(bool value) {
+    if (_miniAppRemotePreviewEnabled == value) {
+      return;
+    }
+    _miniAppRemotePreviewEnabled = value;
+    notifyListeners();
+    unawaited(_saveMiniAppRemotePreviewEnabled());
+  }
+
   String? _mapLegacyFontPresetToFamily(String? presetName) {
     switch (presetName) {
       case 'system':
@@ -833,6 +848,14 @@ class AppSettingsController extends ChangeNotifier {
     await _prefs!.setString(
       _homeWidgetFeedPreferenceKey,
       _homeWidgetFeedPreference.name,
+    );
+  }
+
+  Future<void> _saveMiniAppRemotePreviewEnabled() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(
+      _miniAppRemotePreviewEnabledKey,
+      _miniAppRemotePreviewEnabled,
     );
   }
 }

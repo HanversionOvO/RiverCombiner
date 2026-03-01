@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:river/app/app_dependencies.dart';
+import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/core/mini_apps/river_mini_app_code_image_codec.dart';
 import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
@@ -577,9 +578,10 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
 
   Future<void> _openMiniAppByCode(_ScannedMiniAppCode code) async {
     final settings = widget.dependencies.settingsController;
-    // Always resolve catalog from current app settings so scan behavior
-    // follows the configured platform environment.
-    final manifestUrl = settings.miniAppsManifestUrl;
+    final manifestUrl = _resolveManifestUrlForCode(
+      settings: settings,
+      code: code,
+    );
     final cookieHeader = _activeCookieHeader();
 
     final manifest = await _miniAppRepository.load(
@@ -620,6 +622,7 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
         .toList();
     var newlyInstalled = false;
     RiverMiniAppEntry toOpen;
+    final hasPackageToInstall = resolvedTarget.packageUrl.trim().isNotEmpty;
     if (installed.isNotEmpty &&
         installed.first.localEntryFilePath.trim().isNotEmpty &&
         File(installed.first.localEntryFilePath).existsSync()) {
@@ -632,12 +635,14 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
             ? local.iconUrl
             : resolvedTarget.iconUrl,
       );
-    } else {
+    } else if (hasPackageToInstall) {
       newlyInstalled = true;
       toOpen = await _miniAppInstallStore.install(
         app: resolvedTarget,
         cookieHeader: cookieHeader,
       );
+    } else {
+      toOpen = resolvedTarget;
     }
 
     final latestInstalled = await _miniAppInstallStore.loadInstalledApps();
@@ -668,6 +673,71 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
       launchAction: code.action,
       launchSource: 'scan',
     );
+  }
+
+  String _resolveManifestUrlForCode({
+    required AppSettingsController settings,
+    required _ScannedMiniAppCode code,
+  }) {
+    final defaultUrl = settings.miniAppsManifestUrl;
+    final remoteEnabled = settings.miniAppRemotePreviewEnabled == true;
+    if (!remoteEnabled) {
+      return defaultUrl;
+    }
+    final override = code.catalogUrl.trim();
+    if (override.isEmpty) {
+      return defaultUrl;
+    }
+    final uri = Uri.tryParse(override);
+    if (uri == null) {
+      return defaultUrl;
+    }
+    final scheme = uri.scheme.toLowerCase();
+    if (scheme != 'http' && scheme != 'https') {
+      return defaultUrl;
+    }
+    if (!_isLanPreviewHostAllowed(uri.host.trim().toLowerCase())) {
+      return defaultUrl;
+    }
+    return uri.toString();
+  }
+
+  bool _isLanPreviewHostAllowed(String host) {
+    if (host.isEmpty) {
+      return false;
+    }
+    if (host == 'localhost' || host.endsWith('.local')) {
+      return true;
+    }
+    final parsed = InternetAddress.tryParse(host);
+    if (parsed == null) {
+      return false;
+    }
+    if (parsed.type == InternetAddressType.IPv4) {
+      final parts = host.split('.').map(int.tryParse).toList(growable: false);
+      if (parts.length != 4 || parts.any((v) => v == null)) {
+        return false;
+      }
+      final a = parts[0]!;
+      final b = parts[1]!;
+      if (a == 10) {
+        return true;
+      }
+      if (a == 172 && b >= 16 && b <= 31) {
+        return true;
+      }
+      if (a == 192 && b == 168) {
+        return true;
+      }
+      if (a == 100 && b >= 64 && b <= 127) {
+        return true;
+      }
+      return false;
+    }
+    final lower = host.toLowerCase();
+    return lower.startsWith('fe80:') ||
+        lower.startsWith('fc') ||
+        lower.startsWith('fd');
   }
 
   AccountProvider? _providerFromRaw(String raw) {
