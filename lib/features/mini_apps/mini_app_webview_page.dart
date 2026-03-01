@@ -459,6 +459,74 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     } catch (_) {
       // Ignore JS injection failure on some pages.
     }
+    await _injectVConsoleIfNeeded();
+  }
+
+  bool get _shouldEnableVConsoleByDefault {
+    final remotePreview = widget.launchParams['remotePreview'];
+    if (remotePreview is Map && remotePreview.isNotEmpty) {
+      return true;
+    }
+    final source = widget.launchSource.trim().toLowerCase();
+    if (source.contains('preview')) {
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _injectVConsoleIfNeeded() async {
+    if (!_shouldEnableVConsoleByDefault) {
+      return;
+    }
+    const script = r'''
+(() => {
+  if (window.__riverVConsoleBooted) return;
+  window.__riverVConsoleBooted = true;
+  const mount = () => {
+    if (typeof window.VConsole !== 'function') return false;
+    if (!window.__riverVConsoleInstance) {
+      try {
+        window.__riverVConsoleInstance = new window.VConsole();
+        console.info('[River] vConsole enabled');
+      } catch (error) {
+        console.warn('[River] vConsole init failed', error);
+      }
+    }
+    return true;
+  };
+  if (mount()) return;
+  const urls = [
+    'https://unpkg.com/vconsole@latest/dist/vconsole.min.js',
+    'https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js',
+  ];
+  let cursor = 0;
+  const loadNext = () => {
+    if (cursor >= urls.length) {
+      console.warn('[River] vConsole load failed');
+      return;
+    }
+    const src = urls[cursor++];
+    const scriptTag = document.createElement('script');
+    scriptTag.src = src;
+    scriptTag.async = true;
+    scriptTag.onload = () => {
+      if (!mount()) {
+        loadNext();
+      }
+    };
+    scriptTag.onerror = () => {
+      loadNext();
+    };
+    (document.head || document.documentElement).appendChild(scriptTag);
+  };
+  loadNext();
+})();
+''';
+    try {
+      await _controller.runJavaScript(script);
+    } catch (_) {
+      // Ignore vConsole injection failure on restricted pages.
+    }
   }
 
   Future<void> _onBridgeMessage(JavaScriptMessage message) async {
