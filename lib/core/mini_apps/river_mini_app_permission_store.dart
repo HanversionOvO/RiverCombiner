@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum RiverMiniAppNativePermission {
   network,
+  webView,
   clipboard,
   uiPrompt,
   haptics,
@@ -23,6 +24,8 @@ extension RiverMiniAppNativePermissionX on RiverMiniAppNativePermission {
     switch (this) {
       case RiverMiniAppNativePermission.network:
         return 'network';
+      case RiverMiniAppNativePermission.webView:
+        return 'webview';
       case RiverMiniAppNativePermission.clipboard:
         return 'clipboard';
       case RiverMiniAppNativePermission.uiPrompt:
@@ -52,6 +55,8 @@ extension RiverMiniAppNativePermissionX on RiverMiniAppNativePermission {
     switch (this) {
       case RiverMiniAppNativePermission.network:
         return '网络请求';
+      case RiverMiniAppNativePermission.webView:
+        return '网页容器';
       case RiverMiniAppNativePermission.clipboard:
         return '剪贴板';
       case RiverMiniAppNativePermission.uiPrompt:
@@ -81,6 +86,8 @@ extension RiverMiniAppNativePermissionX on RiverMiniAppNativePermission {
     switch (this) {
       case RiverMiniAppNativePermission.network:
         return '允许小程序通过宿主发起网络请求';
+      case RiverMiniAppNativePermission.webView:
+        return '允许打开原生网页容器并访问 Cookie 能力';
       case RiverMiniAppNativePermission.clipboard:
         return '允许读取和写入系统剪贴板';
       case RiverMiniAppNativePermission.uiPrompt:
@@ -110,6 +117,8 @@ extension RiverMiniAppNativePermissionX on RiverMiniAppNativePermission {
     switch (this) {
       case RiverMiniAppNativePermission.network:
         return Icons.wifi_rounded;
+      case RiverMiniAppNativePermission.webView:
+        return Icons.language_rounded;
       case RiverMiniAppNativePermission.clipboard:
         return Icons.content_paste_rounded;
       case RiverMiniAppNativePermission.uiPrompt:

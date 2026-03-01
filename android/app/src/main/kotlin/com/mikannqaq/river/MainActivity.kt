@@ -8,6 +8,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.net.URI
 import java.util.Locale
 import java.util.TreeSet
 
@@ -112,6 +113,15 @@ class MainActivity : FlutterActivity() {
         done: (Boolean) -> Unit,
     ) {
         try {
+            val host = try {
+                URI(url).host?.trim()?.ifEmpty { null }
+            } catch (_: Throwable) {
+                null
+            }
+            if (host.isNullOrBlank()) {
+                done(false)
+                return
+            }
             val manager = CookieManager.getInstance()
             manager.setAcceptCookie(true)
 
@@ -132,7 +142,7 @@ class MainActivity : FlutterActivity() {
                 }
                 val attributes = when {
                     name.startsWith("__Host-") -> "Path=/; Secure"
-                    else -> "Domain=river-side.cc; Path=/; Secure"
+                    else -> "Domain=$host; Path=/; Secure"
                 }
                 manager.setCookie(url, "$name=$value; $attributes")
             }

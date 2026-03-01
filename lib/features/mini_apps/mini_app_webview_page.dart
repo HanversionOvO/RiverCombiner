@@ -76,6 +76,10 @@ class MiniAppWebViewPage extends StatefulWidget {
 }
 
 class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
+  static const MethodChannel _webviewCookieChannel = MethodChannel(
+    'river/webview_cookies',
+  );
+
   late final WebViewController _controller;
   final ImagePicker _imagePicker = ImagePicker();
   String _title = '';
@@ -116,6 +120,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..enableZoom(false)
+      ..setOverScrollMode(WebViewOverScrollMode.never)
       ..setBackgroundColor(Colors.transparent)
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -570,6 +575,18 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
         return _performBridgeHttpRequest(payload);
       case 'openexternal':
         throw Exception('openExternal is disabled');
+      case 'openwebview':
+      case 'webview':
+      case 'openauthwebview':
+      case 'authweblogin':
+      case 'webviewauthlogin':
+        return _performOpenWebView(payload);
+      case 'getcookies':
+        return _performGetCookies(payload);
+      case 'setcookies':
+        return _performSetCookies(payload);
+      case 'clearcookies':
+        return _performClearCookies();
       case 'close':
         await _suspendAndExit();
         return <String, dynamic>{'success': true};
@@ -628,6 +645,15 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
         return RiverMiniAppNativePermission.forumIdentity;
       case 'httprequest':
         return RiverMiniAppNativePermission.network;
+      case 'openwebview':
+      case 'webview':
+      case 'openauthwebview':
+      case 'authweblogin':
+      case 'webviewauthlogin':
+      case 'getcookies':
+      case 'setcookies':
+      case 'clearcookies':
+        return RiverMiniAppNativePermission.webView;
       default:
         return null;
     }
@@ -684,6 +710,16 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
         return '使用论坛身份';
       case 'httprequest':
         return '发起网络请求';
+      case 'openwebview':
+      case 'webview':
+      case 'openauthwebview':
+      case 'authweblogin':
+      case 'webviewauthlogin':
+        return '打开网页容器';
+      case 'getcookies':
+      case 'setcookies':
+      case 'clearcookies':
+        return '访问网页 Cookie';
       default:
         return lowerAction;
     }
@@ -2057,6 +2093,155 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     }
   }
 
+  Future<Map<String, dynamic>> _performOpenWebView(dynamic payload) async {
+    if (payload is! Map) {
+      throw Exception('openWebView payload must be an object');
+    }
+
+    final entryUrlFromUrl = _readStringFromPayload(payload, 'url');
+    final entryUrlFromLegacy = _readStringFromPayload(payload, 'entryUrl');
+    final entryUrl = entryUrlFromUrl.isNotEmpty
+        ? entryUrlFromUrl
+        : entryUrlFromLegacy;
+    if (entryUrl.isEmpty) {
+      throw Exception('openWebView missing url');
+    }
+    final entryUri = Uri.tryParse(entryUrl);
+    if (entryUri == null ||
+        (entryUri.scheme != 'http' && entryUri.scheme != 'https')) {
+      throw Exception('openWebView invalid url');
+    }
+
+    final successUrlPrefix = _readStringFromPayload(
+      payload,
+      'successUrlPrefix',
+    );
+    final successHost = _readStringFromPayload(payload, 'successHost');
+    final successPathPrefix = _readStringFromPayload(
+      payload,
+      'successPathPrefix',
+    );
+    final cookieUrl = _readStringFromPayload(payload, 'cookieUrl');
+    final fetchUrl = _readStringFromPayload(payload, 'fetchUrl');
+    final requireCookie = payload['requireCookie'] == true;
+    final includeCookie = payload['includeCookie'] == true;
+    final shouldReadCookie =
+        includeCookie ||
+        requireCookie ||
+        cookieUrl.isNotEmpty ||
+        fetchUrl.isNotEmpty;
+    final title = _readStringFromPayload(payload, 'title');
+
+    if (!mounted) {
+      throw Exception('openWebView context unavailable');
+    }
+
+    final loginResult = await Navigator.of(context)
+        .push<_MiniAppAuthWebLoginResult>(
+          MaterialPageRoute<_MiniAppAuthWebLoginResult>(
+            builder: (_) => _MiniAppAuthWebLoginPage(
+              title: title.isEmpty ? '网页容器' : title,
+              entryUrl: entryUrl,
+              cookieCheckUrl: shouldReadCookie
+                  ? (cookieUrl.isNotEmpty ? cookieUrl : entryUrl)
+                  : '',
+              successUrlPrefix: successUrlPrefix,
+              successHost: successHost,
+              successPathPrefix: successPathPrefix,
+            ),
+          ),
+        );
+    if (loginResult == null || !loginResult.completed) {
+      throw Exception('网页流程已取消');
+    }
+
+    var cookieHeader = '';
+    if (shouldReadCookie) {
+      final cookieTarget = cookieUrl.isNotEmpty ? cookieUrl : entryUrl;
+      cookieHeader = await _readCookiesForUrl(cookieTarget);
+      if (requireCookie && cookieHeader.isEmpty) {
+        throw Exception('未获取到 Cookie');
+      }
+    }
+
+    Map<String, dynamic>? fetchResult;
+    if (fetchUrl.isNotEmpty) {
+      fetchResult = await _performBridgeHttpRequest(<String, dynamic>{
+        'method': 'GET',
+        'url': fetchUrl,
+        'headers': cookieHeader.isEmpty
+            ? const <String, String>{}
+            : <String, String>{HttpHeaders.cookieHeader: cookieHeader},
+      });
+    }
+
+    return <String, dynamic>{
+      'success': true,
+      'finalUrl': loginResult.finalUrl,
+      if (shouldReadCookie) 'cookieHeader': cookieHeader,
+      ...(fetchResult == null
+          ? const <String, dynamic>{}
+          : <String, dynamic>{'fetch': fetchResult}),
+    };
+  }
+
+  Future<Map<String, dynamic>> _performGetCookies(dynamic payload) async {
+    if (payload is! Map) {
+      throw Exception('getCookies payload must be an object');
+    }
+    final url = _readStringFromPayload(payload, 'url');
+    if (url.isEmpty) {
+      throw Exception('getCookies missing url');
+    }
+    final cookie = await _readCookiesForUrl(url);
+    return <String, dynamic>{'cookieHeader': cookie};
+  }
+
+  Future<Map<String, dynamic>> _performSetCookies(dynamic payload) async {
+    if (payload is! Map) {
+      throw Exception('setCookies payload must be an object');
+    }
+    final url = _readStringFromPayload(payload, 'url');
+    final cookieHeader = _readStringFromPayload(payload, 'cookieHeader');
+    if (url.isEmpty || cookieHeader.isEmpty) {
+      throw Exception('setCookies missing url/cookieHeader');
+    }
+    try {
+      final ok =
+          await _webviewCookieChannel.invokeMethod<bool>(
+            'setCookies',
+            <String, Object>{'url': url, 'cookieHeader': cookieHeader},
+          ) ??
+          false;
+      return <String, dynamic>{'success': ok};
+    } catch (error) {
+      throw Exception('setCookies failed: $error');
+    }
+  }
+
+  Future<Map<String, dynamic>> _performClearCookies() async {
+    try {
+      final ok =
+          await _webviewCookieChannel.invokeMethod<bool>('clearAllCookies') ??
+          false;
+      return <String, dynamic>{'success': ok};
+    } catch (error) {
+      throw Exception('clearCookies failed: $error');
+    }
+  }
+
+  Future<String> _readCookiesForUrl(String url) async {
+    try {
+      final cookie = await _webviewCookieChannel.invokeMethod<String>(
+        'getCookies',
+        <String, Object>{'url': url},
+      );
+      return cookie?.trim() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   Future<void> _postBridgeResponse({
     required String id,
     required String action,
@@ -2608,6 +2793,267 @@ class _MiniAppLoadingOverlay extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MiniAppAuthWebLoginResult {
+  const _MiniAppAuthWebLoginResult({
+    required this.completed,
+    required this.finalUrl,
+  });
+
+  final bool completed;
+  final String finalUrl;
+}
+
+class _MiniAppAuthWebLoginPage extends StatefulWidget {
+  const _MiniAppAuthWebLoginPage({
+    required this.title,
+    required this.entryUrl,
+    required this.cookieCheckUrl,
+    required this.successUrlPrefix,
+    required this.successHost,
+    required this.successPathPrefix,
+  });
+
+  final String title;
+  final String entryUrl;
+  final String cookieCheckUrl;
+  final String successUrlPrefix;
+  final String successHost;
+  final String successPathPrefix;
+
+  @override
+  State<_MiniAppAuthWebLoginPage> createState() =>
+      _MiniAppAuthWebLoginPageState();
+}
+
+class _MiniAppAuthWebLoginPageState extends State<_MiniAppAuthWebLoginPage> {
+  static const MethodChannel _cookieChannel = MethodChannel(
+    'river/webview_cookies',
+  );
+
+  late final WebViewController _controller;
+  bool _loading = true;
+  bool _canGoBack = false;
+  bool _canGoForward = false;
+  bool _completed = false;
+  bool _checkingAutoComplete = false;
+  String _currentUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUrl = widget.entryUrl;
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..enableZoom(false)
+      ..setOverScrollMode(WebViewOverScrollMode.never)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (url) {
+            if (!mounted) return;
+            setState(() {
+              _loading = true;
+              _currentUrl = url;
+            });
+            unawaited(_updateNavState());
+          },
+          onPageFinished: (url) {
+            if (!mounted) return;
+            setState(() {
+              _loading = false;
+              _currentUrl = url;
+            });
+            unawaited(_maybeComplete(url));
+            unawaited(_updateNavState());
+          },
+          onNavigationRequest: (request) {
+            if (mounted) {
+              setState(() {
+                _currentUrl = request.url;
+              });
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.entryUrl));
+  }
+
+  Future<void> _updateNavState() async {
+    final canBack = await _controller.canGoBack();
+    final canForward = await _controller.canGoForward();
+    if (!mounted) return;
+    setState(() {
+      _canGoBack = canBack;
+      _canGoForward = canForward;
+    });
+  }
+
+  Future<void> _maybeComplete(String url) async {
+    if (_completed || _checkingAutoComplete) {
+      return;
+    }
+    if (!_matchesSuccess(url)) {
+      return;
+    }
+    if (widget.cookieCheckUrl.trim().isNotEmpty) {
+      _checkingAutoComplete = true;
+      try {
+        final cookie = await _readCookiesForUrl(widget.cookieCheckUrl);
+        if (cookie.isEmpty) {
+          return;
+        }
+      } finally {
+        _checkingAutoComplete = false;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+    _completed = true;
+    Navigator.of(
+      context,
+    ).pop(_MiniAppAuthWebLoginResult(completed: true, finalUrl: url));
+  }
+
+  Future<String> _readCookiesForUrl(String url) async {
+    final target = url.trim().isEmpty ? _currentUrl.trim() : url.trim();
+    if (target.isEmpty) {
+      return '';
+    }
+    try {
+      final value = await _cookieChannel.invokeMethod<String>(
+        'getCookies',
+        <String, Object>{'url': target},
+      );
+      return value?.trim() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  bool _matchesSuccess(String url) {
+    final normalized = url.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    final successPrefix = widget.successUrlPrefix.trim();
+    if (successPrefix.isNotEmpty) {
+      return normalized.toLowerCase().startsWith(successPrefix.toLowerCase());
+    }
+
+    final uri = Uri.tryParse(normalized);
+    if (uri == null) {
+      return false;
+    }
+    final hostRule = widget.successHost.trim().toLowerCase();
+    final pathRule = widget.successPathPrefix.trim().toLowerCase();
+    if (hostRule.isEmpty && pathRule.isEmpty) {
+      return false;
+    }
+    if (hostRule.isNotEmpty && uri.host.toLowerCase() != hostRule) {
+      return false;
+    }
+    if (pathRule.isNotEmpty && !uri.path.toLowerCase().startsWith(pathRule)) {
+      return false;
+    }
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(
+                _MiniAppAuthWebLoginResult(
+                  completed: true,
+                  finalUrl: _currentUrl.trim(),
+                ),
+              );
+            },
+            child: const Text('已完成'),
+          ),
+          IconButton(
+            tooltip: '关闭',
+            onPressed: () => Navigator.of(context).pop(
+              _MiniAppAuthWebLoginResult(
+                completed: false,
+                finalUrl: _currentUrl.trim(),
+              ),
+            ),
+            icon: const Icon(Icons.close_rounded),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(child: WebViewWidget(controller: _controller)),
+                if (_loading)
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+              ],
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: '后退',
+                    onPressed: _canGoBack
+                        ? () async {
+                            await _controller.goBack();
+                            await _updateNavState();
+                          }
+                        : null,
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  ),
+                  IconButton(
+                    tooltip: '前进',
+                    onPressed: _canGoForward
+                        ? () async {
+                            await _controller.goForward();
+                            await _updateNavState();
+                          }
+                        : null,
+                    icon: const Icon(Icons.arrow_forward_ios_rounded),
+                  ),
+                  IconButton(
+                    tooltip: '刷新',
+                    onPressed: () => _controller.reload(),
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _currentUrl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
