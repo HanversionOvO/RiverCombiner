@@ -1,4 +1,4 @@
-package com.example.river
+package com.mikannqaq.river
 
 import android.content.ComponentName
 import android.content.pm.PackageManager
@@ -264,3 +264,4 @@ class MainActivity : FlutterActivity() {
         return names.toList()
     }
 }
+

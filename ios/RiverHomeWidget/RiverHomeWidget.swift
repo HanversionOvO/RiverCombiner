@@ -1,7 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-private let appGroupId = "group.com.example.river.homewidget"
+private let appGroupId = "group.com.mikannqaq.river.homewidget"
 
 struct RiverWidgetEntry: TimelineEntry {
   let date: Date
@@ -227,3 +227,4 @@ private extension Color {
     self = Color(.sRGB, red: r, green: g, blue: b, opacity: 1)
   }
 }
+

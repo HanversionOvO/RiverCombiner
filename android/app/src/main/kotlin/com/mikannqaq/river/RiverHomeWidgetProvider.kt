@@ -1,4 +1,4 @@
-package com.example.river
+package com.mikannqaq.river
 
 import android.appwidget.AppWidgetManager
 import android.content.Context
@@ -191,3 +191,4 @@ class RiverHomeWidgetProvider : HomeWidgetProvider() {
         }
     }
 }
+

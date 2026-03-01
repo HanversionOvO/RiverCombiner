@@ -8,7 +8,8 @@
 PRODUCT_NAME = river
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.river
+PRODUCT_BUNDLE_IDENTIFIER = com.mikannqaq.river
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+

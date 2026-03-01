@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.river">
+    package="com.mikannqaq.river">
     <application>
         <!-- Release keeps launcher aliases only, avoid duplicate launcher icon. -->
         <activity android:name=".MainActivity">
@@ -11,3 +11,4 @@
         </activity>
     </application>
 </manifest>
+

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.river"
+    namespace = "com.mikannqaq.river"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,7 +17,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        val appId = "com.example.river"
+        val appId = "com.mikannqaq.river"
         applicationId = appId
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -60,3 +60,4 @@ flutter {
 dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
 }
+

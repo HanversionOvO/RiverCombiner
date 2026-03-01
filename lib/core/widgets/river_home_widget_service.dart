@@ -41,9 +41,9 @@ class RiverHomeWidgetService {
 
   static const String androidProviderName = 'RiverHomeWidgetProvider';
   static const String androidQualifiedProviderName =
-      'com.example.river.RiverHomeWidgetProvider';
+      'com.mikannqaq.river.RiverHomeWidgetProvider';
   static const String iOSWidgetName = 'RiverHomeWidget';
-  static const String iOSAppGroupId = 'group.com.example.river.homewidget';
+  static const String iOSAppGroupId = 'group.com.mikannqaq.river.homewidget';
 
   static const String _keyState = 'river_widget_state';
   static const String _keyFeed = 'river_widget_feed';
@@ -318,3 +318,4 @@ class RiverHomeWidgetService {
     return null;
   }
 }
+

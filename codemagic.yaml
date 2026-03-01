@@ -83,13 +83,13 @@ workflows:
       cocoapods: default
       vars:
         # Replace with your real iOS bundle identifier.
-        BUNDLE_ID: com.example.river
+        BUNDLE_ID: com.mikannqaq.river
     scripts:
       - name: Apply bundle identifier
         script: |
-          if [ "$BUNDLE_ID" != "com.example.river" ]; then
-            sed -i '' "s/com.example.river.RunnerTests/$BUNDLE_ID.RunnerTests/g" ios/Runner.xcodeproj/project.pbxproj
-            sed -i '' "s/com.example.river/$BUNDLE_ID/g" ios/Runner.xcodeproj/project.pbxproj
+          if [ "$BUNDLE_ID" != "com.mikannqaq.river" ]; then
+            sed -i '' "s/com.mikannqaq.river.RunnerTests/$BUNDLE_ID.RunnerTests/g" ios/Runner.xcodeproj/project.pbxproj
+            sed -i '' "s/com.mikannqaq.river/$BUNDLE_ID/g" ios/Runner.xcodeproj/project.pbxproj
           fi
       - name: Set up code signing
         script: |
@@ -107,3 +107,4 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+

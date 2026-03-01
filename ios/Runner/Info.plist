@@ -104,7 +104,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.example.river.widget</string>
+			<string>com.mikannqaq.river.widget</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>river</string>
@@ -142,3 +142,4 @@
 	<string>需要使用相机扫描二维码。</string>
 </dict>
 </plist>
+
