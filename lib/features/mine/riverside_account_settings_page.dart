@@ -194,19 +194,6 @@ class _RiverSideAccountSettingsPageState
     ScaffoldMessenger.of(context).showRiverSnackBar(message);
   }
 
-  void _safeCloseDialog(BuildContext dialogContext, [Object? result]) {
-    // Delay pop to next frame to avoid teardown race with focused TextField.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!dialogContext.mounted) {
-        return;
-      }
-      final navigator = Navigator.of(dialogContext, rootNavigator: true);
-      if (navigator.canPop()) {
-        navigator.pop(result);
-      }
-    });
-  }
-
   Future<String?> _showTextInputDialog({
     required String title,
     required String labelText,
@@ -235,12 +222,23 @@ class _RiverSideAccountSettingsPageState
             ),
             actions: [
               TextButton(
-                onPressed: () => _safeCloseDialog(dialogContext),
+                onPressed: () {
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
+                  Navigator.of(dialogContext).maybePop();
+                },
                 child: const Text('取消'),
               ),
               FilledButton(
-                onPressed: () =>
-                    _safeCloseDialog(dialogContext, controller.text.trim()),
+                onPressed: () {
+                  if (!dialogContext.mounted) {
+                    return;
+                  }
+                  Navigator.of(
+                    dialogContext,
+                  ).maybePop(controller.text.trim());
+                },
                 child: Text(confirmText),
               ),
             ],
@@ -952,6 +950,5 @@ class _RiverSideAccountSettingsPageState
     );
   }
 }
-
 
 

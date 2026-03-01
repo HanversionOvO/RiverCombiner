@@ -417,7 +417,10 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                       icon: Icons.add_circle_outline_rounded,
                       title: '添加 RiverSide 账号',
                       subtitle: '支持 WebView 与账号密码登录',
-                      onTap: widget.onAdd,
+                      onTap: () {
+                        Navigator.of(context).maybePop();
+                        widget.onAdd();
+                      },
                       enabled: true,
                     ),
                     const SizedBox(height: 8),
@@ -425,7 +428,10 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                       icon: Icons.school_outlined,
                       title: '添加 清水河畔 账号',
                       subtitle: '账号密码登录',
-                      onTap: widget.onAddQingShui,
+                      onTap: () {
+                        Navigator.of(context).maybePop();
+                        widget.onAddQingShui();
+                      },
                       enabled: true,
                     ),
                   ],
@@ -769,5 +775,4 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
     );
   }
 }
-
 

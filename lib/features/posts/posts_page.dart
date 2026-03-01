@@ -250,9 +250,18 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
     final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    final panelColor = theme.colorScheme.surfaceContainerLow;
-    final borderColor = theme.colorScheme.outlineVariant.withValues(
-      alpha: 0.28,
+    final isDark = theme.brightness == Brightness.dark;
+    final panelTopColor = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(alpha: isDark ? 0.24 : 0.13),
+      theme.colorScheme.surfaceContainerLow,
+    );
+    final panelBottomColor = Color.alphaBlend(
+      theme.colorScheme.tertiary.withValues(alpha: isDark ? 0.18 : 0.1),
+      theme.colorScheme.surfaceContainer,
+    );
+    final borderColor = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(alpha: isDark ? 0.26 : 0.16),
+      theme.colorScheme.outlineVariant.withValues(alpha: 0.38),
     );
 
     Widget body;
@@ -413,16 +422,73 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
       );
     }
 
+    final cardRadius = BorderRadius.circular(18);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: panelColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor),
+        borderRadius: cardRadius,
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(
+              alpha: isDark ? 0.24 : 0.1,
+            ),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: body,
+      child: ClipRRect(
+        borderRadius: cardRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: isDark ? 10 : 14,
+            sigmaY: isDark ? 10 : 14,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  panelTopColor.withValues(alpha: isDark ? 0.74 : 0.66),
+                  panelBottomColor.withValues(alpha: isDark ? 0.7 : 0.6),
+                ],
+              ),
+              borderRadius: cardRadius,
+              border: Border.all(
+                color: borderColor.withValues(alpha: isDark ? 0.8 : 0.72),
+              ),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 42,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white.withValues(alpha: isDark ? 0.14 : 0.2),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(padding: const EdgeInsets.all(14), child: body),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -508,6 +574,25 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
     final t = widget.progress.clamp(0.0, 1.0);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondFloorTopColor = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(alpha: isDark ? 0.36 : 0.18),
+      theme.colorScheme.surfaceContainerLowest,
+    );
+    final secondFloorBottomColor = Color.alphaBlend(
+      theme.colorScheme.secondary.withValues(alpha: isDark ? 0.2 : 0.11),
+      theme.colorScheme.surface,
+    );
+    final secondFloorAuraPrimary = theme.colorScheme.primary.withValues(
+      alpha: isDark ? 0.16 : 0.11,
+    );
+    final secondFloorAuraSecondary = theme.colorScheme.tertiary.withValues(
+      alpha: isDark ? 0.14 : 0.09,
+    );
+    final secondFloorBottomBarColor = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.12),
+      theme.colorScheme.surfaceContainerHigh,
+    );
     final topInset = media.padding.top;
     final bottomInset = media.padding.bottom;
     final panelHeight = (media.size.height * t).clamp(0.0, media.size.height);
@@ -538,433 +623,538 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
                 height: panelHeight,
                 child: ClipRect(
                   child: Material(
-                    color: theme.colorScheme.surface,
+                    color: secondFloorBottomColor,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            theme.colorScheme.surfaceContainerLowest,
-                            theme.colorScheme.surface,
-                          ],
+                          colors: [secondFloorTopColor, secondFloorBottomColor],
+                        ),
+                        border: Border(
+                          top: BorderSide(
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: isDark ? 0.34 : 0.2,
+                            ),
+                          ),
                         ),
                       ),
-                      child: Column(
+                      child: Stack(
                         children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(
-                              16,
-                              topInset + 10,
-                              12,
-                              12,
-                            ),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '二楼',
-                                  style: theme.textTheme.headlineSmall
-                                      ?.copyWith(fontWeight: FontWeight.w800),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  widget.feedLabel,
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w600,
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      secondFloorAuraPrimary,
+                                      Colors.transparent,
+                                      secondFloorAuraSecondary,
+                                    ],
+                                    stops: const [0.0, 0.56, 1.0],
                                   ),
-                                ),
-                                const Spacer(),
-                                _buildAiActionButton(),
-                                const SizedBox(width: 6),
-                                IconButton(
-                                  tooltip: '搜索小程序',
-                                  visualDensity: VisualDensity.compact,
-                                  onPressed: widget.onOpenMiniAppSearch,
-                                  icon: const Icon(Icons.search_rounded),
-                                ),
-                                IconButton(
-                                  tooltip: '关闭',
-                                  visualDensity: VisualDensity.compact,
-                                  onPressed: widget.onClose,
-                                  icon: const Icon(Icons.close_rounded),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: ListView(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                              children: [
-                                _buildWeatherCard(theme),
-                                const SizedBox(height: 16),
-                                Text(
-                                  '我的小程序',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '长按小程序可排序或删除',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                if (widget.loadingMiniApps &&
-                                    _orderedMiniApps.isEmpty)
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 18),
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.2,
-                                      ),
-                                    ),
-                                  )
-                                else if ((widget.miniAppsError ?? '')
-                                        .isNotEmpty &&
-                                    _orderedMiniApps.isEmpty)
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          theme.colorScheme.surfaceContainerLow,
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: theme.colorScheme.outlineVariant
-                                            .withValues(alpha: 0.4),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            widget.miniAppsError!,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: theme
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        OutlinedButton.icon(
-                                          onPressed: widget.onRefreshMiniApps,
-                                          icon: const Icon(
-                                            Icons.refresh_rounded,
-                                            size: 16,
-                                          ),
-                                          label: const Text('重试'),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                else if (_orderedMiniApps.isEmpty)
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          theme.colorScheme.surfaceContainerLow,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.widgets_outlined,
-                                          color: theme
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            widget.onlineMiniApps.isEmpty
-                                                ? '暂无可用小程序，请先检查小程序清单地址。'
-                                                : '暂无已添加小程序，请点击右上角搜索并添加。',
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: theme
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          tooltip: '刷新',
-                                          onPressed: widget.onRefreshMiniApps,
-                                          icon: const Icon(
-                                            Icons.refresh_rounded,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                else
-                                  LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      const spacing = 10.0;
-                                      final itemWidth =
-                                          (constraints.maxWidth - spacing * 3) /
-                                          4;
-                                      return Wrap(
-                                        spacing: spacing,
-                                        runSpacing: spacing,
-                                        children: _orderedMiniApps
-                                            .map(
-                                              (item) => SizedBox(
-                                                width: itemWidth,
-                                                height: itemWidth * 0.99,
-                                                child: DragTarget<_SecondFloorMiniAppDragData>(
-                                                  onWillAcceptWithDetails:
-                                                      (details) {
-                                                        final dragId =
-                                                            details.data.id;
-                                                        if (dragId == item.id) {
-                                                          return false;
-                                                        }
-                                                        _reorderMiniAppDuringDrag(
-                                                          draggingId: dragId,
-                                                          targetId: item.id,
-                                                        );
-                                                        return true;
-                                                      },
-                                                  builder: (context, candidates, rejected) {
-                                                    final active = candidates
-                                                        .whereType<
-                                                          _SecondFloorMiniAppDragData
-                                                        >()
-                                                        .any(
-                                                          (candidate) =>
-                                                              candidate.id !=
-                                                              item.id,
-                                                        );
-                                                    return AnimatedScale(
-                                                      scale:
-                                                          _draggingMiniAppId ==
-                                                              item.id
-                                                          ? 0.92
-                                                          : 1.0,
-                                                      duration: const Duration(
-                                                        milliseconds: 180,
-                                                      ),
-                                                      curve:
-                                                          Curves.easeOutCubic,
-                                                      child: DecoratedBox(
-                                                        decoration: BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                14,
-                                                              ),
-                                                          border: Border.all(
-                                                            color: active
-                                                                ? theme
-                                                                      .colorScheme
-                                                                      .primary
-                                                                : Colors
-                                                                      .transparent,
-                                                            width: active
-                                                                ? 1.4
-                                                                : 1,
-                                                          ),
-                                                        ),
-                                                        child:
-                                                            LongPressDraggable<
-                                                              _SecondFloorMiniAppDragData
-                                                            >(
-                                                              data:
-                                                                  _SecondFloorMiniAppDragData(
-                                                                    item.id,
-                                                                  ),
-                                                              dragAnchorStrategy:
-                                                                  pointerDragAnchorStrategy,
-                                                              onDragStarted: () =>
-                                                                  _startMiniAppDrag(
-                                                                    item.id,
-                                                                  ),
-                                                              onDragEnd: (_) =>
-                                                                  _endMiniAppDrag(),
-                                                              feedback: Material(
-                                                                color: Colors
-                                                                    .transparent,
-                                                                child: SizedBox(
-                                                                  width:
-                                                                      itemWidth,
-                                                                  height:
-                                                                      itemWidth *
-                                                                      0.99,
-                                                                  child: Transform.scale(
-                                                                    scale: 1.04,
-                                                                    child: _SecondFloorMiniAppItem(
-                                                                      icon: Icons
-                                                                          .widgets_outlined,
-                                                                      iconUrl: item
-                                                                          .iconUrl,
-                                                                      label: item
-                                                                          .name,
-                                                                      tooltip: item
-                                                                          .description,
-                                                                      isDevelopment:
-                                                                          _isLocalDevelopmentMiniApp(
-                                                                            item,
-                                                                          ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              childWhenDragging: Opacity(
-                                                                opacity: 0.14,
-                                                                child: _SecondFloorMiniAppItem(
-                                                                  icon: Icons
-                                                                      .widgets_outlined,
-                                                                  iconUrl: item
-                                                                      .iconUrl,
-                                                                  label:
-                                                                      item.name,
-                                                                  tooltip: item
-                                                                      .description,
-                                                                  isDevelopment:
-                                                                      _isLocalDevelopmentMiniApp(
-                                                                        item,
-                                                                      ),
-                                                                ),
-                                                              ),
-                                                              child: _SecondFloorMiniAppItem(
-                                                                icon: Icons
-                                                                    .widgets_outlined,
-                                                                iconUrl: item
-                                                                    .iconUrl,
-                                                                label:
-                                                                    item.name,
-                                                                tooltip: item
-                                                                    .description,
-                                                                isDevelopment:
-                                                                    _isLocalDevelopmentMiniApp(
-                                                                      item,
-                                                                    ),
-                                                                onTap: () => widget
-                                                                    .onOpenMiniApp(
-                                                                      item,
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                            )
-                                            .toList(growable: false),
-                                      );
-                                    },
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border(
-                                top: BorderSide(
-                                  color: theme.colorScheme.outlineVariant
-                                      .withValues(alpha: 0.25),
                                 ),
                               ),
                             ),
-                            child: DragTarget<_SecondFloorMiniAppDragData>(
-                              onWillAcceptWithDetails: (details) {
-                                if (_draggingMiniAppId == null) {
-                                  return false;
-                                }
-                                setState(() {
-                                  _deleteHoverMiniAppId = details.data.id;
-                                });
-                                return true;
-                              },
-                              onLeave: (_) {
-                                if (!mounted) {
-                                  return;
-                                }
-                                setState(() {
-                                  _deleteHoverMiniAppId = null;
-                                });
-                              },
-                              onAcceptWithDetails: (details) {
-                                final target = _findMiniApp(details.data.id);
-                                if (target == null) {
-                                  return;
-                                }
-                                setState(() {
-                                  _deleteAccepted = true;
-                                  _deleteHoverMiniAppId = details.data.id;
-                                  _orderedMiniApps.removeWhere(
-                                    (item) => item.id == details.data.id,
-                                  );
-                                });
-                                widget.onDeleteMiniApp(target);
-                              },
-                              builder: (context, candidates, rejected) {
-                                final dragging = draggingMiniApp != null;
-                                final deleteAreaHeight =
-                                    widget.bottomBarHeight +
-                                    bottomInset +
-                                    widget.bottomNavigationReserveHeight;
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  curve: Curves.easeOutCubic,
-                                  height: deleteAreaHeight,
-                                  decoration: BoxDecoration(
-                                    color: dragging
-                                        ? (draggingHoverDelete
-                                              ? theme.colorScheme.errorContainer
-                                                    .withValues(alpha: 0.92)
-                                              : theme
-                                                    .colorScheme
-                                                    .tertiaryContainer
-                                                    .withValues(alpha: 0.72))
-                                        : Colors.transparent,
-                                  ),
-                                  child: Align(
-                                    alignment: Alignment.topCenter,
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        16,
-                                        8,
-                                        16,
-                                        0,
+                          ),
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: 22,
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      theme.colorScheme.primary.withValues(
+                                        alpha: isDark ? 0.2 : 0.12,
                                       ),
-                                      child: SizedBox(
-                                        height: widget.bottomBarHeight - 8,
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Column(
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  topInset + 10,
+                                  12,
+                                  12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '二楼',
+                                      style: theme.textTheme.headlineSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      widget.feedLabel,
+                                      style: theme.textTheme.titleSmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    const Spacer(),
+                                    _buildAiActionButton(),
+                                    const SizedBox(width: 6),
+                                    IconButton(
+                                      tooltip: '搜索小程序',
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: widget.onOpenMiniAppSearch,
+                                      icon: const Icon(Icons.search_rounded),
+                                    ),
+                                    IconButton(
+                                      tooltip: '关闭',
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: widget.onClose,
+                                      icon: const Icon(Icons.close_rounded),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: ListView(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    4,
+                                    16,
+                                    16,
+                                  ),
+                                  children: [
+                                    _buildWeatherCard(theme),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      '我的小程序',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      '长按小程序可排序或删除',
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    if (widget.loadingMiniApps &&
+                                        _orderedMiniApps.isEmpty)
+                                      const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 18,
+                                        ),
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.2,
+                                          ),
+                                        ),
+                                      )
+                                    else if ((widget.miniAppsError ?? '')
+                                            .isNotEmpty &&
+                                        _orderedMiniApps.isEmpty)
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: theme
+                                              .colorScheme
+                                              .surfaceContainerLow,
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                          border: Border.all(
+                                            color: theme
+                                                .colorScheme
+                                                .outlineVariant
+                                                .withValues(alpha: 0.4),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                widget.miniAppsError!,
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color: theme
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            OutlinedButton.icon(
+                                              onPressed:
+                                                  widget.onRefreshMiniApps,
+                                              icon: const Icon(
+                                                Icons.refresh_rounded,
+                                                size: 16,
+                                              ),
+                                              label: const Text('重试'),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else if (_orderedMiniApps.isEmpty)
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: theme
+                                              .colorScheme
+                                              .surfaceContainerLow,
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                        ),
                                         child: Row(
                                           children: [
                                             Icon(
-                                              dragging
-                                                  ? (draggingHoverDelete
-                                                        ? Icons.delete_rounded
-                                                        : Icons
-                                                              .delete_outline_rounded)
-                                                  : Icons.layers_rounded,
-                                              size: 18,
-                                              color: dragging
-                                                  ? (draggingHoverDelete
-                                                        ? theme
-                                                              .colorScheme
-                                                              .onErrorContainer
-                                                        : theme
-                                                              .colorScheme
-                                                              .onTertiaryContainer)
-                                                  : theme.colorScheme.primary,
+                                              Icons.widgets_outlined,
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                             ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              dragging
-                                                  ? (draggingHoverDelete
-                                                        ? '删除 ${draggingMiniApp.name}'
-                                                        : '拖动到此删除小程序')
-                                                  : '二楼',
-                                              style: theme.textTheme.titleSmall
-                                                  ?.copyWith(
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                widget.onlineMiniApps.isEmpty
+                                                    ? '暂无可用小程序，请先检查小程序清单地址。'
+                                                    : '暂无已添加小程序，请点击右上角搜索并添加。',
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color: theme
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              tooltip: '刷新',
+                                              onPressed:
+                                                  widget.onRefreshMiniApps,
+                                              icon: const Icon(
+                                                Icons.refresh_rounded,
+                                                size: 18,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else
+                                      LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          const spacing = 10.0;
+                                          final itemWidth =
+                                              (constraints.maxWidth -
+                                                  spacing * 3) /
+                                              4;
+                                          return Wrap(
+                                            spacing: spacing,
+                                            runSpacing: spacing,
+                                            children: _orderedMiniApps
+                                                .map(
+                                                  (item) => SizedBox(
+                                                    width: itemWidth,
+                                                    height: itemWidth * 0.99,
+                                                    child:
+                                                        DragTarget<
+                                                          _SecondFloorMiniAppDragData
+                                                        >(
+                                                          onWillAcceptWithDetails:
+                                                              (details) {
+                                                                final dragId =
+                                                                    details
+                                                                        .data
+                                                                        .id;
+                                                                if (dragId ==
+                                                                    item.id) {
+                                                                  return false;
+                                                                }
+                                                                _reorderMiniAppDuringDrag(
+                                                                  draggingId:
+                                                                      dragId,
+                                                                  targetId:
+                                                                      item.id,
+                                                                );
+                                                                return true;
+                                                              },
+                                                          builder:
+                                                              (
+                                                                context,
+                                                                candidates,
+                                                                rejected,
+                                                              ) {
+                                                                final active = candidates
+                                                                    .whereType<
+                                                                      _SecondFloorMiniAppDragData
+                                                                    >()
+                                                                    .any(
+                                                                      (
+                                                                        candidate,
+                                                                      ) =>
+                                                                          candidate
+                                                                              .id !=
+                                                                          item.id,
+                                                                    );
+                                                                return AnimatedScale(
+                                                                  scale:
+                                                                      _draggingMiniAppId ==
+                                                                          item.id
+                                                                      ? 0.92
+                                                                      : 1.0,
+                                                                  duration:
+                                                                      const Duration(
+                                                                        milliseconds:
+                                                                            180,
+                                                                      ),
+                                                                  curve: Curves
+                                                                      .easeOutCubic,
+                                                                  child: DecoratedBox(
+                                                                    decoration: BoxDecoration(
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            14,
+                                                                          ),
+                                                                      border: Border.all(
+                                                                        color:
+                                                                            active
+                                                                            ? theme.colorScheme.primary
+                                                                            : Colors.transparent,
+                                                                        width:
+                                                                            active
+                                                                            ? 1.4
+                                                                            : 1,
+                                                                      ),
+                                                                    ),
+                                                                    child:
+                                                                        LongPressDraggable<
+                                                                          _SecondFloorMiniAppDragData
+                                                                        >(
+                                                                          data: _SecondFloorMiniAppDragData(
+                                                                            item.id,
+                                                                          ),
+                                                                          dragAnchorStrategy:
+                                                                              pointerDragAnchorStrategy,
+                                                                          onDragStarted: () => _startMiniAppDrag(
+                                                                            item.id,
+                                                                          ),
+                                                                          onDragEnd: (_) =>
+                                                                              _endMiniAppDrag(),
+                                                                          feedback: Material(
+                                                                            color:
+                                                                                Colors.transparent,
+                                                                            child: SizedBox(
+                                                                              width: itemWidth,
+                                                                              height:
+                                                                                  itemWidth *
+                                                                                  0.99,
+                                                                              child: Transform.scale(
+                                                                                scale: 1.04,
+                                                                                child: _SecondFloorMiniAppItem(
+                                                                                  icon: Icons.widgets_outlined,
+                                                                                  iconUrl: item.iconUrl,
+                                                                                  label: item.name,
+                                                                                  tooltip: item.description,
+                                                                                  isDevelopment: _isLocalDevelopmentMiniApp(
+                                                                                    item,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          childWhenDragging: Opacity(
+                                                                            opacity:
+                                                                                0.14,
+                                                                            child: _SecondFloorMiniAppItem(
+                                                                              icon: Icons.widgets_outlined,
+                                                                              iconUrl: item.iconUrl,
+                                                                              label: item.name,
+                                                                              tooltip: item.description,
+                                                                              isDevelopment: _isLocalDevelopmentMiniApp(
+                                                                                item,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          child: _SecondFloorMiniAppItem(
+                                                                            icon:
+                                                                                Icons.widgets_outlined,
+                                                                            iconUrl:
+                                                                                item.iconUrl,
+                                                                            label:
+                                                                                item.name,
+                                                                            tooltip:
+                                                                                item.description,
+                                                                            isDevelopment: _isLocalDevelopmentMiniApp(
+                                                                              item,
+                                                                            ),
+                                                                            onTap: () => widget.onOpenMiniApp(
+                                                                              item,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                  ),
+                                                                );
+                                                              },
+                                                        ),
+                                                  ),
+                                                )
+                                                .toList(growable: false),
+                                          );
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      secondFloorBottomBarColor.withValues(
+                                        alpha: isDark ? 0.92 : 0.9,
+                                      ),
+                                      secondFloorBottomBarColor.withValues(
+                                        alpha: isDark ? 0.76 : 0.72,
+                                      ),
+                                      secondFloorBottomBarColor.withValues(
+                                        alpha: isDark ? 0.54 : 0.48,
+                                      ),
+                                    ],
+                                    stops: const [0.0, 0.42, 1.0],
+                                  ),
+                                  border: Border(
+                                    top: BorderSide(
+                                      color: theme.colorScheme.outlineVariant
+                                          .withValues(alpha: 0.25),
+                                    ),
+                                  ),
+                                ),
+                                child: DragTarget<_SecondFloorMiniAppDragData>(
+                                  onWillAcceptWithDetails: (details) {
+                                    if (_draggingMiniAppId == null) {
+                                      return false;
+                                    }
+                                    setState(() {
+                                      _deleteHoverMiniAppId = details.data.id;
+                                    });
+                                    return true;
+                                  },
+                                  onLeave: (_) {
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _deleteHoverMiniAppId = null;
+                                    });
+                                  },
+                                  onAcceptWithDetails: (details) {
+                                    final target = _findMiniApp(
+                                      details.data.id,
+                                    );
+                                    if (target == null) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _deleteAccepted = true;
+                                      _deleteHoverMiniAppId = details.data.id;
+                                      _orderedMiniApps.removeWhere(
+                                        (item) => item.id == details.data.id,
+                                      );
+                                    });
+                                    widget.onDeleteMiniApp(target);
+                                  },
+                                  builder: (context, candidates, rejected) {
+                                    final dragging = draggingMiniApp != null;
+                                    final deleteAreaHeight =
+                                        widget.bottomBarHeight +
+                                        bottomInset +
+                                        widget.bottomNavigationReserveHeight;
+                                    return AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 180,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                      height: deleteAreaHeight,
+                                      decoration: BoxDecoration(
+                                        color: dragging
+                                            ? (draggingHoverDelete
+                                                  ? theme
+                                                        .colorScheme
+                                                        .errorContainer
+                                                        .withValues(alpha: 0.92)
+                                                  : theme
+                                                        .colorScheme
+                                                        .tertiaryContainer
+                                                        .withValues(
+                                                          alpha: 0.72,
+                                                        ))
+                                            : secondFloorBottomBarColor
+                                                  .withValues(
+                                                    alpha: isDark ? 0.18 : 0.12,
+                                                  ),
+                                      ),
+                                      child: Align(
+                                        alignment: Alignment.topCenter,
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            16,
+                                            8,
+                                            16,
+                                            0,
+                                          ),
+                                          child: SizedBox(
+                                            height: widget.bottomBarHeight - 8,
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  dragging
+                                                      ? (draggingHoverDelete
+                                                            ? Icons
+                                                                  .delete_rounded
+                                                            : Icons
+                                                                  .delete_outline_rounded)
+                                                      : Icons.layers_rounded,
+                                                  size: 18,
+                                                  color: dragging
+                                                      ? (draggingHoverDelete
+                                                            ? theme
+                                                                  .colorScheme
+                                                                  .onErrorContainer
+                                                            : theme
+                                                                  .colorScheme
+                                                                  .onTertiaryContainer)
+                                                      : theme
+                                                            .colorScheme
+                                                            .primary,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  dragging
+                                                      ? (draggingHoverDelete
+                                                            ? '删除 ${draggingMiniApp.name}'
+                                                            : '拖动到此删除小程序')
+                                                      : '二楼',
+                                                  style: theme.textTheme.titleSmall?.copyWith(
                                                     fontWeight: FontWeight.w800,
                                                     color: dragging
                                                         ? (draggingHoverDelete
@@ -976,69 +1166,73 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
                                                                     .onTertiaryContainer)
                                                         : null,
                                                   ),
+                                                ),
+                                                const Spacer(),
+                                                if (!dragging) ...[
+                                                  Text(
+                                                    '当前：${widget.feedLabel}',
+                                                    style: theme
+                                                        .textTheme
+                                                        .labelMedium
+                                                        ?.copyWith(
+                                                          color: theme
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                        ),
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Icon(
+                                                    Icons
+                                                        .keyboard_arrow_up_rounded,
+                                                    size: 18,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                  const SizedBox(width: 2),
+                                                  Text(
+                                                    '上滑返回',
+                                                    style: theme
+                                                        .textTheme
+                                                        .labelMedium
+                                                        ?.copyWith(
+                                                          color: theme
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                        ),
+                                                  ),
+                                                ] else ...[
+                                                  Text(
+                                                    draggingHoverDelete
+                                                        ? '松手删除'
+                                                        : '松手取消',
+                                                    style: theme
+                                                        .textTheme
+                                                        .labelMedium
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color:
+                                                              draggingHoverDelete
+                                                              ? theme
+                                                                    .colorScheme
+                                                                    .onErrorContainer
+                                                              : theme
+                                                                    .colorScheme
+                                                                    .onTertiaryContainer,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
-                                            const Spacer(),
-                                            if (!dragging) ...[
-                                              Text(
-                                                '当前：${widget.feedLabel}',
-                                                style: theme
-                                                    .textTheme
-                                                    .labelMedium
-                                                    ?.copyWith(
-                                                      color: theme
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Icon(
-                                                Icons.keyboard_arrow_up_rounded,
-                                                size: 18,
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                              const SizedBox(width: 2),
-                                              Text(
-                                                '上滑返回',
-                                                style: theme
-                                                    .textTheme
-                                                    .labelMedium
-                                                    ?.copyWith(
-                                                      color: theme
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
-                                              ),
-                                            ] else ...[
-                                              Text(
-                                                draggingHoverDelete
-                                                    ? '松手删除'
-                                                    : '松手取消',
-                                                style: theme
-                                                    .textTheme
-                                                    .labelMedium
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: draggingHoverDelete
-                                                          ? theme
-                                                                .colorScheme
-                                                                .onErrorContainer
-                                                          : theme
-                                                                .colorScheme
-                                                                .onTertiaryContainer,
-                                                    ),
-                                              ),
-                                            ],
-                                          ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1080,118 +1274,113 @@ class _SecondFloorMiniAppItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     final avatarUrl = iconUrl.trim();
     final iconProvider = _miniAppIconProvider(avatarUrl);
     final initials = label.trim().isEmpty ? 'A' : label.trim().substring(0, 1);
+    final accentBorderColor = scheme.primary.withValues(
+      alpha: isDark ? 0.78 : 0.64,
+    );
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.22),
-            ),
-          ),
-          child: Stack(
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Positioned.fill(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    if (iconProvider == null)
-                      Container(
-                        width: 28,
-                        height: 28,
+                    Positioned.fill(
+                      child: Container(
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.15,
-                          ),
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: accentBorderColor,
+                            width: 1.4,
+                          ),
                         ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          icon,
-                          size: 18,
-                          color: theme.colorScheme.primary,
-                        ),
-                      )
-                    else
-                      ClipOval(
-                        child: Image(
-                          image: iconProvider,
-                          width: 28,
-                          height: 28,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (context, errorObject, stackTraceObject) =>
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary
-                                          .withValues(alpha: 0.15),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      initials,
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: theme.colorScheme.primary,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(1.2),
+                          child: iconProvider == null
+                              ? CircleAvatar(
+                                  backgroundColor: scheme.primary.withValues(
+                                    alpha: isDark ? 0.24 : 0.16,
                                   ),
-                        ),
-                      ),
-                    const SizedBox(height: 7),
-                    Tooltip(
-                      message: tooltip.trim().isEmpty ? label : tooltip,
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                                  child: Icon(
+                                    icon,
+                                    size: 20,
+                                    color: scheme.primary,
+                                  ),
+                                )
+                              : ClipOval(
+                                  child: Image(
+                                    image: iconProvider,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (
+                                          context,
+                                          errorObject,
+                                          stackTraceObject,
+                                        ) => CircleAvatar(
+                                          backgroundColor: scheme.primary
+                                              .withValues(alpha: 0.15),
+                                          child: Text(
+                                            initials,
+                                            style: theme.textTheme.titleSmall
+                                                ?.copyWith(
+                                                  color: scheme.primary,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                          ),
+                                        ),
+                                  ),
+                                ),
                         ),
                       ),
                     ),
+                    if (isDevelopment)
+                      Positioned(
+                        right: -1,
+                        top: -1,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: scheme.tertiary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: scheme.surface,
+                              width: 1.2,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
-              if (isDevelopment)
-                Positioned(
-                  right: 6,
-                  bottom: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.tertiaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: theme.colorScheme.tertiary.withValues(
-                          alpha: 0.35,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      '开发版',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onTertiaryContainer,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 9,
-                        height: 1.1,
-                      ),
-                    ),
-                  ),
+              const SizedBox(height: 7),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11.5,
+                  height: 1.05,
                 ),
+              ),
             ],
           ),
         ),

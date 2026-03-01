@@ -31,6 +31,7 @@ class AppSettingsController extends ChangeNotifier {
   static const String _themeModeKey = 'app.theme_mode';
   static const String _themeSeedColorKey = 'app.theme_seed_color';
   static const String _fontScaleKey = 'app.font_scale';
+  static const String _fontWeightScaleKey = 'app.font_weight_scale';
   static const String _fontWeightPresetKey = 'app.font_weight_preset';
   static const String _fontFamilyNameKey = 'app.font_family_name';
   static const String _legacyFontFamilyPresetKey = 'app.font_family_preset';
@@ -72,7 +73,7 @@ class AppSettingsController extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   Color _themeSeedColor = defaultSeedColor;
   double _fontScale = 1.0;
-  AppFontWeightPreset _fontWeightPreset = AppFontWeightPreset.medium;
+  double _fontWeightScale = 1.0;
   String? _fontFamilyName = defaultFontFamilyName;
   AppAppIconPreset _iconPreset = AppAppIconPreset.origin;
   AppCornerPreset _cornerPreset = AppCornerPreset.standard;
@@ -103,7 +104,7 @@ class AppSettingsController extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   Color get themeSeedColor => _themeSeedColor;
   double get fontScale => _fontScale;
-  AppFontWeightPreset get fontWeightPreset => _fontWeightPreset;
+  double get fontWeightScale => _fontWeightScale;
   String? get fontFamilyName => _fontFamilyName;
   AppAppIconPreset get iconPreset => _iconPreset;
   AppCornerPreset get cornerPreset => _cornerPreset;
@@ -157,12 +158,17 @@ class AppSettingsController extends ChangeNotifier {
       _fontScale = _clampFontScale(scaleValue);
     }
 
-    final fontWeightRaw = _prefs?.getString(_fontWeightPresetKey);
-    if (fontWeightRaw != null) {
-      for (final value in AppFontWeightPreset.values) {
-        if (value.name == fontWeightRaw) {
-          _fontWeightPreset = value;
-          break;
+    final fontWeightScaleValue = _prefs?.getDouble(_fontWeightScaleKey);
+    if (fontWeightScaleValue != null) {
+      _fontWeightScale = _clampFontWeightScale(fontWeightScaleValue);
+    } else {
+      final fontWeightRaw = _prefs?.getString(_fontWeightPresetKey);
+      if (fontWeightRaw != null) {
+        for (final value in AppFontWeightPreset.values) {
+          if (value.name == fontWeightRaw) {
+            _fontWeightScale = _legacyPresetToScale(value);
+            break;
+          }
         }
       }
     }
@@ -345,13 +351,18 @@ class AppSettingsController extends ChangeNotifier {
     unawaited(_saveFontScale());
   }
 
-  void updateFontWeightPreset(AppFontWeightPreset value) {
-    if (_fontWeightPreset == value) {
+  void updateFontWeightScale(double value) {
+    final next = _clampFontWeightScale(value);
+    if ((_fontWeightScale - next).abs() < 0.001) {
       return;
     }
-    _fontWeightPreset = value;
+    _fontWeightScale = next;
     notifyListeners();
-    unawaited(_saveFontWeightPreset());
+    unawaited(_saveFontWeightScale());
+  }
+
+  void updateFontWeightPreset(AppFontWeightPreset value) {
+    updateFontWeightScale(_legacyPresetToScale(value));
   }
 
   void updateFontFamilyName(String? value) {
@@ -638,6 +649,34 @@ class AppSettingsController extends ChangeNotifier {
     return value;
   }
 
+  double _clampFontWeightScale(double value) {
+    if (value < 0.8) {
+      return 0.8;
+    }
+    if (value > 1.25) {
+      return 1.25;
+    }
+    return value;
+  }
+
+  AppFontWeightPreset _scaleToLegacyPreset(double scale) {
+    if (scale < 0.94) {
+      return AppFontWeightPreset.regular;
+    }
+    if (scale > 1.10) {
+      return AppFontWeightPreset.bold;
+    }
+    return AppFontWeightPreset.medium;
+  }
+
+  double _legacyPresetToScale(AppFontWeightPreset preset) {
+    return switch (preset) {
+      AppFontWeightPreset.regular => 0.86,
+      AppFontWeightPreset.medium => 1.0,
+      AppFontWeightPreset.bold => 1.18,
+    };
+  }
+
   double _clampAiTemperature(double value) {
     if (value < 0) {
       return 0;
@@ -663,9 +702,13 @@ class AppSettingsController extends ChangeNotifier {
     await _prefs!.setDouble(_fontScaleKey, _fontScale);
   }
 
-  Future<void> _saveFontWeightPreset() async {
+  Future<void> _saveFontWeightScale() async {
     _prefs ??= await SharedPreferences.getInstance();
-    await _prefs!.setString(_fontWeightPresetKey, _fontWeightPreset.name);
+    await _prefs!.setDouble(_fontWeightScaleKey, _fontWeightScale);
+    await _prefs!.setString(
+      _fontWeightPresetKey,
+      _scaleToLegacyPreset(_fontWeightScale).name,
+    );
   }
 
   Future<void> _saveFontFamilyName() async {

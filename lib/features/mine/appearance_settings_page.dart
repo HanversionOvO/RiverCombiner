@@ -408,28 +408,42 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                       onChanged: settings.updateFontScale,
                     ),
                     const SizedBox(height: 4),
-                    _LabelRow(icon: Icons.line_weight_rounded, title: '字体粗细'),
-                    const SizedBox(height: 8),
-                    _PillWrap<AppFontWeightPreset>(
-                      selected: settings.fontWeightPreset,
-                      options: const [
-                        _PillOption(
-                          value: AppFontWeightPreset.regular,
-                          label: '偏细',
-                          icon: Icons.format_bold_outlined,
+                    _LabelRow(
+                      icon: Icons.line_weight_rounded,
+                      title: '字体粗细',
+                      trailing:
+                          '${(settings.fontWeightScale * 100).round()}%',
+                    ),
+                    Slider(
+                      value: settings.fontWeightScale,
+                      min: 0.8,
+                      max: 1.25,
+                      divisions: 9,
+                      onChanged: settings.updateFontWeightScale,
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          '偏细',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                        _PillOption(
-                          value: AppFontWeightPreset.medium,
-                          label: '标准',
-                          icon: Icons.format_bold_rounded,
+                        const Spacer(),
+                        Text(
+                          '标准',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                        _PillOption(
-                          value: AppFontWeightPreset.bold,
-                          label: '偏粗',
-                          icon: Icons.format_bold,
+                        const Spacer(),
+                        Text(
+                          '偏粗',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
-                      onChanged: settings.updateFontWeightPreset,
                     ),
                     const SizedBox(height: 14),
                     _LabelRow(
@@ -585,6 +599,5 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     );
   }
 }
-
 
 

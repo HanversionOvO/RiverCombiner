@@ -325,6 +325,7 @@ class _RiverAppState extends State<RiverApp> {
             final mediaQueryChild = MediaQuery(
               data: data.copyWith(
                 textScaler: TextScaler.linear(settings.fontScale),
+                disableAnimations: settings.reduceMotion,
               ),
               child: _AppRootSnackbarHost(
                 dependencies: _dependencies,
@@ -348,8 +349,16 @@ class _RiverAppState extends State<RiverApp> {
           theme: _buildTheme(brightness: Brightness.light),
           darkTheme: _buildTheme(brightness: Brightness.dark),
           themeMode: settings.themeMode,
+          themeAnimationDuration: settings.reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
+          themeAnimationCurve: settings.reduceMotion
+              ? Curves.linear
+              : Curves.easeOutCubic,
           home: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 1180),
+            duration: settings.reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 1180),
             switchInCurve: Curves.linear,
             switchOutCurve: Curves.linear,
             layoutBuilder: (currentChild, previousChildren) {
@@ -364,6 +373,9 @@ class _RiverAppState extends State<RiverApp> {
               );
             },
             transitionBuilder: (child, animation) {
+              if (settings.reduceMotion) {
+                return child;
+              }
               final keyValue = child.key is ValueKey<String>
                   ? (child.key as ValueKey<String>).value
                   : '';
@@ -418,17 +430,22 @@ class _RiverAppState extends State<RiverApp> {
       seedColor: settings.themeSeedColor,
       brightness: brightness,
     );
+    final isCompact = settings.compactDensity;
+    final isReduceMotion = settings.reduceMotion;
     final cornerRadius = _cornerRadiusForPreset(settings.cornerPreset);
     final base = ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
-      visualDensity: settings.compactDensity
+      visualDensity: isCompact
           ? VisualDensity.compact
           : VisualDensity.standard,
-      splashFactory: settings.reduceMotion
+      materialTapTargetSize: isCompact
+          ? MaterialTapTargetSize.shrinkWrap
+          : MaterialTapTargetSize.padded,
+      splashFactory: isReduceMotion
           ? NoSplash.splashFactory
           : InkRipple.splashFactory,
-      pageTransitionsTheme: settings.reduceMotion
+      pageTransitionsTheme: isReduceMotion
           ? const PageTransitionsTheme(
               builders: {
                 TargetPlatform.android: _NoAnimationPageTransitionsBuilder(),
@@ -443,16 +460,30 @@ class _RiverAppState extends State<RiverApp> {
 
     final textTheme = _applyFontWeightPreset(
       base.textTheme.apply(fontFamily: settings.fontFamilyName),
-      settings.fontWeightPreset,
+      settings.fontWeightScale,
     );
     final primaryTextTheme = _applyFontWeightPreset(
       base.primaryTextTheme.apply(fontFamily: settings.fontFamilyName),
-      settings.fontWeightPreset,
+      settings.fontWeightScale,
+    );
+    final weightedTextTheme = _applyFontVariationPreset(
+      textTheme,
+      settings.fontWeightScale,
+    );
+    final weightedPrimaryTextTheme = _applyFontVariationPreset(
+      primaryTextTheme,
+      settings.fontWeightScale,
     );
 
     return base.copyWith(
-      textTheme: textTheme,
-      primaryTextTheme: primaryTextTheme,
+      textTheme: weightedTextTheme,
+      primaryTextTheme: weightedPrimaryTextTheme,
+      appBarTheme: base.appBarTheme.copyWith(
+        toolbarHeight: isCompact ? 50 : 56,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cornerRadius),
+        ),
+      ),
       cardTheme: CardThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cornerRadius + 4),
@@ -471,6 +502,10 @@ class _RiverAppState extends State<RiverApp> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(cornerRadius),
           borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 10 : 14,
+          vertical: isCompact ? 10 : 14,
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -499,6 +534,52 @@ class _RiverAppState extends State<RiverApp> {
           borderRadius: BorderRadius.circular(cornerRadius),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cornerRadius + 6),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(cornerRadius + 8),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cornerRadius + 2),
+        ),
+      ),
+      snackBarTheme: base.snackBarTheme.copyWith(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cornerRadius + 2),
+        ),
+      ),
+      floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cornerRadius + 8),
+        ),
+      ),
+      navigationBarTheme: base.navigationBarTheme.copyWith(
+        height: isCompact ? 64 : 80,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cornerRadius + 4),
+        ),
+      ),
+      listTileTheme: base.listTileTheme.copyWith(
+        visualDensity: isCompact ? VisualDensity.compact : VisualDensity.standard,
+        dense: isCompact,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 12 : 16,
+          vertical: isCompact ? 2 : 6,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cornerRadius),
+        ),
+      ),
     );
   }
 
@@ -515,13 +596,9 @@ class _RiverAppState extends State<RiverApp> {
 
   TextTheme _applyFontWeightPreset(
     TextTheme theme,
-    AppFontWeightPreset preset,
+    double scale,
   ) {
-    final delta = switch (preset) {
-      AppFontWeightPreset.regular => -1,
-      AppFontWeightPreset.medium => 0,
-      AppFontWeightPreset.bold => 1,
-    };
+    final delta = ((scale - 1.0) * 10).round().clamp(-3, 3);
     if (delta == 0) {
       return theme;
     }
@@ -549,7 +626,41 @@ class _RiverAppState extends State<RiverApp> {
       return null;
     }
     return style.copyWith(
-      fontWeight: _shiftFontWeight(style.fontWeight ?? FontWeight.w400, delta),
+        fontWeight: _shiftFontWeight(style.fontWeight ?? FontWeight.w400, delta),
+    );
+  }
+
+  TextTheme _applyFontVariationPreset(
+    TextTheme theme,
+    double scale,
+  ) {
+    final axisWeight = (500 * scale).clamp(320.0, 780.0);
+    final variations = <FontVariation>[
+      FontVariation('wght', axisWeight),
+    ];
+    TextStyle? apply(TextStyle? style) {
+      if (style == null) {
+        return null;
+      }
+      return style.copyWith(fontVariations: variations);
+    }
+
+    return theme.copyWith(
+      displayLarge: apply(theme.displayLarge),
+      displayMedium: apply(theme.displayMedium),
+      displaySmall: apply(theme.displaySmall),
+      headlineLarge: apply(theme.headlineLarge),
+      headlineMedium: apply(theme.headlineMedium),
+      headlineSmall: apply(theme.headlineSmall),
+      titleLarge: apply(theme.titleLarge),
+      titleMedium: apply(theme.titleMedium),
+      titleSmall: apply(theme.titleSmall),
+      bodyLarge: apply(theme.bodyLarge),
+      bodyMedium: apply(theme.bodyMedium),
+      bodySmall: apply(theme.bodySmall),
+      labelLarge: apply(theme.labelLarge),
+      labelMedium: apply(theme.labelMedium),
+      labelSmall: apply(theme.labelSmall),
     );
   }
 

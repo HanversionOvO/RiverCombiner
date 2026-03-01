@@ -88,7 +88,6 @@ class _MinePageState extends State<MinePage> {
 
   Future<void> _onAddAccountPressed() async {
     if (_isBusy) return;
-    Navigator.pop(context);
 
     final support = await RiverSideWebViewSupport.check();
     if (!mounted) return;
@@ -118,7 +117,6 @@ class _MinePageState extends State<MinePage> {
     if (_isBusy) {
       return;
     }
-    Navigator.pop(context);
     _setBusy(true);
     final profile = await showQingShuiHePanCredentialLoginSheet(
       context: context,
@@ -1628,6 +1626,5 @@ class _MinePageState extends State<MinePage> {
 // -----------------------------------------------------------------------------
 // 组件
 // -----------------------------------------------------------------------------
-
 
 
