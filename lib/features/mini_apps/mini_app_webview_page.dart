@@ -115,6 +115,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
     _platformClient = RiverMiniAppPlatformClient();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..enableZoom(false)
       ..setBackgroundColor(Colors.transparent)
       ..setNavigationDelegate(
         NavigationDelegate(
