@@ -559,10 +559,11 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     final title = (entity.title ?? '').trim();
     final bytes = await entity.originBytes;
     if (bytes != null && bytes.isNotEmpty) {
-      return _PickedImageUploadData(
+      final raw = _PickedImageUploadData(
         fileName: title.isEmpty ? '$fallbackPrefix.jpg' : title,
         bytes: bytes,
       );
+      return _normalizePickedImageForUpload(raw, entity: entity);
     }
     final file = await entity.file;
     if (file == null) {
@@ -580,7 +581,60 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
         : (fileNameFromPath.isNotEmpty
               ? fileNameFromPath
               : '$fallbackPrefix.jpg');
-    return _PickedImageUploadData(fileName: resolvedName, bytes: fileBytes);
+    final raw = _PickedImageUploadData(
+      fileName: resolvedName,
+      bytes: fileBytes,
+    );
+    return _normalizePickedImageForUpload(raw, entity: entity);
+  }
+
+  Future<_PickedImageUploadData> _normalizePickedImageForUpload(
+    _PickedImageUploadData source, {
+    required AssetEntity entity,
+  }) async {
+    if (source.bytes.length <= _imageUploadCompressThresholdBytes) {
+      return source;
+    }
+    if (!_shouldTranscodeAssetBeforeCompress(source)) {
+      return source;
+    }
+    final jpegBytes = await _buildJpegFallbackBytes(entity);
+    if (jpegBytes == null || jpegBytes.isEmpty) {
+      return source;
+    }
+    return _PickedImageUploadData(
+      fileName: _replaceFileExtension(source.fileName, 'jpg'),
+      bytes: jpegBytes,
+    );
+  }
+
+  bool _shouldTranscodeAssetBeforeCompress(_PickedImageUploadData source) {
+    final ext = _fileExtensionFromName(source.fileName);
+    const unsupportedForImagePkg = <String>{'heic', 'heif'};
+    if (unsupportedForImagePkg.contains(ext)) {
+      return true;
+    }
+    return img.decodeImage(Uint8List.fromList(source.bytes)) == null;
+  }
+
+  Future<List<int>?> _buildJpegFallbackBytes(AssetEntity entity) async {
+    const dimensions = <int>[2400, 2000, 1600, 1280, 1024];
+    List<int>? smallestSuccess;
+    for (final d in dimensions) {
+      final data = await entity.thumbnailDataWithSize(
+        ThumbnailSize(d, d),
+        format: ThumbnailFormat.jpeg,
+        quality: 96,
+      );
+      if (data == null || data.isEmpty) {
+        continue;
+      }
+      smallestSuccess = data;
+      if (data.length <= _imageUploadTargetMaxBytes) {
+        return data;
+      }
+    }
+    return smallestSuccess;
   }
 
   _PickedImageUploadData _prepareImageForUpload(_PickedImageUploadData source) {
