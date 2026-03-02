@@ -192,6 +192,7 @@ extension RiverSideApiClientSearchMethods on RiverSideApiClient {
       items.add(
         RiverSidePostSearchItem(
           topicId: topicId,
+          boardId: categoryId,
           title: title,
           excerpt: excerpt,
           authorUsername: username,

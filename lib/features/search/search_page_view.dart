@@ -24,6 +24,10 @@ extension _SearchPageView on _SearchPageState {
                     _buildSearchInput(theme, hasKeyword),
                     const SizedBox(height: 10),
                     _buildModeSelector(theme),
+                    if (_searchMode != _SearchMode.miniApps) ...[
+                      const SizedBox(height: 8),
+                      _buildProviderSelector(theme),
+                    ],
                     const SizedBox(height: 8),
                     Expanded(child: _buildResultsSwitcher()),
                   ],
@@ -64,7 +68,9 @@ extension _SearchPageView on _SearchPageState {
             ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(124),
+          preferredSize: Size.fromHeight(
+            _searchMode == _SearchMode.miniApps ? 124 : 168,
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
             child: Column(
@@ -72,6 +78,10 @@ extension _SearchPageView on _SearchPageState {
                 _buildSearchInput(theme, hasKeyword),
                 const SizedBox(height: 10),
                 _buildModeSelector(theme),
+                if (_searchMode != _SearchMode.miniApps) ...[
+                  const SizedBox(height: 8),
+                  _buildProviderSelector(theme),
+                ],
               ],
             ),
           ),
@@ -111,7 +121,8 @@ extension _SearchPageView on _SearchPageState {
       },
       child: KeyedSubtree(
         key: ValueKey<String>(
-          'search-body:${_searchMode.name}:$_activeQuery:${_loading ? 1 : 0}'
+          'search-body:${_searchMode.name}:${_searchProvider.name}:'
+          '$_activeQuery:${_loading ? 1 : 0}'
           ':${_error ?? ''}:$_resultAnimationEpoch',
         ),
         child: _buildBody(),
@@ -251,47 +262,133 @@ extension _SearchPageView on _SearchPageState {
   }
 
   Widget _buildModeSelector(ThemeData theme) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.55,
-          ),
-          borderRadius: BorderRadius.circular(14),
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.36),
         ),
-        child: SegmentedButton<_SearchMode>(
-          segments: _SearchMode.values
-              .map(
-                (mode) => ButtonSegment<_SearchMode>(
-                  value: mode,
-                  label: Text(mode.label),
-                  icon: Icon(switch (mode) {
-                    _SearchMode.posts => Icons.article_outlined,
-                    _SearchMode.users => Icons.person_search_outlined,
-                    _SearchMode.miniApps => Icons.widgets_outlined,
-                  }, size: 16),
+      ),
+      child: Row(
+        children: _SearchMode.values
+            .map((mode) {
+              final selected = mode == _searchMode;
+              final icon = switch (mode) {
+                _SearchMode.posts => Icons.article_outlined,
+                _SearchMode.users => Icons.person_search_outlined,
+                _SearchMode.miniApps => Icons.widgets_outlined,
+              };
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => _onModeChanged(mode),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: selected
+                              ? LinearGradient(
+                                  colors: <Color>[
+                                    theme.colorScheme.primary.withValues(
+                                      alpha: 0.92,
+                                    ),
+                                    theme.colorScheme.primary.withValues(
+                                      alpha: 0.78,
+                                    ),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                          color: selected ? null : Colors.transparent,
+                          boxShadow: selected
+                              ? <BoxShadow>[
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.24,
+                                    ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              icon,
+                              size: 16,
+                              color: selected
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              mode.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: selected
+                                    ? theme.colorScheme.onPrimary
+                                    : theme.colorScheme.onSurfaceVariant,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              )
-              .toList(growable: false),
-          selected: <_SearchMode>{_searchMode},
-          showSelectedIcon: false,
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-            shape: WidgetStatePropertyAll(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              );
+            })
+            .toList(growable: false),
+      ),
+    );
+  }
+
+  Widget _buildProviderSelector(ThemeData theme) {
+    final selected = _searchProvider;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.30),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ForumChoiceChip(
+              label: 'RiverSide',
+              icon: Icons.water_rounded,
+              selected: selected == AccountProvider.riverSide,
+              onTap: () => _onProviderChanged(AccountProvider.riverSide),
             ),
           ),
-          onSelectionChanged: (selection) {
-            if (selection.isEmpty) {
-              return;
-            }
-            _onModeChanged(selection.first);
-          },
-        ),
+          Expanded(
+            child: _ForumChoiceChip(
+              label: '清水河畔',
+              icon: Icons.school_rounded,
+              selected: selected == AccountProvider.qingShuiHePan,
+              onTap: () => _onProviderChanged(AccountProvider.qingShuiHePan),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -560,7 +657,7 @@ extension _SearchPageView on _SearchPageState {
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                    onTap: () => _openTopicDetail(post.topicId),
+                    onTap: () => _openTopicDetail(post),
                   ),
               ],
               if (_searchMode == _SearchMode.users && hasUserSuggestions) ...[
@@ -815,7 +912,7 @@ extension _SearchPageView on _SearchPageState {
                   ),
                 ),
                 child: InkWell(
-                  onTap: () => _openTopicDetail(post.topicId),
+                  onTap: () => _openTopicDetail(post),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
                     child: Column(
@@ -1127,6 +1224,75 @@ class _StaggeredAppear extends StatelessWidget {
         );
       },
       child: child,
+    );
+  }
+}
+
+class _ForumChoiceChip extends StatelessWidget {
+  const _ForumChoiceChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: selected
+                  ? theme.colorScheme.primary.withValues(alpha: 0.14)
+                  : Colors.transparent,
+              border: Border.all(
+                color: selected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.34)
+                    : Colors.transparent,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 15,
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1485,5 +1651,3 @@ class _MiniAppMetaBadge extends StatelessWidget {
     );
   }
 }
-
-

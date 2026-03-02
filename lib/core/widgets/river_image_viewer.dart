@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
@@ -106,6 +107,15 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     formats: <BarcodeFormat>[BarcodeFormat.qrCode],
   );
   final Map<String, String?> _qrDecodeCache = <String, String?>{};
+  final Map<int, bool> _pageZoomedState = <int, bool>{};
+  final Set<int> _overlaySamplePendingIndexes = <int>{};
+  final Map<int, _OverlaySamplingData> _overlaySampleDataByIndex =
+      <int, _OverlaySamplingData>{};
+  final Map<int, _ViewerTransformSnapshot> _transformSnapshotByIndex =
+      <int, _ViewerTransformSnapshot>{};
+  final Map<int, ({Color leading, Color trailing, Color indicator})>
+  _overlayColorsByIndex =
+      <int, ({Color leading, Color trailing, Color indicator})>{};
   late int _currentIndex;
   bool _showOverlay = true;
 
@@ -114,6 +124,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     super.initState();
     _currentIndex = widget.initialIndex.clamp(0, widget.items.length - 1);
     _pageController = PageController(initialPage: _currentIndex);
+    _prefetchOverlayColorsAround(_currentIndex);
   }
 
   @override
@@ -127,6 +138,257 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     setState(() {
       _showOverlay = !_showOverlay;
     });
+  }
+
+  bool get _currentPageZoomed => _pageZoomedState[_currentIndex] ?? false;
+
+  Color get _leadingOverlayColor =>
+      _overlayColorsByIndex[_currentIndex]?.leading ?? Colors.white;
+
+  Color get _trailingOverlayColor =>
+      _overlayColorsByIndex[_currentIndex]?.trailing ?? Colors.white;
+
+  Color get _indicatorOverlayColor =>
+      _overlayColorsByIndex[_currentIndex]?.indicator ?? Colors.white;
+
+  void _onPageZoomChanged(int index, bool isZoomed) {
+    if (!mounted) {
+      return;
+    }
+    final current = _pageZoomedState[index] ?? false;
+    if (current == isZoomed) {
+      return;
+    }
+    setState(() {
+      _pageZoomedState[index] = isZoomed;
+    });
+  }
+
+  void _onPageTransformChanged(int index, _ViewerTransformSnapshot snapshot) {
+    _transformSnapshotByIndex[index] = snapshot;
+    _updateOverlayColorsForIndex(index);
+  }
+
+  void _prefetchOverlayColorsAround(int index) {
+    if (widget.items.isEmpty) {
+      return;
+    }
+    unawaited(_ensureOverlaySamplingData(index));
+  }
+
+  Future<void> _ensureOverlaySamplingData(int index) async {
+    if (index < 0 || index >= widget.items.length) {
+      return;
+    }
+    if (_overlaySampleDataByIndex.containsKey(index) ||
+        _overlaySamplePendingIndexes.contains(index)) {
+      return;
+    }
+    _overlaySamplePendingIndexes.add(index);
+    try {
+      final sampleData = await _loadOverlaySamplingData(widget.items[index]);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _overlaySampleDataByIndex[index] = sampleData;
+      });
+      _updateOverlayColorsForIndex(index);
+    } catch (_) {
+      // Keep fallback colors when sampling fails.
+    } finally {
+      _overlaySamplePendingIndexes.remove(index);
+    }
+  }
+
+  Future<_OverlaySamplingData> _loadOverlaySamplingData(
+    RiverImageViewerItem item,
+  ) async {
+    final uri = Uri.tryParse(item.url);
+    if (uri == null) {
+      throw StateError('invalid_image_uri');
+    }
+    final bytes = await _downloadImageBytes(uri, item.headers);
+    final codec = await ui.instantiateImageCodec(
+      Uint8List.fromList(bytes),
+      targetWidth: 120,
+      targetHeight: 120,
+    );
+    try {
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final byteData = await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      if (byteData == null) {
+        throw StateError('empty_image_data');
+      }
+      return _OverlaySamplingData(
+        width: image.width,
+        height: image.height,
+        rgba: byteData.buffer.asUint8List(),
+      );
+    } finally {
+      codec.dispose();
+    }
+  }
+
+  void _updateOverlayColorsForIndex(int index) {
+    if (!mounted || index < 0 || index >= widget.items.length) {
+      return;
+    }
+    final snapshot = _transformSnapshotByIndex[index];
+    final sampleData = _overlaySampleDataByIndex[index];
+    if (snapshot == null || sampleData == null) {
+      return;
+    }
+    final viewport = snapshot.viewportSize;
+    if (viewport.width <= 0 || viewport.height <= 0) {
+      return;
+    }
+    final topInset = MediaQuery.maybeOf(context)?.padding.top ?? 0;
+    final leadingRegion = Rect.fromCenter(
+      center: Offset(24, topInset + 24),
+      width: 44,
+      height: 44,
+    );
+    final trailingRegion = Rect.fromCenter(
+      center: Offset(viewport.width - 24, topInset + 24),
+      width: 44,
+      height: 44,
+    );
+    final indicatorRegion = Rect.fromCenter(
+      center: Offset(viewport.width / 2, viewport.height - 36),
+      width: 112,
+      height: 30,
+    );
+    final nextColors = (
+      leading: _foregroundByLuminance(
+        _sampleViewportLuminance(
+          sampleData: sampleData,
+          snapshot: snapshot,
+          regionInViewport: leadingRegion,
+        ),
+      ),
+      trailing: _foregroundByLuminance(
+        _sampleViewportLuminance(
+          sampleData: sampleData,
+          snapshot: snapshot,
+          regionInViewport: trailingRegion,
+        ),
+      ),
+      indicator: _foregroundByLuminance(
+        _sampleViewportLuminance(
+          sampleData: sampleData,
+          snapshot: snapshot,
+          regionInViewport: indicatorRegion,
+        ),
+      ),
+    );
+    final current = _overlayColorsByIndex[index];
+    if (current == nextColors) {
+      return;
+    }
+    setState(() {
+      _overlayColorsByIndex[index] = nextColors;
+    });
+  }
+
+  double _sampleViewportLuminance({
+    required _OverlaySamplingData sampleData,
+    required _ViewerTransformSnapshot snapshot,
+    required Rect regionInViewport,
+  }) {
+    final imagePixelSize = snapshot.imagePixelSize;
+    final viewport = snapshot.viewportSize;
+    if (imagePixelSize == null ||
+        imagePixelSize.width <= 0 ||
+        imagePixelSize.height <= 0) {
+      return 0;
+    }
+    final inverse = Matrix4.copy(snapshot.matrix);
+    final determinant = inverse.invert();
+    if (determinant == 0) {
+      return 0;
+    }
+    final containedImageRect = _resolveContainedImageRect(
+      viewportSize: viewport,
+      imagePixelSize: imagePixelSize,
+    );
+    if (containedImageRect.isEmpty) {
+      return 0;
+    }
+    const rows = 6;
+    const columns = 6;
+    var total = 0.0;
+    var count = 0;
+    for (var row = 0; row < rows; row++) {
+      final y =
+          regionInViewport.top + regionInViewport.height * (row + 0.5) / rows;
+      for (var column = 0; column < columns; column++) {
+        final x =
+            regionInViewport.left +
+            regionInViewport.width * (column + 0.5) / columns;
+        final clamped = Offset(
+          x.clamp(0, viewport.width),
+          y.clamp(0, viewport.height),
+        );
+        final contentPoint = MatrixUtils.transformPoint(inverse, clamped);
+        if (!containedImageRect.contains(contentPoint)) {
+          count++;
+          continue;
+        }
+        final normalizedX =
+            (contentPoint.dx - containedImageRect.left) /
+            containedImageRect.width;
+        final normalizedY =
+            (contentPoint.dy - containedImageRect.top) /
+            containedImageRect.height;
+        final pixelX = (normalizedX * (sampleData.width - 1))
+            .clamp(0, sampleData.width - 1)
+            .round();
+        final pixelY = (normalizedY * (sampleData.height - 1))
+            .clamp(0, sampleData.height - 1)
+            .round();
+        final offset = (pixelY * sampleData.width + pixelX) * 4;
+        if (offset + 3 >= sampleData.rgba.length) {
+          count++;
+          continue;
+        }
+        final alpha = sampleData.rgba[offset + 3] / 255.0;
+        final r = (sampleData.rgba[offset] / 255.0) * alpha;
+        final g = (sampleData.rgba[offset + 1] / 255.0) * alpha;
+        final b = (sampleData.rgba[offset + 2] / 255.0) * alpha;
+        total += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        count++;
+      }
+    }
+    if (count == 0) {
+      return 0;
+    }
+    return total / count;
+  }
+
+  Rect _resolveContainedImageRect({
+    required Size viewportSize,
+    required Size imagePixelSize,
+  }) {
+    final viewportAspect = viewportSize.width / viewportSize.height;
+    final imageAspect = imagePixelSize.width / imagePixelSize.height;
+    if (viewportAspect > imageAspect) {
+      final height = viewportSize.height;
+      final width = height * imageAspect;
+      final left = (viewportSize.width - width) / 2;
+      return Rect.fromLTWH(left, 0, width, height);
+    }
+    final width = viewportSize.width;
+    final height = width / imageAspect;
+    final top = (viewportSize.height - height) / 2;
+    return Rect.fromLTWH(0, top, width, height);
+  }
+
+  Color _foregroundByLuminance(double luminance) {
+    return luminance > 0.58 ? Colors.black : Colors.white;
   }
 
   Future<void> _showImageActions(RiverImageViewerItem item) async {
@@ -1084,11 +1346,15 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
               behavior: HitTestBehavior.opaque,
               child: PageView.builder(
                 controller: _pageController,
+                physics: _currentPageZoomed
+                    ? const NeverScrollableScrollPhysics()
+                    : const PageScrollPhysics(),
                 itemCount: widget.items.length,
                 onPageChanged: (index) {
                   setState(() {
                     _currentIndex = index;
                   });
+                  _prefetchOverlayColorsAround(index);
                 },
                 itemBuilder: (context, index) {
                   final item = widget.items[index];
@@ -1098,6 +1364,10 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                       child: _ViewerZoomableImage(
                         item: item,
                         onLongPress: () => _showImageActions(item),
+                        onZoomStateChanged: (isZoomed) =>
+                            _onPageZoomChanged(index, isZoomed),
+                        onTransformChanged: (snapshot) =>
+                            _onPageTransformChanged(index, snapshot),
                       ),
                     ),
                   );
@@ -1118,20 +1388,26 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        color: Colors.white,
+                        color: _leadingOverlayColor,
                         icon: const Icon(Icons.close),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       const Spacer(),
                       Padding(
-                        padding: const EdgeInsets.only(right: 16),
+                        padding: const EdgeInsets.only(right: 4),
                         child: Text(
                           '$current / $count',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: _trailingOverlayColor,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                      ),
+                      IconButton(
+                        color: _trailingOverlayColor,
+                        icon: const Icon(Icons.more_horiz_rounded),
+                        onPressed: () =>
+                            _showImageActions(widget.items[_currentIndex]),
                       ),
                     ],
                   ),
@@ -1151,6 +1427,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                 child: _PageIndicator(
                   controller: _pageController,
                   itemCount: widget.items.length,
+                  foregroundColor: _indicatorOverlayColor,
                 ),
               ),
             ),
@@ -1159,6 +1436,30 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
       ),
     );
   }
+}
+
+class _ViewerTransformSnapshot {
+  const _ViewerTransformSnapshot({
+    required this.matrix,
+    required this.viewportSize,
+    required this.imagePixelSize,
+  });
+
+  final Matrix4 matrix;
+  final Size viewportSize;
+  final Size? imagePixelSize;
+}
+
+class _OverlaySamplingData {
+  const _OverlaySamplingData({
+    required this.width,
+    required this.height,
+    required this.rgba,
+  });
+
+  final int width;
+  final int height;
+  final Uint8List rgba;
 }
 
 bool _isRiverSideImageUrl(String url) {
@@ -1191,6 +1492,3 @@ String _buildImageCacheKey(String url, Map<String, String>? headers) {
   }
   return '$url#auth';
 }
-
-
-

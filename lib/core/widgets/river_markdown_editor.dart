@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:image/image.dart' as img;
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
@@ -1348,8 +1348,8 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
                                           height: 1.6,
                                         ),
                                       ),
-                                  sizedImageBuilder: (config) {
-                                    final source = config.uri.toString();
+                                  imageBuilder: (uri, title, alt) {
+                                    final source = uri.toString();
                                     if (_isAssetEmojiUrl(source)) {
                                       final assetPath = _assetPathFromEmojiUrl(
                                         source,

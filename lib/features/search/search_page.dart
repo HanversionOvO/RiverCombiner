@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
+import 'package:river/core/config/server_config.dart';
 import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_models.dart';
 import 'package:river/core/mini_apps/river_mini_app_repository.dart';
@@ -94,12 +97,14 @@ class SearchPage extends StatefulWidget {
     required this.dependencies,
     this.initialMode = SearchPageInitialMode.posts,
     this.showEntryActionIcon = true,
+    this.initialProvider,
     this.controller,
   });
 
   final AppDependencies dependencies;
   final SearchPageInitialMode initialMode;
   final bool showEntryActionIcon;
+  final AccountProvider? initialProvider;
   final SearchPageController? controller;
 
   @override
@@ -125,7 +130,8 @@ class _SearchPageState extends State<SearchPage> {
   static const String _labelNeedKeyword = '请输入关键词开始搜索';
   static const String _labelSearchFailed = '搜索失败，请稍后重试';
   static const String _labelClearRecentSuccess = '已清空最近搜索';
-  static const String _labelNeedLogin = '请先登录 RiverSide 账号';
+  static const String _labelNeedRiverSideLogin = '请先登录 RiverSide 账号';
+  static const String _labelNeedQingShuiHePanLogin = '请先登录清水河畔账号';
   static const String _labelSuggestion = '搜索建议';
   static const String _labelSuggestionPosts = '帖子建议';
   static const String _labelSuggestionUsers = '用户建议';
@@ -140,6 +146,7 @@ class _SearchPageState extends State<SearchPage> {
   StreamSubscription<int>? _miniAppsChangedSubscription;
 
   _SearchMode _searchMode = _SearchMode.posts;
+  AccountProvider _searchProvider = AccountProvider.riverSide;
   List<RiverSidePostSearchItem> _postItems = const <RiverSidePostSearchItem>[];
   List<RiverSideUserSearchItem> _userItems = const <RiverSideUserSearchItem>[];
   List<RiverMiniAppEntry> _miniAppItems = const <RiverMiniAppEntry>[];
@@ -165,7 +172,8 @@ class _SearchPageState extends State<SearchPage> {
   int _resultAnimationEpoch = 0;
   String _activeQuery = '';
   String? _error;
-  String? _lastActiveUsername;
+  String? _lastActiveRiverSideUsername;
+  String? _lastActiveQingShuiHePanUsername;
   bool _keywordFocused = false;
   Timer? _suggestionDebounce;
   final Set<String> _installingMiniAppIds = <String>{};
@@ -204,8 +212,25 @@ class _SearchPageState extends State<SearchPage> {
       SearchPageInitialMode.users => _SearchMode.users,
       SearchPageInitialMode.miniApps => _SearchMode.miniApps,
     };
-    _lastActiveUsername =
+    final initialProvider = widget.initialProvider;
+    if (initialProvider != null) {
+      _searchProvider = initialProvider;
+    } else if ((widget.dependencies.accountStore.activeRiverSideUsername ?? '')
+        .trim()
+        .isNotEmpty) {
+      _searchProvider = AccountProvider.riverSide;
+    } else if ((widget.dependencies.accountStore.activeQingShuiHePanUsername ??
+            '')
+        .trim()
+        .isNotEmpty) {
+      _searchProvider = AccountProvider.qingShuiHePan;
+    } else {
+      _searchProvider = AccountProvider.riverSide;
+    }
+    _lastActiveRiverSideUsername =
         widget.dependencies.accountStore.activeRiverSideUsername;
+    _lastActiveQingShuiHePanUsername =
+        widget.dependencies.accountStore.activeQingShuiHePanUsername;
     widget.dependencies.accountStore.addListener(_onAccountStoreChanged);
     _scrollController.addListener(_onScroll);
     _keywordFocusNode.addListener(_onKeywordFocusChanged);

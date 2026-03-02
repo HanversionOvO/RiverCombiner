@@ -96,28 +96,44 @@ extension _SearchPageActions on _SearchPageState {
       _keywordSuggestions = keywordSuggestions;
     });
     try {
-      final cookieHeader = _activeCookieHeader();
-      final apiClient = widget.dependencies.accountStore.riverSideApiClient;
       List<RiverSidePostSearchItem> postSuggestions =
           const <RiverSidePostSearchItem>[];
       List<RiverSideUserSearchItem> userSuggestions =
           const <RiverSideUserSearchItem>[];
       switch (_searchMode) {
         case _SearchMode.posts:
-          final page = await apiClient.searchPosts(
-            query: normalized,
-            page: 1,
-            cookieHeader: cookieHeader,
-          );
-          postSuggestions = page.items.take(6).toList(growable: false);
+          if (_searchProvider == AccountProvider.qingShuiHePan) {
+            final page = await _searchQingPosts(query: normalized, page: 1);
+            postSuggestions = page.items.take(6).toList(growable: false);
+          } else {
+            final page = await widget
+                .dependencies
+                .accountStore
+                .riverSideApiClient
+                .searchPosts(
+                  query: normalized,
+                  page: 1,
+                  cookieHeader: _activeCookieHeader(),
+                );
+            postSuggestions = page.items.take(6).toList(growable: false);
+          }
           break;
         case _SearchMode.users:
-          final users = await apiClient.searchUsers(
-            term: normalized,
-            limit: 8,
-            cookieHeader: cookieHeader,
-          );
-          userSuggestions = users.take(8).toList(growable: false);
+          if (_searchProvider == AccountProvider.qingShuiHePan) {
+            final users = await _searchQingUsers(term: normalized, limit: 8);
+            userSuggestions = users.take(8).toList(growable: false);
+          } else {
+            final users = await widget
+                .dependencies
+                .accountStore
+                .riverSideApiClient
+                .searchUsers(
+                  term: normalized,
+                  limit: 8,
+                  cookieHeader: _activeCookieHeader(),
+                );
+            userSuggestions = users.take(8).toList(growable: false);
+          }
           break;
         case _SearchMode.miniApps:
           break;
@@ -145,18 +161,30 @@ extension _SearchPageActions on _SearchPageState {
   }
 
   void _onAccountStoreChanged() {
-    final current = widget.dependencies.accountStore.activeRiverSideUsername;
-    final previous = _lastActiveUsername;
-    if (current == previous) {
+    final riverCurrent =
+        widget.dependencies.accountStore.activeRiverSideUsername;
+    final qingCurrent =
+        widget.dependencies.accountStore.activeQingShuiHePanUsername;
+    final riverChanged = riverCurrent != _lastActiveRiverSideUsername;
+    final qingChanged = qingCurrent != _lastActiveQingShuiHePanUsername;
+    if (!riverChanged && !qingChanged) {
       return;
     }
-    _lastActiveUsername = current;
-    _loadRecentSearches();
+    _lastActiveRiverSideUsername = riverCurrent;
+    _lastActiveQingShuiHePanUsername = qingCurrent;
+    if (_searchProvider == AccountProvider.riverSide) {
+      _loadRecentSearches();
+    }
     if (_searchMode == _SearchMode.miniApps) {
       unawaited(_loadMiniAppCatalog(forceRefresh: true));
     }
     if (_activeQuery.isNotEmpty) {
-      _runSearch(reset: true);
+      final shouldRefresh =
+          (_searchProvider == AccountProvider.riverSide && riverChanged) ||
+          (_searchProvider == AccountProvider.qingShuiHePan && qingChanged);
+      if (shouldRefresh) {
+        _runSearch(reset: true);
+      }
     }
   }
 
@@ -201,7 +229,30 @@ extension _SearchPageActions on _SearchPageState {
     return widget.dependencies.accountStore.riverSideCookieHeaderFor(username);
   }
 
+  QingShuiHePanAuth? _activeQingAuth() {
+    final username =
+        widget.dependencies.accountStore.activeQingShuiHePanUsername ?? '';
+    final normalized = username.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return widget.dependencies.accountStore.qingShuiHePanAuthFor(normalized);
+  }
+
+  String _needLoginLabel() {
+    return _searchProvider == AccountProvider.qingShuiHePan
+        ? _SearchPageState._labelNeedQingShuiHePanLogin
+        : _SearchPageState._labelNeedRiverSideLogin;
+  }
+
   Future<void> _loadRecentSearches() async {
+    if (_searchProvider != AccountProvider.riverSide) {
+      _mutateState(() {
+        _recentSearches = const <String>[];
+        _loadingRecentSearches = false;
+      });
+      return;
+    }
     if (_loadingRecentSearches) {
       return;
     }
@@ -244,13 +295,17 @@ extension _SearchPageActions on _SearchPageState {
   }
 
   Future<void> _clearRecentSearches() async {
+    if (_searchProvider != AccountProvider.riverSide) {
+      _showSnackBar('清水河畔暂不支持云端搜索历史');
+      return;
+    }
     if (_clearingRecentSearches) {
       return;
     }
 
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      _showSnackBar(_SearchPageState._labelNeedLogin);
+      _showSnackBar(_needLoginLabel());
       return;
     }
 
@@ -340,16 +395,16 @@ extension _SearchPageActions on _SearchPageState {
     }
 
     try {
-      final apiClient = widget.dependencies.accountStore.riverSideApiClient;
-      final cookieHeader = _activeCookieHeader();
-
       switch (_searchMode) {
         case _SearchMode.posts:
-          final page = await apiClient.searchPosts(
-            query: targetQuery,
-            page: nextPage,
-            cookieHeader: cookieHeader,
-          );
+          final page = _searchProvider == AccountProvider.qingShuiHePan
+              ? await _searchQingPosts(query: targetQuery, page: nextPage)
+              : await widget.dependencies.accountStore.riverSideApiClient
+                    .searchPosts(
+                      query: targetQuery,
+                      page: nextPage,
+                      cookieHeader: _activeCookieHeader(),
+                    );
           if (!mounted || serial != _requestSerial) {
             return;
           }
@@ -374,11 +429,17 @@ extension _SearchPageActions on _SearchPageState {
           });
           break;
         case _SearchMode.users:
-          final users = await apiClient.searchUsers(
-            term: targetQuery,
-            limit: _SearchPageState._userSearchLimit,
-            cookieHeader: cookieHeader,
-          );
+          final users = _searchProvider == AccountProvider.qingShuiHePan
+              ? await _searchQingUsers(
+                  term: targetQuery,
+                  limit: _SearchPageState._userSearchLimit,
+                )
+              : await widget.dependencies.accountStore.riverSideApiClient
+                    .searchUsers(
+                      term: targetQuery,
+                      limit: _SearchPageState._userSearchLimit,
+                      cookieHeader: _activeCookieHeader(),
+                    );
           if (!mounted || serial != _requestSerial) {
             return;
           }
@@ -479,12 +540,49 @@ extension _SearchPageActions on _SearchPageState {
     }
   }
 
-  Future<void> _openTopicDetail(int topicId) async {
+  void _onProviderChanged(AccountProvider provider) {
+    if (provider == _searchProvider) {
+      return;
+    }
+    _mutateState(() {
+      _searchProvider = provider;
+      _error = null;
+      _requestSerial++;
+      _loading = false;
+      _loadingMorePosts = false;
+      _postItems = const <RiverSidePostSearchItem>[];
+      _userItems = const <RiverSideUserSearchItem>[];
+      _currentPostPage = 0;
+      _hasMorePostPages = false;
+      _showBackToTop.value = false;
+      _loadingSuggestions = false;
+      _keywordSuggestions = const <String>[];
+      _postSuggestions = const <RiverSidePostSearchItem>[];
+      _userSuggestions = const <RiverSideUserSearchItem>[];
+      _recentSearches = const <String>[];
+    });
+    if (_searchProvider == AccountProvider.riverSide) {
+      unawaited(_loadRecentSearches());
+    }
+    if (_keywordController.text.trim().isNotEmpty) {
+      if (_keywordFocused) {
+        _scheduleSuggestionQuery(immediate: true);
+      } else {
+        unawaited(_runSearch(reset: true));
+      }
+    }
+  }
+
+  Future<void> _openTopicDetail(RiverSidePostSearchItem item) async {
     await Navigator.of(context).push(
       riverPageRoute<void>(
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
-          topicId: topicId,
+          topicId: item.topicId,
+          provider: _searchProvider,
+          qingBoardId: _searchProvider == AccountProvider.qingShuiHePan
+              ? item.boardId
+              : null,
         ),
       ),
     );
@@ -492,7 +590,7 @@ extension _SearchPageActions on _SearchPageState {
 
   Future<void> _openUserProfile(RiverSideUserSearchItem user) async {
     final account = UserAccount(
-      provider: AccountProvider.riverSide,
+      provider: _searchProvider,
       userId: user.id <= 0 ? null : user.id,
       username: user.username,
       displayName: user.displayName,
@@ -503,7 +601,9 @@ extension _SearchPageActions on _SearchPageState {
         builder: (_) => RiverSideProfilePage(
           dependencies: widget.dependencies,
           account: account,
-          cookieHeader: _activeCookieHeader(),
+          cookieHeader: _searchProvider == AccountProvider.riverSide
+              ? _activeCookieHeader()
+              : null,
         ),
       ),
     );
@@ -543,6 +643,326 @@ extension _SearchPageActions on _SearchPageState {
       return;
     }
     await _runSearch(reset: true);
+  }
+
+  Future<RiverSidePostSearchPage> _searchQingPosts({
+    required String query,
+    required int page,
+  }) async {
+    final keyword = query.trim();
+    if (keyword.isEmpty) {
+      return RiverSidePostSearchPage(
+        items: const <RiverSidePostSearchItem>[],
+        page: page,
+        hasMore: false,
+      );
+    }
+    final auth = _activeQingAuth();
+    if (auth == null) {
+      throw const RiverSideApiException(
+        _SearchPageState._labelNeedQingShuiHePanLogin,
+      );
+    }
+
+    final safePage = page <= 0 ? 1 : page;
+    final response = await _callQingApi(
+      auth: auth,
+      body: <String, String>{
+        'r': 'forum/search',
+        'keyword': keyword,
+        'page': '$safePage',
+        'pageSize': '20',
+      },
+    );
+
+    final listRaw = response['list'] ?? _asQingMap(response['body'])['list'];
+    if (listRaw is! List) {
+      return RiverSidePostSearchPage(
+        items: const <RiverSidePostSearchItem>[],
+        page: safePage,
+        hasMore: false,
+      );
+    }
+
+    final items = <RiverSidePostSearchItem>[];
+    for (final raw in listRaw) {
+      final item = _asQingMap(raw);
+      if (item.isEmpty) {
+        continue;
+      }
+      final topicId =
+          _asQingInt(item['topic_id']) ?? _asQingInt(item['id']) ?? 0;
+      if (topicId <= 0) {
+        continue;
+      }
+
+      final boardId =
+          _asQingInt(item['board_id']) ??
+          _asQingInt(item['fid']) ??
+          _asQingInt(item['forum_id']);
+      final title = _sanitizeQingText(
+        _pickQingString(item, const <String>['title', 'subject']),
+      );
+      final excerpt = _sanitizeQingText(
+        _pickQingString(item, const <String>['summary', 'subject', 'content']),
+      );
+      final displayName = _pickQingString(item, const <String>[
+        'user_nick_name',
+        'nick_name',
+        'name',
+        'userName',
+        'username',
+      ]);
+      final username = _pickQingString(item, const <String>[
+        'user_name',
+        'username',
+        'userName',
+      ]);
+      final avatar = _resolveQingUrl(
+        _pickQingString(item, const <String>['icon', 'avatar', 'userAvatar']),
+      );
+      final createdAt = _parseQingEpochDate(
+        _asQingInt(item['last_reply_date']) ??
+            _asQingInt(item['create_date']) ??
+            _asQingInt(item['dateline']),
+      );
+      final categoryName = _pickQingString(item, const <String>[
+        'board_name',
+        'forum_name',
+        'type_name',
+      ]);
+
+      items.add(
+        RiverSidePostSearchItem(
+          topicId: topicId,
+          boardId: boardId,
+          title: title.isEmpty ? '(无标题)' : title,
+          excerpt: excerpt,
+          authorUsername: username.isEmpty
+              ? (displayName.isEmpty ? 'user_$topicId' : displayName)
+              : username,
+          authorDisplayName: displayName.isEmpty
+              ? (username.isEmpty ? '未知用户' : username)
+              : displayName,
+          authorAvatarUrl: avatar,
+          categoryName: categoryName.isEmpty ? '清水河畔' : categoryName,
+          replyCount: _asQingInt(item['replies']) ?? 0,
+          viewCount: _asQingInt(item['hits']) ?? 0,
+          createdAt: createdAt,
+        ),
+      );
+    }
+
+    final hasMoreHint =
+        _asQingBool(response['has_next']) ||
+        _asQingBool(response['hasMore']) ||
+        _asQingBool(_asQingMap(response['body'])['has_next']) ||
+        _asQingBool(_asQingMap(response['body'])['hasMore']);
+    final hasMore = hasMoreHint || items.length >= 20;
+    return RiverSidePostSearchPage(
+      items: items,
+      page: safePage,
+      hasMore: hasMore,
+    );
+  }
+
+  Future<List<RiverSideUserSearchItem>> _searchQingUsers({
+    required String term,
+    int limit = 20,
+  }) async {
+    final keyword = term.trim();
+    if (keyword.isEmpty) {
+      return const <RiverSideUserSearchItem>[];
+    }
+    final auth = _activeQingAuth();
+    if (auth == null) {
+      throw const RiverSideApiException(
+        _SearchPageState._labelNeedQingShuiHePanLogin,
+      );
+    }
+    final safeLimit = limit <= 0 ? 20 : limit;
+    final response = await _callQingApi(
+      auth: auth,
+      body: <String, String>{
+        'r': 'user/searchuser',
+        'keyword': keyword,
+        'page': '1',
+        'pageSize': '$safeLimit',
+      },
+    );
+
+    final listRaw = response['list'] ?? _asQingMap(response['body'])['list'];
+    if (listRaw is! List) {
+      return const <RiverSideUserSearchItem>[];
+    }
+
+    final result = <RiverSideUserSearchItem>[];
+    for (final raw in listRaw) {
+      final item = _asQingMap(raw);
+      if (item.isEmpty) {
+        continue;
+      }
+      final userId =
+          _asQingInt(item['uid']) ??
+          _asQingInt(item['user_id']) ??
+          _asQingInt(item['id']) ??
+          0;
+      final username = _pickQingString(item, const <String>[
+        'username',
+        'user_name',
+        'userName',
+        'name',
+      ]);
+      final displayName = _pickQingString(item, const <String>[
+        'name',
+        'nick_name',
+        'nickname',
+        'user_nick_name',
+        'userName',
+      ]);
+      final resolvedName = displayName.isEmpty
+          ? (username.isEmpty ? 'user_$userId' : username)
+          : displayName;
+      final resolvedUsername = username.isEmpty ? resolvedName : username;
+      if (resolvedUsername.trim().isEmpty) {
+        continue;
+      }
+      final avatar = _resolveQingUrl(
+        _pickQingString(item, const <String>['icon', 'avatar', 'userAvatar']),
+      );
+      result.add(
+        RiverSideUserSearchItem(
+          id: userId,
+          username: resolvedUsername,
+          displayName: resolvedName,
+          avatarUrl: avatar,
+        ),
+      );
+    }
+    return result;
+  }
+
+  Future<Map<String, dynamic>> _callQingApi({
+    required QingShuiHePanAuth auth,
+    required Map<String, String> body,
+  }) async {
+    final endpoint =
+        '${RiverServerConfig.instance.qingShuiHePanBaseUrl}/mobcent/app/web/index.php';
+    final requestBody = <String, String>{
+      ...body,
+      'accessToken': auth.token,
+      'accessSecret': auth.secret,
+    };
+    final response = await http
+        .post(
+          Uri.parse(endpoint),
+          headers: const <String, String>{
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          },
+          body: _formEncode(requestBody),
+        )
+        .timeout(const Duration(seconds: 14));
+
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map) {
+      throw const RiverSideApiException('清水河畔接口返回异常');
+    }
+    final map = decoded.map((key, value) => MapEntry('$key', value));
+    if ('${map['rs']}' == '0') {
+      final head = _asQingMap(map['head']);
+      final message = '${map['errcode'] ?? head['errInfo'] ?? '请求失败'}'.trim();
+      throw RiverSideApiException(message.isEmpty ? '清水河畔请求失败' : message);
+    }
+    return map;
+  }
+
+  String _formEncode(Map<String, String> data) {
+    return data.entries
+        .map(
+          (entry) =>
+              '${Uri.encodeQueryComponent(entry.key)}=${Uri.encodeQueryComponent(entry.value)}',
+        )
+        .join('&');
+  }
+
+  Map<String, dynamic> _asQingMap(dynamic raw) {
+    if (raw is! Map) {
+      return const <String, dynamic>{};
+    }
+    return raw.map((key, value) => MapEntry('$key', value));
+  }
+
+  int? _asQingInt(dynamic raw) {
+    if (raw is int) {
+      return raw;
+    }
+    if (raw is double) {
+      return raw.toInt();
+    }
+    return int.tryParse('${raw ?? ''}'.trim());
+  }
+
+  bool _asQingBool(dynamic raw) {
+    if (raw is bool) {
+      return raw;
+    }
+    final value = '${raw ?? ''}'.trim().toLowerCase();
+    return value == '1' || value == 'true' || value == 'yes';
+  }
+
+  String _pickQingString(Map<String, dynamic> source, List<String> keys) {
+    for (final key in keys) {
+      final value = '${source[key] ?? ''}'.trim();
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return '';
+  }
+
+  DateTime? _parseQingEpochDate(int? value) {
+    if (value == null || value <= 0) {
+      return null;
+    }
+    final isMillis = value > 1000000000000;
+    return DateTime.fromMillisecondsSinceEpoch(isMillis ? value : value * 1000);
+  }
+
+  String _resolveQingUrl(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) {
+      return '';
+    }
+    final uri = Uri.tryParse(value);
+    if (uri != null && uri.hasScheme) {
+      return value;
+    }
+    final base = Uri.tryParse(RiverServerConfig.instance.qingShuiHePanBaseUrl);
+    if (base == null) {
+      return value;
+    }
+    if (value.startsWith('//')) {
+      return '${base.scheme}:$value';
+    }
+    if (value.startsWith('/')) {
+      return '${base.scheme}://${base.host}$value';
+    }
+    return '${base.scheme}://${base.host}/$value';
+  }
+
+  String _sanitizeQingText(String raw) {
+    if (raw.isEmpty) {
+      return '';
+    }
+    return raw
+        .replaceAll(RegExp(r'<[^>]*>'), ' ')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
   Future<void> _loadInstalledMiniApps() async {

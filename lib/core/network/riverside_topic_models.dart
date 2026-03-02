@@ -97,6 +97,9 @@ class RiverSideTopicPostDetail {
     required this.id,
     required this.topicId,
     required this.postNumber,
+    this.postType = 1,
+    this.actionCode = '',
+    this.actionDescription = '',
     required this.authorUserId,
     required this.authorUsername,
     required this.authorDisplayName,
@@ -119,6 +122,9 @@ class RiverSideTopicPostDetail {
   final int id;
   final int topicId;
   final int postNumber;
+  final int postType;
+  final String actionCode;
+  final String actionDescription;
   final int? authorUserId;
   final String authorUsername;
   final String authorDisplayName;
@@ -137,10 +143,15 @@ class RiverSideTopicPostDetail {
   final List<RiverSideTopicPoll> polls;
   final bool canVotePoll;
 
+  bool get isSystemActionPost => postType == 3 || actionCode.trim().isNotEmpty;
+
   RiverSideTopicPostDetail copyWith({
     int? id,
     int? topicId,
     int? postNumber,
+    int? postType,
+    String? actionCode,
+    String? actionDescription,
     int? authorUserId,
     bool clearAuthorUserId = false,
     String? authorUsername,
@@ -165,6 +176,9 @@ class RiverSideTopicPostDetail {
       id: id ?? this.id,
       topicId: topicId ?? this.topicId,
       postNumber: postNumber ?? this.postNumber,
+      postType: postType ?? this.postType,
+      actionCode: actionCode ?? this.actionCode,
+      actionDescription: actionDescription ?? this.actionDescription,
       authorUserId: clearAuthorUserId
           ? null
           : (authorUserId ?? this.authorUserId),
@@ -439,3 +453,4 @@ class RiverSidePostReactionState {
   final RiverSideCurrentUserReaction? currentUserReaction;
   final int reactionUsersCount;
 }
+

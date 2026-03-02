@@ -64,21 +64,28 @@ class _ViewerActionTile extends StatelessWidget {
 }
 
 class _PageIndicator extends StatelessWidget {
-  const _PageIndicator({required this.controller, required this.itemCount});
+  const _PageIndicator({
+    required this.controller,
+    required this.itemCount,
+    required this.foregroundColor,
+  });
 
   final PageController controller;
   final int itemCount;
+  final Color foregroundColor;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final inactiveColor = colorScheme.onSurface.withValues(alpha: 0.26);
-    final activeColor = colorScheme.primaryFixed;
+    final inactiveColor = foregroundColor.withValues(alpha: 0.38);
+    final activeColor = foregroundColor.withValues(alpha: 0.96);
+    final backgroundColor = foregroundColor == Colors.black
+        ? Colors.white.withValues(alpha: 0.36)
+        : Colors.black.withValues(alpha: 0.52);
 
     return Center(
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.52),
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
@@ -104,10 +111,17 @@ class _PageIndicator extends StatelessWidget {
 }
 
 class _ViewerZoomableImage extends StatefulWidget {
-  const _ViewerZoomableImage({required this.item, required this.onLongPress});
+  const _ViewerZoomableImage({
+    required this.item,
+    required this.onLongPress,
+    this.onZoomStateChanged,
+    this.onTransformChanged,
+  });
 
   final RiverImageViewerItem item;
   final VoidCallback onLongPress;
+  final ValueChanged<bool>? onZoomStateChanged;
+  final ValueChanged<_ViewerTransformSnapshot>? onTransformChanged;
 
   @override
   State<_ViewerZoomableImage> createState() => _ViewerZoomableImageState();
@@ -142,6 +156,8 @@ class _ViewerZoomableImageState extends State<_ViewerZoomableImage>
   int _doubleTapCycleIndex = 0;
   bool _showMiniMapOverlay = true;
   Timer? _miniMapFadeTimer;
+  bool _lastZoomState = false;
+  Size _lastReportedViewportSize = Size.zero;
 
   @override
   void initState() {
@@ -162,6 +178,7 @@ class _ViewerZoomableImageState extends State<_ViewerZoomableImage>
   @override
   void dispose() {
     _miniMapFadeTimer?.cancel();
+    widget.onZoomStateChanged?.call(false);
     _detachImageStream();
     _transformController.removeListener(_onMatrixChanged);
     _matrixAnimationController.dispose();
@@ -191,6 +208,15 @@ class _ViewerZoomableImageState extends State<_ViewerZoomableImage>
             ? constraints.maxHeight
             : MediaQuery.of(context).size.height;
         _viewportSize = Size(width, height);
+        if (_viewportSize != _lastReportedViewportSize) {
+          _lastReportedViewportSize = _viewportSize;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+            _emitTransformSnapshot();
+          });
+        }
         final imageChild = SizedBox(width: width, height: height, child: image);
 
         return GestureDetector(
@@ -262,6 +288,12 @@ class _ViewerZoomableImageState extends State<_ViewerZoomableImage>
 
   void _onMatrixChanged() {
     final scale = _currentScale;
+    final zoomed = scale > 1.01;
+    if (zoomed != _lastZoomState) {
+      _lastZoomState = zoomed;
+      widget.onZoomStateChanged?.call(zoomed);
+    }
+    _emitTransformSnapshot();
     if (scale < _miniMapShowScale) {
       _miniMapFadeTimer?.cancel();
       if (!_showMiniMapOverlay && mounted) {
@@ -455,6 +487,7 @@ class _ViewerZoomableImageState extends State<_ViewerZoomableImage>
       setState(() {
         _imagePixelSize = next;
       });
+      _emitTransformSnapshot();
     });
     stream.addListener(listener);
     _imageStream = stream;
@@ -469,6 +502,20 @@ class _ViewerZoomableImageState extends State<_ViewerZoomableImage>
     }
     _imageStream = null;
     _imageStreamListener = null;
+  }
+
+  void _emitTransformSnapshot() {
+    final callback = widget.onTransformChanged;
+    if (callback == null || _viewportSize.isEmpty) {
+      return;
+    }
+    callback(
+      _ViewerTransformSnapshot(
+        matrix: Matrix4.copy(_transformController.value),
+        viewportSize: _viewportSize,
+        imagePixelSize: _imagePixelSize,
+      ),
+    );
   }
 
   Widget _buildProvidedImage() {

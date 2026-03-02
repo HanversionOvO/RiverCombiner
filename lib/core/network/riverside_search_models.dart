@@ -17,6 +17,7 @@ class RiverSidePostSearchPage {
 class RiverSidePostSearchItem {
   const RiverSidePostSearchItem({
     required this.topicId,
+    this.boardId,
     required this.title,
     required this.excerpt,
     required this.authorUsername,
@@ -29,6 +30,7 @@ class RiverSidePostSearchItem {
   });
 
   final int topicId;
+  final int? boardId;
   final String title;
   final String excerpt;
   final String authorUsername;

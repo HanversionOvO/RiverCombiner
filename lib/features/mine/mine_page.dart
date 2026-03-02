@@ -1192,15 +1192,28 @@ class _MinePageState extends State<MinePage> {
               style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _onAddAccountPressed,
-              icon: const Icon(Icons.login_rounded),
-              label: const Text('登录 / 注册'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
+            SizedBox(
+              width: 320,
+              child: Column(
+                children: [
+                  FilledButton.icon(
+                    onPressed: _onAddAccountPressed,
+                    icon: const Icon(Icons.login_rounded),
+                    label: const Text('登录 RiverSide'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 46),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _onAddQingShuiAccountPressed,
+                    icon: const Icon(Icons.school_rounded),
+                    label: const Text('登录清水河畔'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 46),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1626,5 +1639,3 @@ class _MinePageState extends State<MinePage> {
 // -----------------------------------------------------------------------------
 // 组件
 // -----------------------------------------------------------------------------
-
-

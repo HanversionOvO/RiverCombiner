@@ -10,7 +10,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -2618,6 +2619,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                               showAiSummaryMarquee: _showAiSummaryMarquee,
                               showAiSummaryAction: !_isQingShuiHePanTopic,
                               showReplyAction: !showFloatingReply,
+                              showAliasFirst: _isQingShuiHePanTopic,
                               isJumpHighlighted: _jumpHighlightPostNumber == 1,
                               jumpHighlightToken: _jumpHighlightPostNumber == 1
                                   ? _jumpHighlightToken
@@ -2733,6 +2735,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                     reactionPulseToken:
                                         _reactionPulseTokenByPostId[post.id] ??
                                         0,
+                                    showAliasFirst: _isQingShuiHePanTopic,
                                     isJumpHighlighted:
                                         _jumpHighlightPostNumber ==
                                         post.postNumber,
@@ -2745,8 +2748,8 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                   // 闁告帒妫楁竟濠勬?
                                   if (index != _comments.length - 1)
                                     Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 60,
+                                      padding: EdgeInsets.only(
+                                        left: post.isSystemActionPost ? 12 : 60,
                                       ), // 閻忓繐绉圭紞鍌炲棘閸パ呮憻
                                       child: Divider(
                                         height: 1,

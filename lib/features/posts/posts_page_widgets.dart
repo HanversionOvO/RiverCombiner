@@ -1074,7 +1074,7 @@ class _TopicCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.1,
                       ),
-                      maxLines: 1,
+                      maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

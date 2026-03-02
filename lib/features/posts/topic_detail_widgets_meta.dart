@@ -8,6 +8,7 @@ class _PostAuthorHeader extends StatelessWidget {
     this.heroTagName,
     this.enableHero = true,
     this.trailing,
+    this.showAliasFirst = false,
   });
 
   final RiverSideTopicPostDetail post;
@@ -16,6 +17,7 @@ class _PostAuthorHeader extends StatelessWidget {
   final String? heroTagName;
   final bool enableHero;
   final Widget? trailing;
+  final bool showAliasFirst;
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +59,15 @@ class _PostAuthorHeader extends StatelessWidget {
         ? avatar
         : Hero(tag: heroTagAvatar!, child: avatar);
 
+    final username = post.authorUsername.trim();
+    final alias = post.authorDisplayName.trim();
+    final primaryName = showAliasFirst
+        ? (alias.isNotEmpty ? alias : username)
+        : (username.isNotEmpty ? username : alias);
+    final secondaryName = showAliasFirst ? username : alias;
+
     final displayName = Text(
-      post.authorDisplayName,
+      primaryName,
       style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
     );
     final displayNameWidget =
@@ -96,10 +105,13 @@ class _PostAuthorHeader extends StatelessWidget {
                         color: subtitleColor,
                       ),
                     ),
-                  Text(
-                    '@${post.authorUsername}',
-                    style: textTheme.bodySmall?.copyWith(color: subtitleColor),
-                  ),
+                  if (secondaryName.isNotEmpty)
+                    Text(
+                      '@$secondaryName',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: subtitleColor,
+                      ),
+                    ),
                 ],
               ),
             ],

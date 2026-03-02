@@ -684,8 +684,8 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                       _openLink(href);
                     }
                   },
-                  sizedImageBuilder: (config) {
-                    final resolved = _resolveForumUrl('${config.uri}');
+                  imageBuilder: (uri, title, alt) {
+                    final resolved = _resolveForumUrl('$uri');
                     final headers = _headersForUrl(resolved);
                     final heroTag =
                         'chat-image-${widget.channel.id}-${item.id}-${resolved.hashCode}';
@@ -752,8 +752,8 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                                     ),
                                   ),
                                   child: Text(
-                                    config.alt?.trim().isNotEmpty == true
-                                        ? (config.alt ?? '')
+                                    alt?.trim().isNotEmpty == true
+                                        ? (alt ?? '')
                                         : '图片加载失败',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: theme.colorScheme.onSurfaceVariant,
@@ -1459,5 +1459,3 @@ class _ChatComposerRichController extends TextEditingController {
     return TextSpan(style: baseStyle, children: spans);
   }
 }
-
-

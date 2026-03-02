@@ -60,6 +60,7 @@ class _MainPostCard extends StatefulWidget {
     this.isJumpHighlighted = false,
     this.jumpHighlightToken = 0,
     this.submittingPollKeys = const <String>{},
+    this.showAliasFirst = false,
     required this.onPollVote,
     required this.onPollClear,
   });
@@ -95,6 +96,7 @@ class _MainPostCard extends StatefulWidget {
   final bool isJumpHighlighted;
   final int jumpHighlightToken;
   final Set<String> submittingPollKeys;
+  final bool showAliasFirst;
   final Future<bool> Function(RiverSideTopicPoll poll, List<String> optionIds)
   onPollVote;
   final Future<bool> Function(RiverSideTopicPoll poll) onPollClear;
@@ -242,6 +244,7 @@ class _MainPostCardState extends State<_MainPostCard>
                       heroTagName:
                           widget.authorNameHeroTag ??
                           _topicPostAuthorNameHeroTag(post),
+                      showAliasFirst: widget.showAliasFirst,
                       trailing: widget.showOwnerActions
                           ? _MainPostInlineActions(
                               onEditPressed: widget.onEditPressed,
@@ -868,6 +871,7 @@ class _CommentCard extends StatefulWidget {
     this.reactionPulseToken = 0,
     this.isJumpHighlighted = false,
     this.jumpHighlightToken = 0,
+    this.showAliasFirst = false,
   });
 
   final RiverSideTopicPostDetail post;
@@ -889,6 +893,7 @@ class _CommentCard extends StatefulWidget {
   final int reactionPulseToken;
   final bool isJumpHighlighted;
   final int jumpHighlightToken;
+  final bool showAliasFirst;
 
   @override
   State<_CommentCard> createState() => _CommentCardState();
@@ -902,6 +907,16 @@ class _CommentCardState extends State<_CommentCard>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    if (widget.post.isSystemActionPost) {
+      return _SystemActionPostCard(
+        post: widget.post,
+        heroTag: widget.heroTag,
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        highlighted: widget.isJumpHighlighted,
+        highlightToken: widget.jumpHighlightToken,
+      );
+    }
     final subtitleColor = Theme.of(context).colorScheme.onSurfaceVariant;
     final hasReactionStatus = widget.post.reactions.any(
       (item) => item.count > 0,
@@ -940,6 +955,7 @@ class _CommentCardState extends State<_CommentCard>
                       heroTagAvatar: _topicPostAuthorAvatarHeroTag(widget.post),
                       heroTagName: _topicPostAuthorNameHeroTag(widget.post),
                       enableHero: false,
+                      showAliasFirst: widget.showAliasFirst,
                       trailing: _CommentInlineActions(
                         reacting: widget.isReacting,
                         onReplyPressed: () =>
@@ -1007,6 +1023,168 @@ class _CommentCardState extends State<_CommentCard>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SystemActionPostCard extends StatelessWidget {
+  const _SystemActionPostCard({
+    required this.post,
+    this.heroTag,
+    this.onTap,
+    this.onLongPress,
+    this.highlighted = false,
+    this.highlightToken = 0,
+    this.margin = const EdgeInsets.fromLTRB(12, 0, 12, 12),
+  });
+
+  final RiverSideTopicPostDetail post;
+  final String? heroTag;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final bool highlighted;
+  final int highlightToken;
+  final EdgeInsetsGeometry margin;
+
+  IconData _iconForActionCode(String code) {
+    final normalized = code.trim().toLowerCase();
+    if (normalized.contains('pinned')) {
+      return Icons.push_pin_rounded;
+    }
+    if (normalized.contains('closed')) {
+      return Icons.lock_rounded;
+    }
+    if (normalized.contains('archived')) {
+      return Icons.inventory_2_rounded;
+    }
+    if (normalized.contains('visible') || normalized.contains('unlisted')) {
+      return Icons.visibility_off_rounded;
+    }
+    return Icons.info_outline_rounded;
+  }
+
+  Color _accentColor(ThemeData theme, String code) {
+    final normalized = code.trim().toLowerCase();
+    if (normalized.contains('closed')) {
+      return theme.colorScheme.error;
+    }
+    if (normalized.contains('pinned')) {
+      return theme.colorScheme.primary;
+    }
+    if (normalized.contains('visible') || normalized.contains('unlisted')) {
+      return theme.colorScheme.tertiary;
+    }
+    return theme.colorScheme.secondary;
+  }
+
+  String _actionText() {
+    final action = post.actionDescription.trim();
+    if (action.isNotEmpty) {
+      return action;
+    }
+    final content = post.contentMarkdown.trim();
+    if (content.isNotEmpty) {
+      return content;
+    }
+    return '系统动态';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final subtitleColor = theme.colorScheme.onSurfaceVariant;
+    final accent = _accentColor(theme, post.actionCode);
+    final username = post.authorUsername.trim();
+    final actor = post.authorDisplayName.trim();
+    final actorLabel = username.isNotEmpty
+        ? '@$username'
+        : (actor.isNotEmpty ? actor : '');
+
+    Widget card = Card(
+      margin: margin,
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  _iconForActionCode(post.actionCode),
+                  size: 16,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _actionText(),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 6,
+                      children: [
+                        _MetaItem(
+                          icon: Icons.schedule_outlined,
+                          text: _formatDateTime(post.createdAt),
+                          color: subtitleColor,
+                        ),
+                        if (actorLabel.isNotEmpty)
+                          Text(
+                            actorLabel,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: subtitleColor,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (highlighted) {
+      card = _JumpHighlightWrapper(
+        highlighted: true,
+        token: highlightToken,
+        borderRadius: BorderRadius.circular(18),
+        child: card,
+      );
+    }
+
+    if (heroTag == null || heroTag!.isEmpty) {
+      return card;
+    }
+    return Hero(
+      tag: heroTag!,
+      flightShuttleBuilder: _commentCardHeroShuttleBuilder,
+      transitionOnUserGestures: true,
+      child: HeroMode(enabled: false, child: card),
     );
   }
 }
@@ -1102,6 +1280,14 @@ class _CommentDetailPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (post.isSystemActionPost) {
+      return _SystemActionPostCard(
+        post: post,
+        heroTag: heroTag,
+        onLongPress: onLongPress,
+        margin: const EdgeInsets.only(bottom: 12),
+      );
+    }
     final subtitleColor = Theme.of(context).colorScheme.onSurfaceVariant;
     final hasReactionStatus = post.reactions.any((item) => item.count > 0);
     final disableInnerHero = heroTag != null && heroTag!.isNotEmpty;

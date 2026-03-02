@@ -225,14 +225,27 @@ class _MarkdownContent extends StatelessWidget {
   }
 
   Widget _buildMarkdownBody(BuildContext context, String data) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final baseStyle = textTheme.bodyMedium;
+    if (_containsInlineHtmlTag(data)) {
+      return _buildHtmlMarkdownBody(context, data, baseStyle);
+    }
+
     final headers = _buildImageHeaders(cookieHeader);
     final galleryItems = _buildMarkdownGalleryItems(
       markdown: data,
       headers: headers,
     );
+    final isDark = theme.brightness == Brightness.dark;
+    final quoteBg = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.10),
+      theme.colorScheme.surfaceContainerLow,
+    );
+    final quoteBorder = theme.colorScheme.primary.withValues(
+      alpha: isDark ? 0.62 : 0.44,
+    );
     var imageBuilderIndex = 0;
-    final textTheme = Theme.of(context).textTheme;
-    final baseStyle = textTheme.bodyMedium;
     final inlineSyntaxes = <md.InlineSyntax>[
       if (emojiUrls.isNotEmpty) _EmojiInlineSyntax(emojiUrls),
       if (onMentionTap != null) _MentionInlineSyntax(),
@@ -252,8 +265,8 @@ class _MarkdownContent extends StatelessWidget {
       selectable: false,
       inlineSyntaxes: inlineSyntaxes,
       builders: builders,
-      sizedImageBuilder: (config) {
-        final resolvedUrl = _resolveForumUrl('${config.uri}');
+      imageBuilder: (uri, title, alt) {
+        final resolvedUrl = _resolveForumUrl('$uri');
         if (!_isSafeRenderableImageUrl(resolvedUrl)) {
           // Guard unknown/broken image markdown (e.g. empty src). Render as
           // plain fallback text to avoid image provider crash.
@@ -297,13 +310,140 @@ class _MarkdownContent extends StatelessWidget {
         );
       },
       onTapLink: (_, href, _) {},
-      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+      styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
         p: baseStyle,
         blockquote: baseStyle?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          color: theme.colorScheme.onSurface,
+          height: 1.45,
+        ),
+        blockquotePadding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        blockquoteDecoration: BoxDecoration(
+          color: quoteBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border(left: BorderSide(color: quoteBorder, width: 3)),
         ),
       ),
     );
+  }
+
+  Widget _buildHtmlMarkdownBody(
+    BuildContext context,
+    String data,
+    TextStyle? baseStyle,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final quoteBg = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.10),
+      theme.colorScheme.surfaceContainerLow,
+    );
+    final quoteBorder = theme.colorScheme.primary.withValues(
+      alpha: isDark ? 0.62 : 0.44,
+    );
+    final headers = _buildImageHeaders(cookieHeader);
+    final html = md.markdownToHtml(
+      data,
+      extensionSet: md.ExtensionSet.gitHubFlavored,
+      encodeHtml: false,
+    );
+    return HtmlWidget(
+      html,
+      baseUrl: Uri.tryParse(riverSideBaseUrl),
+      renderMode: RenderMode.column,
+      textStyle: baseStyle,
+      customStylesBuilder: (element) {
+        if (element.localName == 'blockquote') {
+          return <String, String>{
+            'margin': '0',
+            'padding': '10px 12px',
+            'border-left': '3px solid ${_toCssColor(quoteBorder)}',
+            'background-color': _toCssColor(quoteBg),
+            'border-radius': '12px',
+          };
+        }
+        return null;
+      },
+      onTapUrl: (url) {
+        final resolved = _resolveForumUrl(url);
+        final mentionUsername = _tryParseMentionUsernameFromUrl(resolved);
+        if (mentionUsername != null && onMentionTap != null) {
+          onMentionTap!(mentionUsername);
+          return true;
+        }
+        final topicId = _tryParseTopicIdFromUrl(resolved);
+        if (topicId != null && onTopicLinkTap != null) {
+          onTopicLinkTap!(topicId);
+          return true;
+        }
+        unawaited(_openLink(resolved));
+        return true;
+      },
+      onTapImage: (imageMetadata) {
+        final viewerItems = <RiverImageViewerItem>[];
+        var sourceIndex = 0;
+        for (final source in imageMetadata.sources) {
+          final resolved = _resolveForumUrl(source.url.trim());
+          final uri = Uri.tryParse(resolved);
+          final scheme = uri?.scheme.toLowerCase();
+          if (scheme != 'http' && scheme != 'https') {
+            continue;
+          }
+          if (!_isSafeRenderableImageUrl(resolved)) {
+            continue;
+          }
+          final effectiveHeaders = _headersForImageUrl(resolved, headers);
+          viewerItems.add(
+            RiverImageViewerItem(
+              url: resolved,
+              headers: effectiveHeaders,
+              heroTag:
+                  'topic_html_image_${data.hashCode}_${sourceIndex}_${resolved.hashCode}',
+              imageProvider: CachedNetworkImageProvider(
+                resolved,
+                headers: effectiveHeaders,
+              ),
+            ),
+          );
+          sourceIndex++;
+        }
+        if (viewerItems.isEmpty) {
+          return;
+        }
+        unawaited(RiverImageViewerPage.open(context, items: viewerItems));
+      },
+    );
+  }
+
+  String _toCssColor(Color color) {
+    final alpha = (color.a * 255).round() / 255;
+    return 'rgba(${color.r}, ${color.g}, ${color.b}, ${alpha.toStringAsFixed(3)})';
+  }
+
+  bool _containsInlineHtmlTag(String source) {
+    if (source.trim().isEmpty) {
+      return false;
+    }
+    final tagRegex = RegExp(r'<[^>\n]+>');
+    final htmlTagRegex = RegExp(
+      r'^</?[a-z][a-z0-9-]*(\s[^>]*)?/?>$',
+      caseSensitive: false,
+    );
+    for (final match in tagRegex.allMatches(source)) {
+      final token = (match.group(0) ?? '').trim();
+      if (token.isEmpty) {
+        continue;
+      }
+      final lower = token.toLowerCase();
+      if (lower.startsWith('<http') ||
+          lower.startsWith('<https') ||
+          lower.startsWith('<mailto:')) {
+        continue;
+      }
+      if (htmlTagRegex.hasMatch(token)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<void> _openLink(String? href) async {

@@ -12,6 +12,8 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
 
     final id = _asInt(post['id']);
     final postNumber = _asInt(post['post_number']);
+    final postType = _asInt(post['post_type']) ?? 1;
+    final actionCode = (post['action_code'] ?? '').toString().trim();
     final authorUserId = _asInt(post['user_id']);
     if (id == null || postNumber == null) {
       return null;
@@ -65,16 +67,27 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
     final isOnline = onlineValue is bool
         ? onlineValue
         : (onlineValue is String ? onlineValue.toLowerCase() == 'true' : null);
+    final actionDescription = _resolvePostActionDescription(
+      postType: postType,
+      actionCode: actionCode,
+      rawMarkdown: resolvedRawMarkdown,
+      cooked: cooked,
+    );
     final normalizedMarkdown = _normalizePostRawMarkdown(
-      resolvedRawMarkdown.isNotEmpty
-          ? resolvedRawMarkdown
-          : _cookHtmlToMarkdown(cooked),
+      actionDescription.isNotEmpty
+          ? actionDescription
+          : (resolvedRawMarkdown.isNotEmpty
+                ? resolvedRawMarkdown
+                : _cookHtmlToMarkdown(cooked)),
     );
 
     return RiverSideTopicPostDetail(
       id: id,
       topicId: topicId,
       postNumber: postNumber,
+      postType: postType,
+      actionCode: actionCode,
+      actionDescription: actionDescription,
       authorUserId: authorUserId,
       authorUsername: username,
       authorDisplayName: displayName,
@@ -400,6 +413,81 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
     return normalized;
   }
 
+  String _resolvePostActionDescription({
+    required int postType,
+    required String actionCode,
+    required String rawMarkdown,
+    required String cooked,
+  }) {
+    final normalizedCode = actionCode.trim().toLowerCase();
+    const actionLabelByCode = <String, String>{
+      'pinned_globally.enabled': '全站置顶',
+      'pinned_globally.disabled': '取消全站置顶',
+      'pinned.enabled': '置顶',
+      'pinned.disabled': '取消置顶',
+      'closed.enabled': '关闭',
+      'closed.disabled': '重新开放',
+      'archived.enabled': '归档',
+      'archived.disabled': '取消归档',
+      'unlisted.enabled': '取消公开',
+      'unlisted.disabled': '恢复公开',
+      'visible.enabled': '恢复公开',
+      'visible.disabled': '取消公开',
+    };
+    final codeLabel = actionLabelByCode[normalizedCode];
+    if (codeLabel != null && codeLabel.isNotEmpty) {
+      return codeLabel;
+    }
+    if (postType != 3 && normalizedCode.isEmpty) {
+      return '';
+    }
+
+    final cookedPlain = _sanitizeExcerpt(cooked);
+    if (cookedPlain.isNotEmpty) {
+      final stripped = _stripLeadingRelativeTimePrefix(cookedPlain);
+      if (stripped.isNotEmpty) {
+        return stripped;
+      }
+    }
+
+    final rawPlain = rawMarkdown.trim();
+    if (rawPlain.isNotEmpty) {
+      final stripped = _stripLeadingRelativeTimePrefix(rawPlain);
+      if (stripped.isNotEmpty) {
+        return stripped;
+      }
+    }
+
+    if (normalizedCode.isNotEmpty) {
+      return '系统操作：${normalizedCode.replaceAll('.', ' · ')}';
+    }
+    return '';
+  }
+
+  String _stripLeadingRelativeTimePrefix(String source) {
+    var text = source.trim();
+    if (text.isEmpty) {
+      return '';
+    }
+    final patterns = <RegExp>[
+      RegExp(r'^\d+\s*秒前\s*'),
+      RegExp(r'^\d+\s*分钟前\s*'),
+      RegExp(r'^\d+\s*小时前\s*'),
+      RegExp(r'^\d+\s*天前\s*'),
+      RegExp(r'^\d+\s*周前\s*'),
+      RegExp(r'^\d+\s*月前\s*'),
+      RegExp(r'^\d+\s*年前\s*'),
+      RegExp(
+        r'^\d+\s*(second|minute|hour|day|week|month|year)s?\s+ago\s*',
+        caseSensitive: false,
+      ),
+    ];
+    for (final pattern in patterns) {
+      text = text.replaceFirst(pattern, '').trim();
+    }
+    return text;
+  }
+
   String _stripPollBlocks(String source) {
     if (source.trim().isEmpty) {
       return '';
@@ -574,3 +662,4 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
     return byOptionId;
   }
 }
+

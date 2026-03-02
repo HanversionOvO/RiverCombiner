@@ -10,7 +10,7 @@ import 'package:card_stack_swiper/card_stack_swiper.dart';
 import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 import 'package:river/app/app_dependencies.dart';
@@ -5119,6 +5119,9 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
         builder: (_) => SearchPage(
           dependencies: widget.dependencies,
           initialMode: initialMode,
+          initialProvider: _forumProvider == _PostsForumProvider.qingShuiHePan
+              ? AccountProvider.qingShuiHePan
+              : AccountProvider.riverSide,
         ),
       ),
     );
