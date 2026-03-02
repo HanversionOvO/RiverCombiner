@@ -199,7 +199,10 @@ class _MarkdownContent extends StatelessWidget {
         : markdown;
     final chunks = _splitMarkdownRenderChunks(data);
     if (chunks.isNotEmpty &&
-        chunks.any((chunk) => chunk is _MarkdownVideoChunk)) {
+        chunks.any(
+          (chunk) =>
+              chunk is _MarkdownVideoChunk || chunk is _MarkdownLinkChunk,
+        )) {
       final content = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -207,7 +210,15 @@ class _MarkdownContent extends StatelessWidget {
             if (chunks[i] case final _MarkdownTextChunk textChunk)
               _buildMarkdownBody(context, textChunk.markdown)
             else if (chunks[i] case final _MarkdownVideoChunk videoChunk)
-              _InlineVideoSourceCard(video: videoChunk.video),
+              _InlineVideoSourceCard(video: videoChunk.video)
+            else if (chunks[i] case final _MarkdownLinkChunk linkChunk)
+              _ExternalLinkBookmarkCard(
+                url: linkChunk.url,
+                label: linkChunk.label,
+                onTap: () {
+                  unawaited(_openLink(linkChunk.url));
+                },
+              ),
             if (i != chunks.length - 1) const SizedBox(height: 10),
           ],
         ],
@@ -351,6 +362,35 @@ class _MarkdownContent extends StatelessWidget {
       baseUrl: Uri.tryParse(riverSideBaseUrl),
       renderMode: RenderMode.column,
       textStyle: baseStyle,
+      customWidgetBuilder: (element) {
+        final tag = (element.localName ?? '').toLowerCase();
+        if (tag != 'a') {
+          return null;
+        }
+        if (!_isStandaloneHtmlAnchor(element)) {
+          return null;
+        }
+        final href = (element.attributes['href'] ?? '').trim();
+        if (href.isEmpty) {
+          return null;
+        }
+        final resolved = _resolveForumUrl(href);
+        if (_tryParseMentionUsernameFromUrl(resolved) != null ||
+            _tryParseTopicIdFromUrl(resolved) != null) {
+          return null;
+        }
+        final label = element.text.trim();
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: _ExternalLinkBookmarkCard(
+            url: resolved,
+            label: label,
+            onTap: () {
+              unawaited(_openLink(resolved));
+            },
+          ),
+        );
+      },
       customStylesBuilder: (element) {
         if (element.localName == 'blockquote') {
           return <String, String>{

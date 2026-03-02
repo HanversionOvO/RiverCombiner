@@ -408,15 +408,11 @@ class _TopicAwareLinkBuilder extends MarkdownElementBuilder {
       );
     }
 
-    return InkWell(
+    final label = element.textContent.trim();
+    return _InlineExternalLinkText(
+      label: label.isEmpty ? resolved : label,
       onTap: () => onTapExternalLink(resolved),
-      child: Text(
-        element.textContent.trim().isEmpty ? resolved : element.textContent,
-        style: preferredStyle?.copyWith(
-          color: Colors.blue,
-          decoration: TextDecoration.underline,
-        ),
-      ),
+      preferredStyle: preferredStyle,
     );
   }
 }
@@ -466,6 +462,462 @@ class _InlinePillLink extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _isStandaloneHtmlAnchor(dynamic element) {
+  final parent = element?.parent;
+  if (parent == null) {
+    return false;
+  }
+  final parentName = '${parent.localName ?? ''}'.toLowerCase();
+  if (parentName != 'p' && parentName != 'li' && parentName != 'div') {
+    return false;
+  }
+  final children = parent.children;
+  if (children is! List || children.length != 1) {
+    return false;
+  }
+  return identical(children.first, element);
+}
+
+class _InlineExternalLinkText extends StatelessWidget {
+  const _InlineExternalLinkText({
+    required this.label,
+    required this.onTap,
+    this.preferredStyle,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final TextStyle? preferredStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Text(
+        label,
+        style: preferredStyle?.copyWith(
+          color: theme.colorScheme.primary,
+          decoration: TextDecoration.underline,
+          decorationColor: theme.colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
+class _ExternalLinkBookmarkCard extends StatefulWidget {
+  const _ExternalLinkBookmarkCard({
+    required this.url,
+    required this.onTap,
+    this.label = '',
+  });
+
+  final String url;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<_ExternalLinkBookmarkCard> createState() =>
+      _ExternalLinkBookmarkCardState();
+}
+
+class _ExternalLinkBookmarkCardState extends State<_ExternalLinkBookmarkCard> {
+  late Future<_LinkPreviewMetadata?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _LinkPreviewCache.load(widget.url);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ExternalLinkBookmarkCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _future = _LinkPreviewCache.load(widget.url);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<_LinkPreviewMetadata?>(
+      future: _future,
+      builder: (context, snapshot) {
+        final metadata = snapshot.data;
+        return _buildCard(context, metadata: metadata);
+      },
+    );
+  }
+
+  Widget _buildCard(
+    BuildContext context, {
+    required _LinkPreviewMetadata? metadata,
+  }) {
+    final theme = Theme.of(context);
+    final uri = Uri.tryParse(widget.url);
+    final host = (metadata?.host ?? uri?.host ?? widget.url).trim();
+    final label = widget.label.trim();
+    final title = _firstNonEmpty(<String>[
+      metadata?.title ?? '',
+      (label.isNotEmpty && label != widget.url) ? label : '',
+      host,
+      widget.url,
+    ]);
+    final description = _firstNonEmpty(<String>[
+      metadata?.description ?? '',
+      metadata?.siteName ?? '',
+      widget.url,
+    ]);
+    final imageUrl = (metadata?.imageUrl ?? '').trim();
+    final imageUri = Uri.tryParse(imageUrl);
+    final hasImage =
+        imageUri != null &&
+        (imageUri.scheme.toLowerCase() == 'http' ||
+            imageUri.scheme.toLowerCase() == 'https');
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: widget.onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.54),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.link_rounded,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              host,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.open_in_new_rounded,
+                            size: 14,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasImage) ...[
+                  const SizedBox(width: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      width: 78,
+                      height: 78,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) =>
+                          const SizedBox(width: 78, height: 78),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LinkPreviewMetadata {
+  const _LinkPreviewMetadata({
+    required this.host,
+    this.title = '',
+    this.description = '',
+    this.imageUrl = '',
+    this.siteName = '',
+  });
+
+  final String host;
+  final String title;
+  final String description;
+  final String imageUrl;
+  final String siteName;
+}
+
+class _LinkPreviewCache {
+  _LinkPreviewCache._();
+
+  static const int _maxEntries = 96;
+  static final Map<String, _LinkPreviewMetadata?> _cache =
+      <String, _LinkPreviewMetadata?>{};
+  static final Map<String, Future<_LinkPreviewMetadata?>> _inflight =
+      <String, Future<_LinkPreviewMetadata?>>{};
+  static final List<String> _order = <String>[];
+
+  static Future<_LinkPreviewMetadata?> load(String rawUrl) {
+    final url = rawUrl.trim();
+    if (url.isEmpty) {
+      return Future<_LinkPreviewMetadata?>.value(null);
+    }
+    if (_cache.containsKey(url)) {
+      return Future<_LinkPreviewMetadata?>.value(_cache[url]);
+    }
+    final pending = _inflight[url];
+    if (pending != null) {
+      return pending;
+    }
+    final task = _fetch(url).then(
+      (value) {
+        _put(url, value);
+        _inflight.remove(url);
+        return value;
+      },
+      onError: (_) {
+        _put(url, null);
+        _inflight.remove(url);
+        return null;
+      },
+    );
+    _inflight[url] = task;
+    return task;
+  }
+
+  static void _put(String url, _LinkPreviewMetadata? value) {
+    if (_cache.containsKey(url)) {
+      _order.remove(url);
+    }
+    _cache[url] = value;
+    _order.add(url);
+    while (_order.length > _maxEntries) {
+      final removed = _order.removeAt(0);
+      _cache.remove(removed);
+    }
+  }
+
+  static Future<_LinkPreviewMetadata?> _fetch(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme) {
+      return null;
+    }
+    final scheme = uri.scheme.toLowerCase();
+    if (scheme != 'http' && scheme != 'https') {
+      return null;
+    }
+    final host = uri.host.trim();
+    if (host.isEmpty) {
+      return null;
+    }
+
+    try {
+      final response = await http
+          .get(
+            uri,
+            headers: const <String, String>{
+              'Accept':
+                  'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'User-Agent':
+                  'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
+                  '(KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+            },
+          )
+          .timeout(const Duration(seconds: 6));
+      if (response.statusCode < 200 || response.statusCode >= 400) {
+        return _LinkPreviewMetadata(host: host);
+      }
+      var html = utf8.decode(response.bodyBytes, allowMalformed: true);
+      if (html.length > 240000) {
+        html = html.substring(0, 240000);
+      }
+      final attrsList = _extractMetaAttributes(html);
+      final title = _firstNonEmpty(<String>[
+        _metaByProperty(attrsList, 'og:title'),
+        _metaByName(attrsList, 'twitter:title'),
+        _extractHtmlTitle(html),
+      ]);
+      final description = _firstNonEmpty(<String>[
+        _metaByProperty(attrsList, 'og:description'),
+        _metaByName(attrsList, 'description'),
+        _metaByName(attrsList, 'twitter:description'),
+      ]);
+      final siteName = _firstNonEmpty(<String>[
+        _metaByProperty(attrsList, 'og:site_name'),
+        _metaByName(attrsList, 'application-name'),
+      ]);
+      final imageRaw = _firstNonEmpty(<String>[
+        _metaByProperty(attrsList, 'og:image'),
+        _metaByName(attrsList, 'twitter:image'),
+      ]);
+      final imageUrl = _resolveLinkPreviewImage(uri, imageRaw);
+      return _LinkPreviewMetadata(
+        host: host,
+        title: _normalizePreviewText(title),
+        description: _normalizePreviewText(description),
+        imageUrl: imageUrl,
+        siteName: _normalizePreviewText(siteName),
+      );
+    } catch (_) {
+      return _LinkPreviewMetadata(host: host);
+    }
+  }
+}
+
+List<Map<String, String>> _extractMetaAttributes(String html) {
+  final tags = RegExp(
+    r'<meta\b[^>]*>',
+    caseSensitive: false,
+    dotAll: true,
+  ).allMatches(html);
+  final result = <Map<String, String>>[];
+  for (final match in tags) {
+    final tag = (match.group(0) ?? '').trim();
+    if (tag.isEmpty) {
+      continue;
+    }
+    result.add(_parseHtmlAttributes(tag));
+  }
+  return result;
+}
+
+Map<String, String> _parseHtmlAttributes(String tag) {
+  final attrs = <String, String>{};
+  final pattern = RegExp(
+    '([a-zA-Z_:][-a-zA-Z0-9_:.]*)\\s*=\\s*("([^"]*)"|\'([^\']*)\'|([^\\s>]+))',
+    caseSensitive: false,
+  );
+  for (final match in pattern.allMatches(tag)) {
+    final key = (match.group(1) ?? '').trim().toLowerCase();
+    final value = _decodeHtmlEntities(
+      (match.group(3) ?? match.group(4) ?? match.group(5) ?? '').trim(),
+    );
+    if (key.isEmpty || value.isEmpty) {
+      continue;
+    }
+    attrs[key] = value;
+  }
+  return attrs;
+}
+
+String _metaByProperty(List<Map<String, String>> attrsList, String property) {
+  final target = property.toLowerCase();
+  for (final attrs in attrsList) {
+    if ((attrs['property'] ?? '').toLowerCase() == target) {
+      return attrs['content'] ?? '';
+    }
+  }
+  return '';
+}
+
+String _metaByName(List<Map<String, String>> attrsList, String name) {
+  final target = name.toLowerCase();
+  for (final attrs in attrsList) {
+    if ((attrs['name'] ?? '').toLowerCase() == target) {
+      return attrs['content'] ?? '';
+    }
+  }
+  return '';
+}
+
+String _extractHtmlTitle(String html) {
+  final match = RegExp(
+    r'<title\b[^>]*>([\s\S]*?)</title>',
+    caseSensitive: false,
+  ).firstMatch(html);
+  if (match == null) {
+    return '';
+  }
+  return _decodeHtmlEntities(match.group(1) ?? '');
+}
+
+String _decodeHtmlEntities(String raw) {
+  if (raw.isEmpty) {
+    return '';
+  }
+  return raw
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>');
+}
+
+String _normalizePreviewText(String raw) {
+  return raw
+      .replaceAll(RegExp(r'<[^>]*>'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+String _resolveLinkPreviewImage(Uri pageUri, String raw) {
+  final value = raw.trim();
+  if (value.isEmpty) {
+    return '';
+  }
+  final uri = Uri.tryParse(value);
+  if (uri != null && uri.hasScheme) {
+    return value;
+  }
+  if (value.startsWith('//')) {
+    return '${pageUri.scheme}:$value';
+  }
+  final resolved = pageUri.resolve(value);
+  return resolved.toString();
+}
+
+String _firstNonEmpty(List<String> values) {
+  for (final value in values) {
+    final normalized = value.trim();
+    if (normalized.isNotEmpty) {
+      return normalized;
+    }
+  }
+  return '';
 }
 
 String? _tryParseMentionUsernameFromUrl(String url) {
@@ -805,6 +1257,13 @@ class _MarkdownVideoChunk extends _MarkdownRenderChunk {
   final _VideoSourceDescriptor video;
 }
 
+class _MarkdownLinkChunk extends _MarkdownRenderChunk {
+  const _MarkdownLinkChunk({required this.url, this.label = ''});
+
+  final String url;
+  final String label;
+}
+
 class _VideoSourceDescriptor {
   const _VideoSourceDescriptor({
     required this.sourceUrl,
@@ -826,9 +1285,8 @@ List<_MarkdownRenderChunk> _splitMarkdownRenderChunks(String markdown) {
   }
 
   final chunks = <_MarkdownRenderChunk>[];
-  final urlPattern = RegExp(r'(https?:\/\/[^\s<>()]+)', caseSensitive: false);
   final buffer = StringBuffer();
-  var cursor = 0;
+  final lines = source.split('\n');
 
   void flushTextBuffer() {
     final text = buffer.toString().trim();
@@ -838,43 +1296,97 @@ List<_MarkdownRenderChunk> _splitMarkdownRenderChunks(String markdown) {
     buffer.clear();
   }
 
-  for (final match in urlPattern.allMatches(source)) {
-    if (match.start > cursor) {
-      buffer.write(source.substring(cursor, match.start));
-    }
-
-    final rawUrl = (match.group(0) ?? '').trim();
-    final beforeChar = match.start > 0 ? source[match.start - 1] : '\n';
-    final afterChar = match.end < source.length ? source[match.end] : '\n';
-    final standaloneBefore = RegExp(r'\s').hasMatch(beforeChar);
-    final standaloneAfter = RegExp(r'[\s\]\)!?,.;:]').hasMatch(afterChar);
-    if (!standaloneBefore || !standaloneAfter) {
-      buffer.write(rawUrl);
-      cursor = match.end;
-      continue;
-    }
-    final split = _splitUrlAndTrailing(rawUrl);
-    final resolvedUrl = _resolveForumUrl(split.item1);
-    final descriptor = _parseVideoSourceDescriptor(resolvedUrl);
-
-    if (descriptor == null) {
-      buffer.write(rawUrl);
-    } else {
-      flushTextBuffer();
-      chunks.add(_MarkdownVideoChunk(descriptor));
-      if (split.item2.isNotEmpty) {
-        buffer.write(split.item2);
+  for (final line in lines) {
+    final trimmed = line.trim();
+    final markdownLink = _parseStandaloneMarkdownLink(trimmed);
+    if (markdownLink != null) {
+      final resolved = _resolveForumUrl(markdownLink.url);
+      if (!_isInternalForumLink(resolved)) {
+        flushTextBuffer();
+        chunks.add(
+          _MarkdownLinkChunk(url: resolved, label: markdownLink.label),
+        );
+        continue;
       }
     }
 
-    cursor = match.end;
+    final standaloneUrl = _parseStandaloneUrlLine(trimmed);
+    if (standaloneUrl != null) {
+      final split = _splitUrlAndTrailing(standaloneUrl);
+      final resolvedUrl = _resolveForumUrl(split.item1);
+      final descriptor = _parseVideoSourceDescriptor(resolvedUrl);
+      if (descriptor != null) {
+        flushTextBuffer();
+        chunks.add(_MarkdownVideoChunk(descriptor));
+        if (split.item2.isNotEmpty) {
+          buffer.writeln(split.item2);
+        }
+        continue;
+      }
+      if (!_isInternalForumLink(resolvedUrl)) {
+        flushTextBuffer();
+        chunks.add(_MarkdownLinkChunk(url: resolvedUrl));
+        if (split.item2.isNotEmpty) {
+          buffer.writeln(split.item2);
+        }
+        continue;
+      }
+    }
+
+    buffer.writeln(line);
   }
 
-  if (cursor < source.length) {
-    buffer.write(source.substring(cursor));
-  }
   flushTextBuffer();
+  if (chunks.isEmpty) {
+    return <_MarkdownRenderChunk>[_MarkdownTextChunk(source)];
+  }
   return chunks;
+}
+
+({String label, String url})? _parseStandaloneMarkdownLink(String line) {
+  final value = line.trim();
+  if (value.isEmpty) {
+    return null;
+  }
+  final match = RegExp(
+    r'^\[([^\]\n]+)\]\((<?https?:\/\/[^)\s>]+>?)\)$',
+    caseSensitive: false,
+  ).firstMatch(value);
+  if (match == null) {
+    return null;
+  }
+  final label = (match.group(1) ?? '').trim();
+  var url = (match.group(2) ?? '').trim();
+  if (url.startsWith('<') && url.endsWith('>') && url.length > 2) {
+    url = url.substring(1, url.length - 1).trim();
+  }
+  if (url.isEmpty) {
+    return null;
+  }
+  return (label: label, url: url);
+}
+
+String? _parseStandaloneUrlLine(String line) {
+  var value = line.trim();
+  if (value.isEmpty) {
+    return null;
+  }
+  if (value.startsWith('<') && value.endsWith('>') && value.length > 2) {
+    value = value.substring(1, value.length - 1).trim();
+  }
+  if (value.isEmpty || value.contains(RegExp(r'\s'))) {
+    return null;
+  }
+  final lower = value.toLowerCase();
+  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+    return null;
+  }
+  return value;
+}
+
+bool _isInternalForumLink(String url) {
+  return _tryParseMentionUsernameFromUrl(url) != null ||
+      _tryParseTopicIdFromUrl(url) != null;
 }
 
 ({String item1, String item2}) _splitUrlAndTrailing(String rawUrl) {
