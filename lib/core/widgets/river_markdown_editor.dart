@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:image/image.dart' as img;
@@ -24,6 +26,8 @@ typedef RiverMarkdownAiGenerateCallback =
     Future<String?> Function(RiverMarkdownAiRequest request);
 typedef RiverMarkdownAiGenerateStreamCallback =
     Stream<String> Function(RiverMarkdownAiRequest request);
+typedef RiverMarkdownMentionSearchCallback =
+    Future<List<RiverMarkdownMentionUser>> Function(String query);
 
 const String _assetEmojiScheme = 'asset://';
 
@@ -49,6 +53,24 @@ class RiverMarkdownDraftEntry {
   final String title;
   final String subtitle;
   final DateTime? updatedAt;
+}
+
+class RiverMarkdownMentionUser {
+  const RiverMarkdownMentionUser({
+    required this.key,
+    required this.insertText,
+    this.displayName = '',
+    this.username = '',
+    this.avatarUrl = '',
+    this.subtitle = '',
+  });
+
+  final String key;
+  final String insertText;
+  final String displayName;
+  final String username;
+  final String avatarUrl;
+  final String subtitle;
 }
 
 enum RiverMarkdownAiScene { generic, topicReply, topicCompose, editComment }
@@ -85,6 +107,18 @@ class _PreparedUploadBytes {
   final String extension;
 }
 
+class _MentionTrigger {
+  const _MentionTrigger({
+    required this.start,
+    required this.end,
+    required this.query,
+  });
+
+  final int start;
+  final int end;
+  final String query;
+}
+
 class RiverMarkdownEditor extends StatefulWidget {
   const RiverMarkdownEditor({
     super.key,
@@ -109,6 +143,7 @@ class RiverMarkdownEditor extends StatefulWidget {
     this.aiScene = RiverMarkdownAiScene.generic,
     this.aiReplyReferenceText,
     this.emojiInsertFormatter,
+    this.onSearchMentionUsers,
   });
 
   final RiverMarkdownSubmitCallback onSubmit;
@@ -132,6 +167,7 @@ class RiverMarkdownEditor extends StatefulWidget {
   final RiverMarkdownAiScene aiScene;
   final String? aiReplyReferenceText;
   final String Function(String key)? emojiInsertFormatter;
+  final RiverMarkdownMentionSearchCallback? onSearchMentionUsers;
 
   @override
   State<RiverMarkdownEditor> createState() => _RiverMarkdownEditorState();
@@ -140,7 +176,10 @@ class RiverMarkdownEditor extends StatefulWidget {
 class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final GlobalKey _editStackKey = GlobalKey();
+  final GlobalKey _editFieldKey = GlobalKey();
   Timer? _draftSaveDebounce;
+  Timer? _mentionDebounce;
 
   static const int _maxGalleryPickCount = 3;
   static const int _imageUploadCompressThresholdBytes = 1024 * 1024;
@@ -157,6 +196,13 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   int? _draftSequence;
   String _lastDraftSavedContent = '';
   DateTime? _lastDraftSavedAt;
+  bool _mentionLoading = false;
+  int _mentionRequestSerial = 0;
+  int? _mentionStartOffset;
+  String _mentionQuery = '';
+  Offset? _mentionAnchorOffset;
+  List<RiverMarkdownMentionUser> _mentionUsers =
+      const <RiverMarkdownMentionUser>[];
 
   bool get _draftEnabled => widget.onSaveDraft != null;
 
@@ -178,6 +224,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   @override
   void dispose() {
     _draftSaveDebounce?.cancel();
+    _mentionDebounce?.cancel();
     _controller.removeListener(_onEditorTextChanged);
     _focusNode.removeListener(_onEditorFocusChanged);
     _controller.dispose();
@@ -189,10 +236,16 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     if (!mounted) {
       return;
     }
+    if (!_focusNode.hasFocus) {
+      _hideMentionPanel();
+    } else {
+      _refreshMentionSuggestions(immediate: true);
+    }
     setState(() {});
   }
 
   void _onEditorTextChanged() {
+    _refreshMentionSuggestions();
     if (!_draftEnabled) {
       return;
     }
@@ -1020,6 +1073,300 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     _focusNode.requestFocus();
   }
 
+  bool get _showMentionPanel =>
+      _mentionStartOffset != null &&
+      _focusNode.hasFocus &&
+      (_mentionLoading || _mentionUsers.isNotEmpty || _mentionQuery.isNotEmpty);
+
+  void _refreshMentionSuggestions({bool immediate = false}) {
+    final callback = widget.onSearchMentionUsers;
+    if (callback == null || !_focusNode.hasFocus) {
+      _hideMentionPanel();
+      return;
+    }
+    final trigger = _currentMentionTrigger();
+    if (trigger == null) {
+      _hideMentionPanel();
+      return;
+    }
+
+    final anchor = _computeMentionAnchor();
+    final nextQuery = trigger.query.trim();
+    final shouldFetch =
+        _mentionStartOffset != trigger.start || _mentionQuery != nextQuery;
+
+    if (!shouldFetch) {
+      if (anchor != null &&
+          (_mentionAnchorOffset == null ||
+              (_mentionAnchorOffset! - anchor).distance > 0.5)) {
+        if (mounted) {
+          setState(() {
+            _mentionAnchorOffset = anchor;
+          });
+        }
+      }
+      return;
+    }
+
+    _mentionDebounce?.cancel();
+    final delay = immediate || nextQuery.isEmpty
+        ? Duration.zero
+        : const Duration(milliseconds: 220);
+    _mentionDebounce = Timer(delay, () {
+      unawaited(_fetchMentionUsers(trigger));
+    });
+  }
+
+  Future<void> _fetchMentionUsers(_MentionTrigger trigger) async {
+    final callback = widget.onSearchMentionUsers;
+    if (callback == null) {
+      return;
+    }
+    final serial = ++_mentionRequestSerial;
+    final anchor = _computeMentionAnchor();
+    if (mounted) {
+      setState(() {
+        _mentionLoading = true;
+        _mentionStartOffset = trigger.start;
+        _mentionQuery = trigger.query.trim();
+        _mentionAnchorOffset = anchor;
+      });
+    }
+
+    try {
+      final users = await callback(trigger.query.trim());
+      if (!mounted || serial != _mentionRequestSerial) {
+        return;
+      }
+      final latest = _currentMentionTrigger();
+      if (latest == null || latest.start != trigger.start) {
+        _hideMentionPanel();
+        return;
+      }
+      final deduped = _dedupeMentionUsers(users);
+      setState(() {
+        _mentionLoading = false;
+        _mentionUsers = deduped;
+        _mentionQuery = latest.query.trim();
+        _mentionStartOffset = latest.start;
+        _mentionAnchorOffset = _computeMentionAnchor();
+      });
+    } catch (_) {
+      if (!mounted || serial != _mentionRequestSerial) {
+        return;
+      }
+      setState(() {
+        _mentionLoading = false;
+        _mentionUsers = const <RiverMarkdownMentionUser>[];
+      });
+    }
+  }
+
+  List<RiverMarkdownMentionUser> _dedupeMentionUsers(
+    List<RiverMarkdownMentionUser> source,
+  ) {
+    if (source.isEmpty) {
+      return const <RiverMarkdownMentionUser>[];
+    }
+    final seen = <String>{};
+    final result = <RiverMarkdownMentionUser>[];
+    for (final item in source) {
+      final key = item.key.trim().isEmpty
+          ? item.insertText.trim().toLowerCase()
+          : item.key.trim().toLowerCase();
+      if (key.isEmpty || seen.contains(key)) {
+        continue;
+      }
+      seen.add(key);
+      result.add(item);
+      if (result.length >= 20) {
+        break;
+      }
+    }
+    return result;
+  }
+
+  _MentionTrigger? _currentMentionTrigger() {
+    final selection = _controller.selection;
+    final text = _controller.text;
+    if (!selection.isValid || !selection.isCollapsed) {
+      return null;
+    }
+    final caret = selection.extentOffset;
+    if (caret <= 0 || caret > text.length) {
+      return null;
+    }
+
+    var atIndex = -1;
+    for (var i = caret - 1; i >= 0; i--) {
+      final char = text[i];
+      if (char == '@') {
+        atIndex = i;
+        break;
+      }
+      if (_isMentionBreakChar(char)) {
+        return null;
+      }
+    }
+    if (atIndex < 0) {
+      return null;
+    }
+    if (atIndex > 0) {
+      final prev = text[atIndex - 1];
+      if (_isMentionBodyChar(prev)) {
+        return null;
+      }
+    }
+    final query = text.substring(atIndex + 1, caret);
+    if (query.length > 32 || query.contains('@')) {
+      return null;
+    }
+    return _MentionTrigger(start: atIndex, end: caret, query: query);
+  }
+
+  bool _isMentionBreakChar(String char) {
+    const breaks = <String>{
+      ' ',
+      '\n',
+      '\r',
+      '\t',
+      ',',
+      '.',
+      ';',
+      ':',
+      '!',
+      '?',
+      '(',
+      ')',
+      '[',
+      ']',
+      '{',
+      '}',
+      '<',
+      '>',
+      '"',
+      '\'',
+      '\\',
+      '/',
+      '|',
+      '`',
+      '~',
+    };
+    return breaks.contains(char);
+  }
+
+  bool _isMentionBodyChar(String char) {
+    final rune = char.runes.isEmpty ? 0 : char.runes.first;
+    final isDigit = rune >= 48 && rune <= 57;
+    final isUpper = rune >= 65 && rune <= 90;
+    final isLower = rune >= 97 && rune <= 122;
+    return isDigit || isUpper || isLower || char == '_' || char == '.';
+  }
+
+  Offset? _computeMentionAnchor() {
+    final stackContext = _editStackKey.currentContext;
+    final fieldContext = _editFieldKey.currentContext;
+    if (stackContext == null || fieldContext == null) {
+      return null;
+    }
+    final stackRender = stackContext.findRenderObject();
+    final fieldRender = fieldContext.findRenderObject();
+    if (stackRender is! RenderBox || fieldRender == null) {
+      return null;
+    }
+    final editable = _findRenderEditable(fieldRender);
+    if (editable == null) {
+      return null;
+    }
+    final selection = _controller.selection;
+    final offset = selection.isValid ? selection.extentOffset : -1;
+    if (offset < 0 || offset > _controller.text.length) {
+      return null;
+    }
+    final caretRect = editable.getLocalRectForCaret(
+      TextPosition(offset: offset),
+    );
+    final caretGlobal = editable.localToGlobal(caretRect.bottomLeft);
+    return stackRender.globalToLocal(caretGlobal);
+  }
+
+  RenderEditable? _findRenderEditable(RenderObject root) {
+    if (root is RenderEditable) {
+      return root;
+    }
+    RenderEditable? found;
+    root.visitChildren((child) {
+      found ??= _findRenderEditable(child);
+    });
+    return found;
+  }
+
+  void _hideMentionPanel() {
+    _mentionDebounce?.cancel();
+    _mentionRequestSerial++;
+    if (!mounted) {
+      _mentionLoading = false;
+      _mentionUsers = const <RiverMarkdownMentionUser>[];
+      _mentionStartOffset = null;
+      _mentionQuery = '';
+      _mentionAnchorOffset = null;
+      return;
+    }
+    setState(() {
+      _mentionLoading = false;
+      _mentionUsers = const <RiverMarkdownMentionUser>[];
+      _mentionStartOffset = null;
+      _mentionQuery = '';
+      _mentionAnchorOffset = null;
+    });
+  }
+
+  void _selectMentionUser(RiverMarkdownMentionUser user) {
+    final trigger = _currentMentionTrigger();
+    if (trigger == null) {
+      final fallback = _normalizeMentionInsertText(user);
+      if (fallback.isNotEmpty) {
+        _insertText('@$fallback ');
+      }
+      _hideMentionPanel();
+      return;
+    }
+    final insertText = _normalizeMentionInsertText(user);
+    if (insertText.isEmpty) {
+      _hideMentionPanel();
+      return;
+    }
+    final fullText = _controller.text;
+    final replacement = '@$insertText ';
+    final next = fullText.replaceRange(trigger.start, trigger.end, replacement);
+    final nextOffset = trigger.start + replacement.length;
+    _controller.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: nextOffset),
+    );
+    _focusNode.requestFocus();
+    _hideMentionPanel();
+  }
+
+  String _normalizeMentionInsertText(RiverMarkdownMentionUser user) {
+    var text = user.insertText.trim();
+    if (text.startsWith('@')) {
+      text = text.substring(1).trim();
+    }
+    if (text.isNotEmpty) {
+      return text;
+    }
+    final username = user.username.trim();
+    if (username.isNotEmpty) {
+      return username.startsWith('@') ? username.substring(1) : username;
+    }
+    final displayName = user.displayName.trim();
+    if (displayName.isEmpty) {
+      return '';
+    }
+    return displayName.startsWith('@') ? displayName.substring(1) : displayName;
+  }
+
   String _previewMarkdown(String raw) {
     if (raw.trim().isEmpty || widget.emojiUrls.isEmpty) {
       return raw;
@@ -1259,64 +1606,83 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
                   switchInCurve: Curves.easeOutCubic,
                   switchOutCurve: Curves.easeInCubic,
                   child: _mode == _EditorMode.edit
-                      ? Stack(
+                      ? KeyedSubtree(
                           key: const ValueKey<String>('editor_mode_edit'),
-                          children: [
-                            TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              autofocus: widget.autofocus,
-                              expands: true,
-                              textAlignVertical: TextAlignVertical.top,
-                              maxLines: null,
-                              minLines: null,
-                              keyboardType: TextInputType.multiline,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                height: 1.52,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: widget.hintText ?? '分享你的想法...',
-                                hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                                  color: colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.62),
+                          child: Stack(
+                            key: _editStackKey,
+                            clipBehavior: Clip.none,
+                            children: [
+                              TextField(
+                                key: _editFieldKey,
+                                controller: _controller,
+                                focusNode: _focusNode,
+                                autofocus: widget.autofocus,
+                                expands: true,
+                                textAlignVertical: TextAlignVertical.top,
+                                maxLines: null,
+                                minLines: null,
+                                keyboardType: TextInputType.multiline,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  height: 1.52,
                                 ),
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                disabledBorder: InputBorder.none,
-                                errorBorder: InputBorder.none,
-                                focusedErrorBorder: InputBorder.none,
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.fromLTRB(
-                                  18,
-                                  14,
-                                  18,
-                                  18,
-                                ),
-                              ),
-                            ),
-                            AnimatedOpacity(
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOutCubic,
-                              opacity: _showAiThinkingHint ? 1 : 0,
-                              child: IgnorePointer(
-                                ignoring: true,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
+                                decoration: InputDecoration(
+                                  hintText: widget.hintText ?? '分享你的想法...',
+                                  hintStyle: theme.textTheme.bodyLarge
+                                      ?.copyWith(
+                                        color: colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.62),
+                                      ),
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  errorBorder: InputBorder.none,
+                                  focusedErrorBorder: InputBorder.none,
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.fromLTRB(
                                     18,
-                                    10,
+                                    14,
                                     18,
-                                    0,
+                                    18,
                                   ),
-                                  child: Align(
-                                    alignment: Alignment.topLeft,
-                                    child: _AiThinkingHintChip(
-                                      visible: _showAiThinkingHint,
+                                ),
+                              ),
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                opacity: _showAiThinkingHint ? 1 : 0,
+                                child: IgnorePointer(
+                                  ignoring: true,
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      18,
+                                      10,
+                                      18,
+                                      0,
+                                    ),
+                                    child: Align(
+                                      alignment: Alignment.topLeft,
+                                      child: _AiThinkingHintChip(
+                                        visible: _showAiThinkingHint,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                              if (_showMentionPanel)
+                                _MentionSuggestionPanel(
+                                  key: ValueKey<String>(
+                                    'mention_panel_${_mentionQuery}_${_mentionUsers.length}_${_mentionLoading ? 1 : 0}',
+                                  ),
+                                  users: _mentionUsers,
+                                  loading: _mentionLoading,
+                                  query: _mentionQuery,
+                                  anchorOffset:
+                                      _mentionAnchorOffset ??
+                                      const Offset(28, 28),
+                                  onSelect: _selectMentionUser,
+                                ),
+                            ],
+                          ),
                         )
                       : Container(
                           key: const ValueKey<String>('editor_mode_preview'),
@@ -1496,6 +1862,209 @@ class _EditorModeSwitch extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MentionSuggestionPanel extends StatelessWidget {
+  const _MentionSuggestionPanel({
+    super.key,
+    required this.users,
+    required this.loading,
+    required this.query,
+    required this.anchorOffset,
+    required this.onSelect,
+  });
+
+  final List<RiverMarkdownMentionUser> users;
+  final bool loading;
+  final String query;
+  final Offset anchorOffset;
+  final ValueChanged<RiverMarkdownMentionUser> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final box = context.findRenderObject() as RenderBox?;
+    final width = box?.size.width ?? MediaQuery.sizeOf(context).width;
+    final height = box?.size.height ?? 320;
+    const panelWidth = 280.0;
+    const panelHeight = 220.0;
+    final left = (anchorOffset.dx - 18)
+        .clamp(10.0, math.max(10.0, width - panelWidth - 10))
+        .toDouble();
+    final preferredTop = anchorOffset.dy + 8;
+    final top = (preferredTop + panelHeight > height)
+        ? (anchorOffset.dy - panelHeight - 12)
+        : preferredTop;
+    final resolvedTop = top.clamp(6.0, math.max(6.0, height - 56)).toDouble();
+
+    return Positioned(
+      left: left,
+      top: resolvedTop,
+      width: panelWidth,
+      child: Material(
+        color: Colors.transparent,
+        elevation: 0,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          constraints: const BoxConstraints(maxHeight: panelHeight),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.16),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                const LinearProgressIndicator(minHeight: 2)
+              else
+                const SizedBox(height: 2),
+              if (users.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.alternate_email_rounded,
+                        size: 16,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          query.trim().isEmpty ? '继续输入以搜索可@用户' : '未找到可@用户',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    itemCount: users.length,
+                    separatorBuilder: (_, _) => Divider(
+                      height: 1,
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.24),
+                    ),
+                    itemBuilder: (context, index) {
+                      final user = users[index];
+                      final displayName = user.displayName.trim().isEmpty
+                          ? (user.username.trim().isEmpty
+                                ? user.insertText
+                                : user.username.trim())
+                          : user.displayName.trim();
+                      final username = user.username.trim();
+                      final subtitle = user.subtitle.trim();
+                      final resolvedSubtitle = subtitle.isNotEmpty
+                          ? subtitle
+                          : (username.isEmpty ? '' : '@$username');
+                      return InkWell(
+                        onTap: () => onSelect(user),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                          child: Row(
+                            children: [
+                              _MentionAvatar(url: user.avatarUrl),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      displayName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                    if (resolvedSubtitle.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        resolvedSubtitle,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MentionAvatar extends StatelessWidget {
+  const _MentionAvatar({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final avatarUrl = url.trim();
+    if (avatarUrl.isEmpty) {
+      return CircleAvatar(
+        radius: 16,
+        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+        child: Icon(
+          Icons.person_outline_rounded,
+          size: 16,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: avatarUrl,
+        width: 32,
+        height: 32,
+        fit: BoxFit.cover,
+        errorWidget: (context, imageUrl, error) => CircleAvatar(
+          radius: 16,
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          child: Icon(
+            Icons.person_outline_rounded,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }

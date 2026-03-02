@@ -730,6 +730,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
           initialText: _contentMarkdown,
           emojiUrls: effectiveEmoji.emojiUrls,
           emojiGroups: effectiveEmoji.emojiGroups,
+          onSearchMentionUsers: _searchMentionUsersForComposeEditor,
           maxHeight: MediaQuery.sizeOf(context).height * 0.92,
           onUploadImage: _uploadComposeImage,
           onLoadCurrentDraft: canUseRiverDraft ? loadCurrentDraft : null,
@@ -749,6 +750,209 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
         );
       },
     );
+  }
+
+  Future<List<RiverMarkdownMentionUser>> _searchMentionUsersForComposeEditor(
+    String query,
+  ) async {
+    final result = <RiverMarkdownMentionUser>[];
+    if (_enableRiverCompose) {
+      result.addAll(await _searchRiverMentionUsersForCompose(query));
+    }
+    if (_enableQingCompose) {
+      result.addAll(await _searchQingMentionUsersForCompose(query));
+    }
+    return _dedupeMentionUsers(result);
+  }
+
+  Future<List<RiverMarkdownMentionUser>> _searchRiverMentionUsersForCompose(
+    String query,
+  ) async {
+    final keyword = query.trim();
+    if (keyword.isEmpty) {
+      return const <RiverMarkdownMentionUser>[];
+    }
+    final cookie = _activeRiverCookieHeader();
+    if (cookie == null || cookie.trim().isEmpty) {
+      return const <RiverMarkdownMentionUser>[];
+    }
+    try {
+      final users = await widget.dependencies.accountStore.riverSideApiClient
+          .searchUsers(term: keyword, limit: 20, cookieHeader: cookie);
+      return users
+          .map(
+            (user) => RiverMarkdownMentionUser(
+              key: 'river_${user.username.toLowerCase()}',
+              insertText: user.username,
+              displayName: user.displayName,
+              username: user.username,
+              avatarUrl: user.avatarUrl,
+              subtitle: '@${user.username}',
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <RiverMarkdownMentionUser>[];
+    }
+  }
+
+  Future<List<RiverMarkdownMentionUser>> _searchQingMentionUsersForCompose(
+    String query,
+  ) async {
+    final auth = _activeQingAuth();
+    if (auth == null) {
+      return const <RiverMarkdownMentionUser>[];
+    }
+    final normalized = query.trim().toLowerCase();
+    final result = <RiverMarkdownMentionUser>[];
+    final seen = <String>{};
+
+    void pushUser({
+      required String key,
+      required String name,
+      required String username,
+      required String avatar,
+    }) {
+      final display = name.trim();
+      final insert = display.isEmpty ? username.trim() : display;
+      if (insert.isEmpty) {
+        return;
+      }
+      final unique = key.trim().isNotEmpty
+          ? key.trim().toLowerCase()
+          : insert.toLowerCase();
+      if (seen.contains(unique)) {
+        return;
+      }
+      seen.add(unique);
+      result.add(
+        RiverMarkdownMentionUser(
+          key: unique,
+          insertText: insert,
+          displayName: display.isEmpty ? insert : display,
+          username: username.trim(),
+          avatarUrl: avatar,
+          subtitle: username.trim().isEmpty ? '' : '@${username.trim()}',
+        ),
+      );
+    }
+
+    try {
+      final atListMap = await _callQingApi(
+        auth: auth,
+        body: const <String, String>{
+          'r': 'forum/atuserlist',
+          'page': '1',
+          'pageSize': '20',
+        },
+      );
+      final listRaw = atListMap['list'];
+      if (listRaw is List) {
+        for (final raw in listRaw) {
+          final item = _toStringDynamicMap(raw);
+          if (item.isEmpty) {
+            continue;
+          }
+          final uid = _parseInt(item['uid']) ?? 0;
+          final name = _pickStringFromMap(item, const <String>[
+            'name',
+            'user_nick_name',
+            'nickname',
+          ]);
+          final username = _pickStringFromMap(item, const <String>[
+            'user_name',
+            'username',
+          ]);
+          final avatar = _resolveQingAbsoluteUrl(
+            _pickStringFromMap(item, const <String>['icon', 'avatar']),
+          );
+          if (normalized.isNotEmpty) {
+            final nameLower = name.toLowerCase();
+            final usernameLower = username.toLowerCase();
+            if (!nameLower.contains(normalized) &&
+                !usernameLower.contains(normalized)) {
+              continue;
+            }
+          }
+          pushUser(
+            key: uid > 0 ? 'qing_uid_$uid' : 'qing_name_${name.toLowerCase()}',
+            name: name,
+            username: username,
+            avatar: avatar,
+          );
+        }
+      }
+    } catch (_) {}
+
+    if (normalized.isNotEmpty) {
+      try {
+        final map = await _callQingApi(
+          auth: auth,
+          body: <String, String>{
+            'r': 'user/searchuser',
+            'keyword': query.trim(),
+            'page': '1',
+            'pageSize': '20',
+          },
+        );
+        final body = _toStringDynamicMap(map['body']);
+        final listRaw = map['list'] ?? body['list'];
+        if (listRaw is List) {
+          for (final raw in listRaw) {
+            final item = _toStringDynamicMap(raw);
+            if (item.isEmpty) {
+              continue;
+            }
+            final uid = _parseInt(item['uid']) ?? 0;
+            final name = _pickStringFromMap(item, const <String>[
+              'name',
+              'user_nick_name',
+              'nick_name',
+              'nickname',
+            ]);
+            final username = _pickStringFromMap(item, const <String>[
+              'user_name',
+              'username',
+              'userName',
+            ]);
+            final avatar = _resolveQingAbsoluteUrl(
+              _pickStringFromMap(item, const <String>['icon', 'avatar']),
+            );
+            pushUser(
+              key: uid > 0
+                  ? 'qing_uid_$uid'
+                  : 'qing_name_${name.toLowerCase()}_${username.toLowerCase()}',
+              name: name,
+              username: username,
+              avatar: avatar,
+            );
+          }
+        }
+      } catch (_) {}
+    }
+
+    return result;
+  }
+
+  List<RiverMarkdownMentionUser> _dedupeMentionUsers(
+    List<RiverMarkdownMentionUser> source,
+  ) {
+    final seen = <String>{};
+    final result = <RiverMarkdownMentionUser>[];
+    for (final item in source) {
+      final key = item.key.trim().isEmpty
+          ? item.insertText.trim().toLowerCase()
+          : item.key.trim().toLowerCase();
+      if (key.isEmpty || seen.contains(key)) {
+        continue;
+      }
+      seen.add(key);
+      result.add(item);
+      if (result.length >= 20) {
+        break;
+      }
+    }
+    return result;
   }
 
   _ComposeEmojiConfig _effectiveComposeEmojiConfig() {
@@ -2027,5 +2231,3 @@ class _QingTransferTopicDetail {
   final String markdown;
   final int? boardId;
 }
-
-

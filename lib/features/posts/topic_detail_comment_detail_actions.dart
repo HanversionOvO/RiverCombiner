@@ -12,6 +12,111 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
     );
   }
 
+  Future<List<RiverMarkdownMentionUser>> _searchMentionUsersForEditor(
+    String query,
+  ) async {
+    final normalized = query.trim().toLowerCase();
+    final local = _collectRiverMentionUsersFromCommentDetail();
+    List<RiverMarkdownMentionUser> filteredLocal;
+    if (normalized.isEmpty) {
+      filteredLocal = local.take(20).toList(growable: false);
+    } else {
+      filteredLocal = local
+          .where((item) {
+            final username = item.username.toLowerCase();
+            final display = item.displayName.toLowerCase();
+            return username.contains(normalized) ||
+                display.contains(normalized);
+          })
+          .take(20)
+          .toList(growable: false);
+    }
+    if (normalized.isEmpty) {
+      return filteredLocal;
+    }
+    final cookie = _activeCookieHeader();
+    if (cookie == null || cookie.trim().isEmpty) {
+      return filteredLocal;
+    }
+    try {
+      final remote = await widget.dependencies.accountStore.riverSideApiClient
+          .searchUsers(term: query.trim(), limit: 20, cookieHeader: cookie);
+      final merged = <RiverMarkdownMentionUser>[
+        for (final user in remote)
+          RiverMarkdownMentionUser(
+            key: 'river_${user.username.toLowerCase()}',
+            insertText: user.username,
+            displayName: user.displayName,
+            username: user.username,
+            avatarUrl: user.avatarUrl,
+            subtitle: '@${user.username}',
+          ),
+        ...filteredLocal,
+      ];
+      return _dedupeMentionUsers(merged);
+    } catch (_) {
+      return filteredLocal;
+    }
+  }
+
+  List<RiverMarkdownMentionUser> _collectRiverMentionUsersFromCommentDetail() {
+    final seen = <String>{};
+    final result = <RiverMarkdownMentionUser>[];
+
+    void push(RiverSideTopicPostDetail post) {
+      final username = post.authorUsername.trim();
+      if (username.isEmpty) {
+        return;
+      }
+      final key = username.toLowerCase();
+      if (seen.contains(key)) {
+        return;
+      }
+      seen.add(key);
+      final display = post.authorDisplayName.trim();
+      result.add(
+        RiverMarkdownMentionUser(
+          key: 'river_$key',
+          insertText: username,
+          displayName: display.isEmpty ? username : display,
+          username: username,
+          avatarUrl: post.authorAvatarUrl,
+          subtitle: '@$username',
+        ),
+      );
+    }
+
+    push(_rootPost);
+    for (final post in _replies) {
+      push(post);
+      if (result.length >= 24) {
+        break;
+      }
+    }
+    return result;
+  }
+
+  List<RiverMarkdownMentionUser> _dedupeMentionUsers(
+    List<RiverMarkdownMentionUser> source,
+  ) {
+    final seen = <String>{};
+    final result = <RiverMarkdownMentionUser>[];
+    for (final item in source) {
+      final key = item.key.trim().isEmpty
+          ? item.insertText.trim().toLowerCase()
+          : item.key.trim().toLowerCase();
+      if (key.isEmpty || seen.contains(key)) {
+        continue;
+      }
+      seen.add(key);
+      result.add(item);
+      if (result.length >= 20) {
+        break;
+      }
+    }
+    return result;
+  }
+
   List<_ReactionOption> _availableReactionOptionsForComment() {
     final reactionIds = <String>{};
     reactionIds.addAll(
@@ -463,6 +568,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
           initialText: '',
           emojiUrls: _emojiUrls,
           emojiGroups: _emojiGroups,
+          onSearchMentionUsers: _searchMentionUsersForEditor,
           aiScene: RiverMarkdownAiScene.topicReply,
           aiReplyReferenceText: quoteContent,
           onAiGenerateStream: _generateAiContentStreamForEditor,
@@ -655,6 +761,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
           initialText: originalRaw,
           emojiUrls: _emojiUrls,
           emojiGroups: _emojiGroups,
+          onSearchMentionUsers: _searchMentionUsersForEditor,
           aiScene: RiverMarkdownAiScene.editComment,
           onAiGenerateStream: _generateAiContentStreamForEditor,
           maxHeight: MediaQuery.sizeOf(context).height * 0.74,
@@ -830,5 +937,3 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
     );
   }
 }
-
-

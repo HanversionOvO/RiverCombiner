@@ -1625,6 +1625,262 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     }
   }
 
+  Future<List<RiverMarkdownMentionUser>> _searchMentionUsersForEditor(
+    String query,
+  ) async {
+    if (_isQingShuiHePanTopic) {
+      return _searchQingMentionUsersForEditor(query);
+    }
+    return _searchRiverMentionUsersForEditor(query);
+  }
+
+  Future<List<RiverMarkdownMentionUser>> _searchRiverMentionUsersForEditor(
+    String query,
+  ) async {
+    final normalized = query.trim().toLowerCase();
+    final local = _collectRiverMentionUsersFromTopic();
+    List<RiverMarkdownMentionUser> filteredLocal;
+    if (normalized.isEmpty) {
+      filteredLocal = local.take(20).toList(growable: false);
+    } else {
+      filteredLocal = local
+          .where((item) {
+            final username = item.username.toLowerCase();
+            final display = item.displayName.toLowerCase();
+            return username.contains(normalized) ||
+                display.contains(normalized);
+          })
+          .take(20)
+          .toList(growable: false);
+    }
+
+    if (normalized.isEmpty) {
+      return filteredLocal;
+    }
+    final cookie = _activeCookieHeader();
+    if (cookie == null || cookie.trim().isEmpty) {
+      return filteredLocal;
+    }
+    try {
+      final remote = await widget.dependencies.accountStore.riverSideApiClient
+          .searchUsers(term: query.trim(), limit: 20, cookieHeader: cookie);
+      final merged = <RiverMarkdownMentionUser>[
+        for (final user in remote)
+          RiverMarkdownMentionUser(
+            key: 'river_${user.username.toLowerCase()}',
+            insertText: user.username,
+            displayName: user.displayName,
+            username: user.username,
+            avatarUrl: user.avatarUrl,
+            subtitle: '@${user.username}',
+          ),
+        ...filteredLocal,
+      ];
+      return _dedupeMentionUsers(merged);
+    } catch (_) {
+      return filteredLocal;
+    }
+  }
+
+  List<RiverMarkdownMentionUser> _collectRiverMentionUsersFromTopic() {
+    final seen = <String>{};
+    final result = <RiverMarkdownMentionUser>[];
+
+    void push(RiverSideTopicPostDetail post) {
+      final username = post.authorUsername.trim();
+      if (username.isEmpty) {
+        return;
+      }
+      final key = username.toLowerCase();
+      if (seen.contains(key)) {
+        return;
+      }
+      seen.add(key);
+      final display = post.authorDisplayName.trim();
+      result.add(
+        RiverMarkdownMentionUser(
+          key: 'river_$key',
+          insertText: username,
+          displayName: display.isEmpty ? username : display,
+          username: username,
+          avatarUrl: post.authorAvatarUrl,
+          subtitle: '@$username',
+        ),
+      );
+    }
+
+    final detail = _detail;
+    if (detail != null) {
+      push(detail.mainPost);
+    }
+    for (final post in _comments) {
+      push(post);
+      if (result.length >= 24) {
+        break;
+      }
+    }
+    return result;
+  }
+
+  Future<List<RiverMarkdownMentionUser>> _searchQingMentionUsersForEditor(
+    String query,
+  ) async {
+    final auth = _activeQingAuth();
+    if (auth == null) {
+      return const <RiverMarkdownMentionUser>[];
+    }
+    final normalized = query.trim().toLowerCase();
+    final result = <RiverMarkdownMentionUser>[];
+    final seen = <String>{};
+
+    void pushUser({
+      required String key,
+      required String name,
+      required String username,
+      required String avatar,
+    }) {
+      final display = name.trim();
+      final insert = display.isEmpty ? username.trim() : display;
+      if (insert.isEmpty) {
+        return;
+      }
+      final unique = key.trim().isNotEmpty
+          ? key.trim().toLowerCase()
+          : insert.toLowerCase();
+      if (seen.contains(unique)) {
+        return;
+      }
+      seen.add(unique);
+      result.add(
+        RiverMarkdownMentionUser(
+          key: unique,
+          insertText: insert,
+          displayName: display.isEmpty ? insert : display,
+          username: username.trim(),
+          avatarUrl: avatar,
+          subtitle: username.trim().isEmpty ? '' : '@${username.trim()}',
+        ),
+      );
+    }
+
+    try {
+      final atListMap = await _callQingApi(
+        auth: auth,
+        body: const <String, String>{
+          'r': 'forum/atuserlist',
+          'page': '1',
+          'pageSize': '20',
+        },
+      );
+      final listRaw = atListMap['list'];
+      if (listRaw is List) {
+        for (final raw in listRaw) {
+          final item = _asStringDynamicMap(raw);
+          if (item.isEmpty) {
+            continue;
+          }
+          final uid = _asInt(item['uid']) ?? 0;
+          final name = _pickString(item, const <String>[
+            'name',
+            'user_nick_name',
+            'nickname',
+          ]);
+          final username = _pickString(item, const <String>[
+            'user_name',
+            'username',
+          ]);
+          final avatar = _resolveQingUrl(
+            _pickString(item, const <String>['icon', 'avatar', 'userAvatar']),
+          );
+          if (normalized.isNotEmpty) {
+            final nameLower = name.toLowerCase();
+            final usernameLower = username.toLowerCase();
+            if (!nameLower.contains(normalized) &&
+                !usernameLower.contains(normalized)) {
+              continue;
+            }
+          }
+          pushUser(
+            key: uid > 0 ? 'qing_uid_$uid' : 'qing_name_${name.toLowerCase()}',
+            name: name,
+            username: username,
+            avatar: avatar,
+          );
+        }
+      }
+    } catch (_) {}
+
+    if (normalized.isNotEmpty) {
+      try {
+        final searchMap = await _callQingApi(
+          auth: auth,
+          body: <String, String>{
+            'r': 'user/searchuser',
+            'keyword': query.trim(),
+            'page': '1',
+            'pageSize': '20',
+          },
+        );
+        final bodyMap = _asStringDynamicMap(searchMap['body']);
+        final listRaw = searchMap['list'] ?? bodyMap['list'];
+        if (listRaw is List) {
+          for (final raw in listRaw) {
+            final item = _asStringDynamicMap(raw);
+            if (item.isEmpty) {
+              continue;
+            }
+            final uid = _asInt(item['uid']) ?? 0;
+            final name = _pickString(item, const <String>[
+              'name',
+              'user_nick_name',
+              'nick_name',
+              'nickname',
+            ]);
+            final username = _pickString(item, const <String>[
+              'user_name',
+              'username',
+              'userName',
+            ]);
+            final avatar = _resolveQingUrl(
+              _pickString(item, const <String>['icon', 'avatar', 'userAvatar']),
+            );
+            pushUser(
+              key: uid > 0
+                  ? 'qing_uid_$uid'
+                  : 'qing_name_${name.toLowerCase()}_${username.toLowerCase()}',
+              name: name,
+              username: username,
+              avatar: avatar,
+            );
+          }
+        }
+      } catch (_) {}
+    }
+
+    return _dedupeMentionUsers(result);
+  }
+
+  List<RiverMarkdownMentionUser> _dedupeMentionUsers(
+    List<RiverMarkdownMentionUser> source,
+  ) {
+    final seen = <String>{};
+    final result = <RiverMarkdownMentionUser>[];
+    for (final item in source) {
+      final key = item.key.trim().isEmpty
+          ? item.insertText.trim().toLowerCase()
+          : item.key.trim().toLowerCase();
+      if (key.isEmpty || seen.contains(key)) {
+        continue;
+      }
+      seen.add(key);
+      result.add(item);
+      if (result.length >= 20) {
+        break;
+      }
+    }
+    return result;
+  }
+
   Future<void> _openReplyComposer({
     required int topicId,
     int? replyToPostNumber,
@@ -1647,6 +1903,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
             initialText: '',
             emojiUrls: _emojiUrls,
             emojiGroups: _emojiGroups,
+            onSearchMentionUsers: _searchMentionUsersForEditor,
             emojiInsertFormatter: QingEmojiCatalog.tokenFromKey,
             aiScene: RiverMarkdownAiScene.topicReply,
             aiReplyReferenceText: (aiReferenceText ?? '').trim().isNotEmpty
@@ -1733,6 +1990,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
           initialText: '',
           emojiUrls: _emojiUrls,
           emojiGroups: _emojiGroups,
+          onSearchMentionUsers: _searchMentionUsersForEditor,
           aiScene: RiverMarkdownAiScene.topicReply,
           aiReplyReferenceText: (aiReferenceText ?? '').trim().isNotEmpty
               ? aiReferenceText
@@ -1968,6 +2226,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
           initialText: originalRaw,
           emojiUrls: _emojiUrls,
           emojiGroups: _emojiGroups,
+          onSearchMentionUsers: _searchMentionUsersForEditor,
           aiScene: RiverMarkdownAiScene.editComment,
           onAiGenerateStream: _generateAiContentStreamForEditor,
           maxHeight: MediaQuery.sizeOf(context).height * 0.74,
@@ -2492,5 +2751,3 @@ class _CrossPostTransferSheet extends StatelessWidget {
     );
   }
 }
-
-
