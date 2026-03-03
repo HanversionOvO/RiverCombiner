@@ -1075,7 +1075,9 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       return '';
     }
 
-    final username = quoteUsername?.trim() ?? '';
+    final username = _normalizeMentionUsernameToken(
+      quoteUsername?.trim() ?? '',
+    );
     final postNumber = quotePostNumber ?? 0;
     final topicId = quoteTopicId ?? 0;
     final content = (quoteContent ?? '').trim();

@@ -411,6 +411,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         } else {
           _contentRevealController.value = 1;
         }
+        unawaited(_maybeScrollToRepliesSectionOnOpen());
         return;
       }
 
@@ -463,6 +464,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       } else {
         _contentRevealController.value = 1;
       }
+      unawaited(_maybeScrollToRepliesSectionOnOpen());
       _maybeAutoLoadMore();
     } on RiverSideApiException catch (error) {
       if (!mounted) {
@@ -1176,6 +1178,40 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       }
     });
     await completer.future;
+  }
+
+  Future<void> _maybeScrollToRepliesSectionOnOpen() async {
+    if (!widget.scrollToRepliesOnOpen || _didInitialRepliesScroll || !mounted) {
+      return;
+    }
+    _didInitialRepliesScroll = true;
+    await _waitNextFrame();
+    if (!mounted) {
+      return;
+    }
+    final anchorContext = _repliesSectionAnchorKey.currentContext;
+    if (anchorContext != null) {
+      await Scrollable.ensureVisible(
+        anchorContext,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        alignment: 0.03,
+      );
+      return;
+    }
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    if (maxExtent <= 0) {
+      return;
+    }
+    final targetOffset = (maxExtent * 0.35).clamp(0.0, maxExtent);
+    await _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
   }
 }
 

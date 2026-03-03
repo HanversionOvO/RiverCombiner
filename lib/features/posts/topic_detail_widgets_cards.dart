@@ -1094,7 +1094,7 @@ class _SystemActionPostCard extends StatelessWidget {
     final theme = Theme.of(context);
     final subtitleColor = theme.colorScheme.onSurfaceVariant;
     final accent = _accentColor(theme, post.actionCode);
-    final username = post.authorUsername.trim();
+    final username = _normalizeMentionUsernameToken(post.authorUsername.trim());
     final actor = post.authorDisplayName.trim();
     final actorLabel = username.isNotEmpty
         ? '@$username'

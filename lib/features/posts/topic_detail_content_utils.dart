@@ -235,7 +235,7 @@ _QuoteRef _parseQuoteRef(String header, int fallbackTopicId) {
   if (parts.isNotEmpty) {
     final first = parts.first.trim();
     if (first.isNotEmpty && !first.contains(':')) {
-      username = first;
+      username = _normalizeMentionUsernameToken(first);
     }
   }
 
@@ -351,7 +351,9 @@ class _MentionBuilder extends MarkdownElementBuilder {
 
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    final username = (element.attributes['data-username'] ?? '').trim();
+    final username = _normalizeMentionUsernameToken(
+      (element.attributes['data-username'] ?? '').trim(),
+    );
     if (username.isEmpty) {
       return Text(element.textContent, style: preferredStyle);
     }
@@ -384,17 +386,21 @@ class _TopicAwareLinkBuilder extends MarkdownElementBuilder {
 
     final mentionUsername = _tryParseMentionUsernameFromUrl(resolved);
     if (mentionUsername != null && onTapMention != null) {
+      final mentionToken = mentionUsername.startsWith('uid:')
+          ? mentionUsername
+          : _normalizeMentionUsernameToken(mentionUsername);
       final label = element.textContent.trim();
-      final fallbackMentionLabel = mentionUsername.startsWith('uid:')
+      final fallbackMentionLabel = mentionToken.startsWith('uid:')
           ? '@用户'
-          : '@$mentionUsername';
-      final shown = label.isEmpty
-          ? fallbackMentionLabel
-          : (label.startsWith('@') ? label : fallbackMentionLabel);
+          : '@$mentionToken';
+      final shown = _normalizeMentionDisplayLabel(
+        label: label,
+        fallbackLabel: fallbackMentionLabel,
+      );
       return _InlinePillLink(
         icon: Icons.alternate_email_rounded,
         label: shown,
-        onTap: () => onTapMention!(mentionUsername),
+        onTap: () => onTapMention!(mentionToken),
       );
     }
 
@@ -933,10 +939,11 @@ String? _tryParseMentionUsernameFromUrl(String url) {
       return null;
     }
     final username = parts[1].split('.').first.trim();
-    if (username.isEmpty) {
+    final normalized = _normalizeMentionUsernameToken(username);
+    if (normalized.isEmpty) {
       return null;
     }
-    return username;
+    return normalized;
   }
   if (host.isNotEmpty && _isQingShuiHePanHost(host)) {
     final uid =
@@ -951,7 +958,9 @@ String? _tryParseMentionUsernameFromUrl(String url) {
         uri.queryParameters['username'] ??
         uri.queryParameters['user_name'] ??
         uri.queryParameters['name'];
-    final normalizedUsername = (username ?? '').trim();
+    final normalizedUsername = _normalizeMentionUsernameToken(
+      (username ?? '').trim(),
+    );
     if (normalizedUsername.isNotEmpty) {
       return normalizedUsername;
     }
@@ -965,6 +974,35 @@ String? _tryParseMentionUsernameFromUrl(String url) {
     }
   }
   return null;
+}
+
+String _normalizeMentionUsernameToken(String source) {
+  var token = source.trim();
+  if (token.isEmpty || token.startsWith('uid:')) {
+    return token;
+  }
+  while (token.startsWith('@')) {
+    token = token.substring(1).trimLeft();
+  }
+  return token;
+}
+
+String _normalizeMentionDisplayLabel({
+  required String label,
+  required String fallbackLabel,
+}) {
+  final trimmed = label.trim();
+  if (trimmed.isEmpty) {
+    return fallbackLabel;
+  }
+  if (!trimmed.startsWith('@')) {
+    return fallbackLabel;
+  }
+  final token = _normalizeMentionUsernameToken(trimmed);
+  if (token.isEmpty) {
+    return fallbackLabel;
+  }
+  return '@$token';
 }
 
 int? _tryParseTopicIdFromUrl(String url) {

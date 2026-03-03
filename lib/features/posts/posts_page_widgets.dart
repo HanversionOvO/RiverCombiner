@@ -535,7 +535,11 @@ class _TopicListTabState extends State<_TopicListTab>
     return DateTime.fromMillisecondsSinceEpoch(isMillis ? value : value * 1000);
   }
 
-  void _openDetail(BuildContext sourceContext, RiverSideTopicSummary topic) {
+  void _openDetail(
+    BuildContext sourceContext,
+    RiverSideTopicSummary topic, {
+    bool jumpToReplies = false,
+  }) {
     // Disable Hero linkage for list -> detail transition on Posts page.
     final avatarHeroTag = 'topic_detail_avatar_nohero_${topic.id}';
     final nameHeroTag = 'topic_detail_name_nohero_${topic.id}';
@@ -549,6 +553,7 @@ class _TopicListTabState extends State<_TopicListTab>
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: topic.id,
+          scrollToRepliesOnOpen: jumpToReplies,
           provider: provider,
           qingBoardId: widget.forumProvider == _PostsForumProvider.qingShuiHePan
               ? widget.boardId
@@ -755,6 +760,11 @@ class _TopicListTabState extends State<_TopicListTab>
                   displayCategoryName: _displayCategoryName(topic),
                   isHotFeed: widget.feed == RiverSideTopicFeed.hot,
                   onTap: (sourceContext) => _openDetail(sourceContext, topic),
+                  onCommentTap: (sourceContext) => _openDetail(
+                    sourceContext,
+                    topic,
+                    jumpToReplies: true,
+                  ),
                   onAuthorTap: () => _openAuthor(topic),
                 ),
               );
@@ -824,6 +834,7 @@ class _TopicListTabState extends State<_TopicListTab>
             displayCategoryName: topic.categoryName,
             isHotFeed: widget.feed == RiverSideTopicFeed.hot,
             onTap: (_) {},
+            onCommentTap: (_) {},
             onAuthorTap: () {},
           );
         },
@@ -915,6 +926,7 @@ class _TopicCard extends StatelessWidget {
     required this.displayCategoryName,
     required this.isHotFeed,
     required this.onTap,
+    required this.onCommentTap,
     required this.onAuthorTap,
   });
 
@@ -922,6 +934,7 @@ class _TopicCard extends StatelessWidget {
   final String displayCategoryName;
   final bool isHotFeed;
   final ValueChanged<BuildContext> onTap;
+  final ValueChanged<BuildContext> onCommentTap;
   final VoidCallback onAuthorTap;
 
   @override
@@ -1119,9 +1132,13 @@ class _TopicCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    _IconText(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      text: '${topic.replyCount}',
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => onCommentTap(context),
+                      child: _IconText(
+                        icon: Icons.chat_bubble_outline_rounded,
+                        text: '${topic.replyCount}',
+                      ),
                     ),
                     const SizedBox(width: 16),
                     _IconText(

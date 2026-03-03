@@ -39,7 +39,9 @@ class _PostContent extends StatelessWidget {
           ref: _QuoteRef(
             username: (replyToUsername ?? '').trim().isEmpty
                 ? _TopicDetailPageState._labelUnknownUser
-                : (replyToUsername ?? '').trim(),
+                : _normalizeMentionUsernameToken(
+                    (replyToUsername ?? '').trim(),
+                  ),
             topicId: topicId,
             postNumber: replyPostNumber,
           ),
@@ -141,7 +143,7 @@ class _QuotePreviewCard extends StatelessWidget {
                   children: [
                     Text(
                       hasFloorRef
-                          ? '\u56de\u590d @${quote.ref.username} \u7684 #${quote.ref.postNumber}'
+                          ? '\u56de\u590d @${_normalizeMentionUsernameToken(quote.ref.username)} \u7684 #${quote.ref.postNumber}'
                           : '\u5f15\u7528\u5185\u5bb9',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -352,11 +354,12 @@ class _MarkdownContent extends StatelessWidget {
       alpha: isDark ? 0.62 : 0.44,
     );
     final headers = _buildImageHeaders(cookieHeader);
-    final html = md.markdownToHtml(
+    final rawHtml = md.markdownToHtml(
       data,
       extensionSet: md.ExtensionSet.gitHubFlavored,
       encodeHtml: false,
     );
+    final html = _normalizeMentionAnchorsInHtml(rawHtml);
     return HtmlWidget(
       html,
       baseUrl: Uri.tryParse(riverSideBaseUrl),
@@ -452,6 +455,47 @@ class _MarkdownContent extends StatelessWidget {
         unawaited(RiverImageViewerPage.open(context, items: viewerItems));
       },
     );
+  }
+
+  String _normalizeMentionAnchorsInHtml(String html) {
+    if (html.trim().isEmpty) {
+      return html;
+    }
+    final anchorPattern = RegExp(
+      r'<a([^>]*\bhref\s*=\s*"([^"]+)"[^>]*)>([\s\S]*?)</a>',
+      caseSensitive: false,
+    );
+    return html.replaceAllMapped(anchorPattern, (match) {
+      final full = match.group(0) ?? '';
+      final attrs = match.group(1) ?? '';
+      final href = (match.group(2) ?? '').trim();
+      final innerHtml = match.group(3) ?? '';
+      if (href.isEmpty) {
+        return full;
+      }
+      final resolved = _resolveForumUrl(href);
+      final mentionUsername = _tryParseMentionUsernameFromUrl(resolved);
+      if (mentionUsername == null) {
+        return full;
+      }
+      final mentionToken = mentionUsername.startsWith('uid:')
+          ? mentionUsername
+          : _normalizeMentionUsernameToken(mentionUsername);
+      final fallbackLabel = mentionToken.startsWith('uid:')
+          ? '@用户'
+          : '@$mentionToken';
+      final plainLabel = _decodeHtmlEntities(
+        innerHtml.replaceAll(RegExp(r'<[^>]*>'), ''),
+      ).trim();
+      final normalizedLabel = _normalizeMentionDisplayLabel(
+        label: plainLabel,
+        fallbackLabel: fallbackLabel,
+      );
+      if (normalizedLabel == plainLabel) {
+        return full;
+      }
+      return '<a$attrs>${htmlEscape.convert(normalizedLabel)}</a>';
+    });
   }
 
   String _toCssColor(Color color) {

@@ -356,7 +356,9 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
       return '';
     }
 
-    final username = quoteUsername?.trim() ?? '';
+    final username = _normalizeMentionUsernameToken(
+      quoteUsername?.trim() ?? '',
+    );
     final postNumber = quotePostNumber ?? 0;
     final topicId = quoteTopicId ?? 0;
     final content = (quoteContent ?? '').trim();
