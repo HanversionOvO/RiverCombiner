@@ -12,6 +12,7 @@ import 'package:river/core/categories/riverside_category_utils.dart';
 import 'package:river/core/categories/riverside_category_store.dart';
 import 'package:river/core/config/server_config.dart';
 import 'package:river/core/constants.dart';
+import 'package:river/core/image_host/picui_image_host_service.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_profile_models.dart';
 import 'package:river/core/network/riverside_topic_models.dart';

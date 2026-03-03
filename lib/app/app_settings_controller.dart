@@ -63,6 +63,19 @@ class AppSettingsController extends ChangeNotifier {
       'app.home_widget_feed_preference';
   static const String _miniAppRemotePreviewEnabledKey =
       'app.mini_app_remote_preview_enabled';
+  static const String _picUiEnabledKey = 'app.picui_enabled';
+  static const String _picUiApiBaseUrlKey = 'app.picui_api_base_url';
+  static const String _picUiApiTokenKey = 'app.picui_api_token';
+  static const String _picUiDefaultPermissionKey =
+      'app.picui_default_permission';
+  static const String _picUiDefaultStrategyIdKey =
+      'app.picui_default_strategy_id';
+  static const String _picUiDefaultAlbumIdKey = 'app.picui_default_album_id';
+  static const String _picUiTempUploadTokenKey = 'app.picui_temp_upload_token';
+  static const String _picUiExpiredAtKey = 'app.picui_expired_at';
+  static const String _legacyPicGoEnabledKey = 'app.picgo_enabled';
+  static const String _legacyPicGoApiBaseUrlKey = 'app.picgo_api_base_url';
+  static const String _legacyPicGoApiKeyKey = 'app.picgo_api_key';
 
   static const Color defaultSeedColor = Color(0xFF12457A);
   static const String defaultFontFamilyName = 'HarmonyOS Sans';
@@ -71,6 +84,7 @@ class AppSettingsController extends ChangeNotifier {
   static const String defaultAiModel = 'deepseek-chat';
   static const String defaultAiSystemPrompt =
       '你是 River App 的写作助手，请用简洁、自然、友好的中文输出，不要添加多余解释。';
+  static const String defaultPicUiApiBaseUrl = 'https://picui.cn';
 
   ThemeMode _themeMode = ThemeMode.system;
   Color _themeSeedColor = defaultSeedColor;
@@ -101,6 +115,14 @@ class AppSettingsController extends ChangeNotifier {
   AppHomeWidgetFeedPreference _homeWidgetFeedPreference =
       AppHomeWidgetFeedPreference.latestReplied;
   bool _miniAppRemotePreviewEnabled = false;
+  bool _picUiEnabled = false;
+  String _picUiApiBaseUrl = defaultPicUiApiBaseUrl;
+  String _picUiApiToken = '';
+  int _picUiDefaultPermission = 1;
+  int? _picUiDefaultStrategyId;
+  int? _picUiDefaultAlbumId;
+  String _picUiTempUploadToken = '';
+  String _picUiExpiredAt = '';
 
   SharedPreferences? _prefs;
 
@@ -134,6 +156,16 @@ class AppSettingsController extends ChangeNotifier {
   AppHomeWidgetFeedPreference get homeWidgetFeedPreference =>
       _homeWidgetFeedPreference;
   bool get miniAppRemotePreviewEnabled => _miniAppRemotePreviewEnabled;
+  bool get picUiEnabled => _picUiEnabled;
+  String get picUiApiBaseUrl => _picUiApiBaseUrl;
+  String get picUiApiToken => _picUiApiToken;
+  int get picUiDefaultPermission => _picUiDefaultPermission;
+  int? get picUiDefaultStrategyId => _picUiDefaultStrategyId;
+  int? get picUiDefaultAlbumId => _picUiDefaultAlbumId;
+  String get picUiTempUploadToken => _picUiTempUploadToken;
+  String get picUiExpiredAt => _picUiExpiredAt;
+  bool get picUiConfigured =>
+      _picUiApiBaseUrl.trim().isNotEmpty && _picUiApiToken.trim().isNotEmpty;
   bool get aiConfigured =>
       _aiBaseUrl.trim().isNotEmpty &&
       _aiModel.trim().isNotEmpty &&
@@ -320,6 +352,47 @@ class AppSettingsController extends ChangeNotifier {
     }
     _miniAppRemotePreviewEnabled =
         _prefs?.getBool(_miniAppRemotePreviewEnabledKey) ?? false;
+    _picUiEnabled =
+        _prefs?.getBool(_picUiEnabledKey) ??
+        _prefs?.getBool(_legacyPicGoEnabledKey) ??
+        false;
+
+    final picUiApiBaseUrlRaw =
+        _prefs?.getString(_picUiApiBaseUrlKey) ??
+        _prefs?.getString(_legacyPicGoApiBaseUrlKey);
+    if (picUiApiBaseUrlRaw != null && picUiApiBaseUrlRaw.trim().isNotEmpty) {
+      try {
+        _picUiApiBaseUrl = RiverServerConfig.normalizeBaseUrl(
+          picUiApiBaseUrlRaw,
+        );
+      } catch (_) {
+        _picUiApiBaseUrl = defaultPicUiApiBaseUrl;
+      }
+    }
+
+    final picUiApiTokenRaw =
+        _prefs?.getString(_picUiApiTokenKey) ??
+        _prefs?.getString(_legacyPicGoApiKeyKey);
+    if (picUiApiTokenRaw != null) {
+      _picUiApiToken = picUiApiTokenRaw.trim();
+    }
+
+    final picUiPermissionRaw = _prefs?.getInt(_picUiDefaultPermissionKey);
+    if (picUiPermissionRaw != null &&
+        (picUiPermissionRaw == 0 || picUiPermissionRaw == 1)) {
+      _picUiDefaultPermission = picUiPermissionRaw;
+    }
+    final picUiStrategyRaw = _prefs?.getInt(_picUiDefaultStrategyIdKey);
+    if (picUiStrategyRaw != null && picUiStrategyRaw > 0) {
+      _picUiDefaultStrategyId = picUiStrategyRaw;
+    }
+    final picUiAlbumRaw = _prefs?.getInt(_picUiDefaultAlbumIdKey);
+    if (picUiAlbumRaw != null && picUiAlbumRaw > 0) {
+      _picUiDefaultAlbumId = picUiAlbumRaw;
+    }
+    _picUiTempUploadToken = (_prefs?.getString(_picUiTempUploadTokenKey) ?? '')
+        .trim();
+    _picUiExpiredAt = (_prefs?.getString(_picUiExpiredAtKey) ?? '').trim();
 
     RiverServerConfig.instance.apply(
       baseUrl: _riverSideBaseUrl,
@@ -607,6 +680,85 @@ class AppSettingsController extends ChangeNotifier {
     unawaited(_saveMiniAppRemotePreviewEnabled());
   }
 
+  void updatePicUiEnabled(bool value) {
+    if (_picUiEnabled == value) {
+      return;
+    }
+    _picUiEnabled = value;
+    notifyListeners();
+    unawaited(_savePicUiEnabled());
+  }
+
+  void updatePicUiApiBaseUrl(String value) {
+    final normalized = RiverServerConfig.normalizeBaseUrl(value);
+    if (_picUiApiBaseUrl == normalized) {
+      return;
+    }
+    _picUiApiBaseUrl = normalized;
+    notifyListeners();
+    unawaited(_savePicUiApiBaseUrl());
+  }
+
+  void updatePicUiApiToken(String value) {
+    final normalized = value.trim();
+    if (_picUiApiToken == normalized) {
+      return;
+    }
+    _picUiApiToken = normalized;
+    notifyListeners();
+    unawaited(_savePicUiApiToken());
+  }
+
+  void updatePicUiDefaultPermission(int value) {
+    final normalized = value == 0 ? 0 : 1;
+    if (_picUiDefaultPermission == normalized) {
+      return;
+    }
+    _picUiDefaultPermission = normalized;
+    notifyListeners();
+    unawaited(_savePicUiDefaultPermission());
+  }
+
+  void updatePicUiDefaultStrategyId(int? value) {
+    final normalized = value != null && value > 0 ? value : null;
+    if (_picUiDefaultStrategyId == normalized) {
+      return;
+    }
+    _picUiDefaultStrategyId = normalized;
+    notifyListeners();
+    unawaited(_savePicUiDefaultStrategyId());
+  }
+
+  void updatePicUiDefaultAlbumId(int? value) {
+    final normalized = value != null && value > 0 ? value : null;
+    if (_picUiDefaultAlbumId == normalized) {
+      return;
+    }
+    _picUiDefaultAlbumId = normalized;
+    notifyListeners();
+    unawaited(_savePicUiDefaultAlbumId());
+  }
+
+  void updatePicUiTempUploadToken(String value) {
+    final normalized = value.trim();
+    if (_picUiTempUploadToken == normalized) {
+      return;
+    }
+    _picUiTempUploadToken = normalized;
+    notifyListeners();
+    unawaited(_savePicUiTempUploadToken());
+  }
+
+  void updatePicUiExpiredAt(String value) {
+    final normalized = value.trim();
+    if (_picUiExpiredAt == normalized) {
+      return;
+    }
+    _picUiExpiredAt = normalized;
+    notifyListeners();
+    unawaited(_savePicUiExpiredAt());
+  }
+
   String? _mapLegacyFontPresetToFamily(String? presetName) {
     switch (presetName) {
       case 'system':
@@ -857,5 +1009,55 @@ class AppSettingsController extends ChangeNotifier {
       _miniAppRemotePreviewEnabledKey,
       _miniAppRemotePreviewEnabled,
     );
+  }
+
+  Future<void> _savePicUiEnabled() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(_picUiEnabledKey, _picUiEnabled);
+  }
+
+  Future<void> _savePicUiApiBaseUrl() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setString(_picUiApiBaseUrlKey, _picUiApiBaseUrl);
+  }
+
+  Future<void> _savePicUiApiToken() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setString(_picUiApiTokenKey, _picUiApiToken);
+  }
+
+  Future<void> _savePicUiDefaultPermission() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setInt(_picUiDefaultPermissionKey, _picUiDefaultPermission);
+  }
+
+  Future<void> _savePicUiDefaultStrategyId() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final value = _picUiDefaultStrategyId;
+    if (value == null) {
+      await _prefs!.remove(_picUiDefaultStrategyIdKey);
+      return;
+    }
+    await _prefs!.setInt(_picUiDefaultStrategyIdKey, value);
+  }
+
+  Future<void> _savePicUiDefaultAlbumId() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final value = _picUiDefaultAlbumId;
+    if (value == null) {
+      await _prefs!.remove(_picUiDefaultAlbumIdKey);
+      return;
+    }
+    await _prefs!.setInt(_picUiDefaultAlbumIdKey, value);
+  }
+
+  Future<void> _savePicUiTempUploadToken() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setString(_picUiTempUploadTokenKey, _picUiTempUploadToken);
+  }
+
+  Future<void> _savePicUiExpiredAt() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setString(_picUiExpiredAtKey, _picUiExpiredAt);
   }
 }

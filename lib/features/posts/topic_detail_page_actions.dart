@@ -1147,6 +1147,14 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
   }
 
   Future<String?> _uploadReplyImage(String fileName, List<int> bytes) async {
+    final picUiInserted = await _uploadImageViaPicUiIfEnabled(
+      fileName: fileName,
+      bytes: bytes,
+    );
+    if (picUiInserted != null) {
+      return picUiInserted;
+    }
+
     final cookieHeader = _activeCookieHeader();
     if (cookieHeader == null || cookieHeader.trim().isEmpty) {
       throw const RiverSideApiException(
@@ -1164,6 +1172,38 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
         ? uploaded
         : _resolveForumUrl(uploaded);
     return '![]($resolved)';
+  }
+
+  Future<String?> _uploadImageViaPicUiIfEnabled({
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final settings = widget.dependencies.settingsController;
+    if (!settings.picUiEnabled) {
+      return null;
+    }
+    try {
+      final service = PicUiImageHostService(
+        apiBaseUrl: settings.picUiApiBaseUrl,
+      );
+      final uploaded = await service.uploadBytes(
+        fileName: fileName,
+        bytes: bytes,
+        apiToken: settings.picUiApiToken,
+        options: PicUiUploadOptions(
+          permission: 1,
+          albumId: settings.picUiDefaultAlbumId,
+        ),
+      );
+      final url = uploaded.links.url.trim();
+      if (url.isEmpty) {
+        throw const PicUiImageHostException('PicUI 返回的图片地址为空');
+      }
+      return '![]($url)';
+    } catch (error) {
+      _showSimpleToast('PicUI 上传失败，已回退论坛上传：$error');
+      return null;
+    }
   }
 
   void _appendPublishedReply(RiverSideTopicPostDetail created) {
@@ -1423,6 +1463,14 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     String fileName,
     List<int> bytes,
   ) async {
+    final picUiInserted = await _uploadImageViaPicUiIfEnabled(
+      fileName: fileName,
+      bytes: bytes,
+    );
+    if (picUiInserted != null) {
+      return picUiInserted;
+    }
+
     final auth = _activeQingAuth();
     if (auth == null) {
       throw RiverSideApiException(_loginRequiredLabel);

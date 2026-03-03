@@ -1,11 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:river/core/constants.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 class AppUpdateInfo {
   const AppUpdateInfo({
     required this.version,
@@ -129,6 +131,7 @@ class AppUpdateChecker extends ChangeNotifier {
         throw const FormatException('Missing version field');
       }
       final link = (decoded['link'] ?? '').toString().trim();
+      final linkIpa = (decoded['link_ipa'] ?? '').toString().trim();
       final desc = (decoded['desc'] ?? '').toString().trim();
       final updatesRaw = decoded['updates'];
       final updates = <String>[];
@@ -143,7 +146,10 @@ class AppUpdateChecker extends ChangeNotifier {
 
       _latestInfo = AppUpdateInfo(
         version: version,
-        downloadUrl: link,
+        downloadUrl: _resolvePlatformDownloadUrl(
+          androidLink: link,
+          iosLink: linkIpa,
+        ),
         description: desc,
         highlights: updates,
       );
@@ -168,6 +174,19 @@ class AppUpdateChecker extends ChangeNotifier {
       checkedAt: _checkedAt,
       errorMessage: _errorMessage,
     );
+  }
+
+  String _resolvePlatformDownloadUrl({
+    required String androidLink,
+    required String iosLink,
+  }) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      return iosLink.isNotEmpty ? iosLink : androidLink;
+    }
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return androidLink.isNotEmpty ? androidLink : iosLink;
+    }
+    return androidLink.isNotEmpty ? androidLink : iosLink;
   }
 
   static int compareVersion(String a, String b) {
@@ -744,6 +763,3 @@ class _VersionStatCard extends StatelessWidget {
     );
   }
 }
-
-
-

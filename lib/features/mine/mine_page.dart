@@ -25,6 +25,7 @@ import 'package:river/features/mine/appearance_settings_page.dart';
 import 'package:river/features/mine/ai_settings_page.dart';
 import 'package:river/features/mine/developer_settings_page.dart';
 import 'package:river/features/mine/feedback_webview_page.dart';
+import 'package:river/features/mine/image_host_settings_page.dart';
 import 'package:river/features/mine/notifications_push_settings_page.dart';
 import 'package:river/features/mine/mine_qr_pages.dart';
 import 'package:river/features/mine/riverside_account_settings_page.dart';
@@ -326,6 +327,16 @@ class _MinePageState extends State<MinePage> {
     Navigator.of(context).push(
       riverPageRoute<void>(
         builder: (_) => AiSettingsPage(
+          settingsController: widget.dependencies.settingsController,
+        ),
+      ),
+    );
+  }
+
+  void _openImageHostSettings() {
+    Navigator.of(context).push(
+      riverPageRoute<void>(
+        builder: (_) => ImageHostSettingsPage(
           settingsController: widget.dependencies.settingsController,
         ),
       ),
@@ -1110,6 +1121,14 @@ class _MinePageState extends State<MinePage> {
                                 subtitle: '应用缓存空间管理与清理',
                                 heroTagPrefix: 'mine_settings_storage',
                                 onTap: _openStorageSettings,
+                              ),
+                              const _SettingsDivider(),
+                              _SettingsTile(
+                                icon: Icons.photo_library_outlined,
+                                title: '图床设置',
+                                subtitle: 'PicUI 上传、文件预览与管理',
+                                heroTagPrefix: 'mine_settings_image_host',
+                                onTap: _openImageHostSettings,
                               ),
                               const _SettingsDivider(),
                               _SettingsTile(

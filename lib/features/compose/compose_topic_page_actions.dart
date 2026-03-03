@@ -490,6 +490,14 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
   }
 
   Future<String?> _uploadComposeImage(String fileName, List<int> bytes) async {
+    final picUiInserted = await _uploadImageViaPicUiIfEnabled(
+      fileName: fileName,
+      bytes: bytes,
+    );
+    if (picUiInserted != null) {
+      return picUiInserted;
+    }
+
     final publishToRiver = _enableRiverCompose;
     final publishToQing = _enableQingCompose;
     if (!publishToRiver && !publishToQing) {
@@ -544,6 +552,38 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
       }
     }
     return '![]($displayUrl)';
+  }
+
+  Future<String?> _uploadImageViaPicUiIfEnabled({
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final settings = widget.dependencies.settingsController;
+    if (!settings.picUiEnabled) {
+      return null;
+    }
+    try {
+      final service = PicUiImageHostService(
+        apiBaseUrl: settings.picUiApiBaseUrl,
+      );
+      final uploaded = await service.uploadBytes(
+        fileName: fileName,
+        bytes: bytes,
+        apiToken: settings.picUiApiToken,
+        options: PicUiUploadOptions(
+          permission: 1,
+          albumId: settings.picUiDefaultAlbumId,
+        ),
+      );
+      final url = uploaded.links.url.trim();
+      if (url.isEmpty) {
+        throw const PicUiImageHostException('PicUI 返回的图片地址为空');
+      }
+      return '![]($url)';
+    } catch (error) {
+      _showToast('PicUI 上传失败，已回退论坛上传：$error', isError: true);
+      return null;
+    }
   }
 
   Future<_QingComposeUploadImage> _uploadQingComposeImage({
