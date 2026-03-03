@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:river/app/app.dart';
+import 'package:toastification/toastification.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,5 +14,5 @@ Future<void> main() async {
       systemNavigationBarContrastEnforced: false,
     ),
   );
-  runApp(const RiverApp());
+  runApp(const ToastificationWrapper(child: RiverApp()));
 }

@@ -66,7 +66,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
           cookieHeader: cookie,
         );
     if (mounted) {
-      ScaffoldMessenger.of(context).showRiverSnackBar('草稿已删除');
+      _showToast('草稿已删除');
     }
     return true;
   }
@@ -1866,7 +1866,8 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
     _mutateState(() => _publishing = true);
 
     final success = <_ComposePublishResult>[];
-    final failed = <String>[];
+    String? riverFailure;
+    String? qingFailure;
 
     try {
       if (_enableRiverCompose) {
@@ -1888,9 +1889,10 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
             ),
           );
         } on RiverSideApiException catch (error) {
-          failed.add('RiverSide：${error.message}');
+          final message = error.message.trim();
+          riverFailure = message.isEmpty ? '发布失败' : message;
         } catch (_) {
-          failed.add('RiverSide：发布失败');
+          riverFailure = '发布失败';
         }
       }
 
@@ -1910,22 +1912,58 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
             ),
           );
         } on RiverSideApiException catch (error) {
-          failed.add('清水河畔：${error.message}');
+          final message = error.message.trim();
+          qingFailure = message.isEmpty ? '发布失败' : message;
         } catch (_) {
-          failed.add('清水河畔：发布失败');
+          qingFailure = '发布失败';
         }
       }
 
       if (!mounted) return;
       if (success.isEmpty) {
-        _showToast(failed.isEmpty ? '发布失败，请稍后重试' : failed.first, isError: true);
+        if (riverFailure == null && qingFailure == null) {
+          _showToast('发布失败，请稍后重试', isError: true);
+          return;
+        }
+        _showPublishFailureToasts(
+          riverFailure: riverFailure,
+          qingFailure: qingFailure,
+        );
         return;
       }
+
+      final hasFailure = riverFailure != null || qingFailure != null;
+      if (hasFailure) {
+        final succeededProviders = success.map((item) => item.provider).toSet();
+        _mutateState(() {
+          if (succeededProviders.contains(AccountProvider.riverSide)) {
+            _enableRiverCompose = false;
+          }
+          if (succeededProviders.contains(AccountProvider.qingShuiHePan)) {
+            _enableQingCompose = false;
+          }
+        });
+
+        final successLabels = <String>[];
+        if (succeededProviders.contains(AccountProvider.riverSide)) {
+          successLabels.add('RiverSide');
+        }
+        if (succeededProviders.contains(AccountProvider.qingShuiHePan)) {
+          successLabels.add('清水河畔');
+        }
+        if (successLabels.isNotEmpty) {
+          _showToast('已发布到${successLabels.join('、')}');
+        }
+        _showToast('已保留正文并自动切换到失败论坛，可直接修正后重试', isError: true);
+        _showPublishFailureToasts(
+          riverFailure: riverFailure,
+          qingFailure: qingFailure,
+        );
+        return;
+      }
+
       await _clearComposeContentAfterPublishSuccess();
       _showToast(success.length > 1 ? '已同步发布到两个论坛' : '发布成功！');
-      if (failed.isNotEmpty) {
-        _showToast('部分失败：${failed.join('；')}', isError: true);
-      }
       await Future<void>.delayed(const Duration(milliseconds: 260));
       if (!mounted) return;
       final jump = success.firstWhere(
@@ -2140,10 +2178,29 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
     return map;
   }
 
+  void _showPublishFailureToasts({String? riverFailure, String? qingFailure}) {
+    if (riverFailure != null && riverFailure.trim().isNotEmpty) {
+      _showToast('RiverSide 发帖失败：${riverFailure.trim()}', isError: true);
+    }
+    if (qingFailure != null && qingFailure.trim().isNotEmpty) {
+      _showToast('清水河畔发帖失败：${qingFailure.trim()}', isError: true);
+    }
+  }
+
   void _showToast(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showRiverSnackBar(
-      message,
-      tone: isError ? RiverSnackBarTone.error : RiverSnackBarTone.normal,
+    if (!mounted || message.trim().isEmpty) {
+      return;
+    }
+    toastification.show(
+      context: context,
+      type: isError ? ToastificationType.error : ToastificationType.success,
+      style: ToastificationStyle.flatColored,
+      alignment: Alignment.topCenter,
+      autoCloseDuration: const Duration(seconds: 3),
+      showProgressBar: false,
+      closeOnClick: true,
+      dragToClose: true,
+      title: Text(message.trim(), maxLines: 3, overflow: TextOverflow.ellipsis),
     );
   }
 }

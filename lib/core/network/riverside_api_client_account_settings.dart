@@ -500,6 +500,176 @@ extension RiverSideApiClientAccountSettingsMethods on RiverSideApiClient {
         const RiverSideApiException('Profile update endpoint is unavailable.');
   }
 
+  Future<void> updateUserAvatar({
+    required String username,
+    required String cookieHeader,
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final resolvedUsername = username.trim();
+    final cookie = cookieHeader.trim();
+    final resolvedFileName = fileName.trim().isEmpty
+        ? 'avatar.jpg'
+        : fileName.trim();
+    if (resolvedUsername.isEmpty) {
+      throw const RiverSideApiException('Username is empty.');
+    }
+    if (cookie.isEmpty) {
+      throw const RiverSideApiException('Cookie header is empty.');
+    }
+    if (bytes.isEmpty) {
+      throw const RiverSideApiException('Avatar image is empty.');
+    }
+
+    final csrf = await fetchSessionCsrfToken(cookieHeader: cookie);
+    final uploadId = await _uploadAvatarImage(
+      cookie: cookie,
+      csrf: csrf,
+      fileName: resolvedFileName,
+      bytes: bytes,
+    );
+    await _pickUploadedAvatar(
+      username: resolvedUsername,
+      cookie: cookie,
+      csrf: csrf,
+      uploadId: uploadId,
+    );
+  }
+
+  Future<int> _uploadAvatarImage({
+    required String cookie,
+    required String csrf,
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$riverSideBaseUrl/uploads.json'),
+    );
+    request.headers.addAll(<String, String>{
+      'Accept': 'application/json',
+      'Cookie': cookie,
+      'X-CSRF-Token': csrf,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Origin': riverSideBaseUrl,
+      'Referer': riverSideBaseUrl,
+    });
+    request.fields['type'] = 'avatar';
+    request.fields['synchronous'] = 'true';
+    request.files.add(
+      http.MultipartFile.fromBytes('file', bytes, filename: fileName),
+    );
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == 403) {
+      throw const RiverSideApiException(
+        'Login session expired. Please sign in again.',
+      );
+    }
+    if (response.statusCode == 422) {
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(message.isEmpty ? '头像上传失败。' : message);
+    }
+    if (response.statusCode != 200) {
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(
+        message.isEmpty
+            ? 'Failed to upload avatar, HTTP ${response.statusCode}'
+            : message,
+      );
+    }
+
+    final decoded = _decodeJsonObject(
+      response,
+      fallbackMessage: 'Invalid avatar upload response format',
+    );
+    final upload = _toStringMap(decoded['upload']);
+    final uploadId =
+        _asInt(decoded['id']) ??
+        _asInt(decoded['upload_id']) ??
+        _asInt(upload['id']) ??
+        _asInt(upload['upload_id']);
+    if (uploadId == null || uploadId <= 0) {
+      throw const RiverSideApiException('头像上传成功，但未返回 upload_id。');
+    }
+    return uploadId;
+  }
+
+  Future<void> _pickUploadedAvatar({
+    required String username,
+    required String cookie,
+    required String csrf,
+    required int uploadId,
+  }) async {
+    final encoded = Uri.encodeComponent(username);
+    final pickUriCandidates = <Uri>[
+      Uri.parse('$riverSideBaseUrl/u/$encoded/preferences/avatar/pick'),
+      Uri.parse('$riverSideBaseUrl/u/$encoded/preferences/avatar/pick.json'),
+    ];
+    final body = <String, String>{'upload_id': '$uploadId', 'type': 'uploaded'};
+
+    RiverSideApiException? lastError;
+    for (final uri in pickUriCandidates) {
+      final referer = Uri.parse(
+        '$riverSideBaseUrl/u/$encoded/preferences/account',
+      );
+      final putResp = await http.put(
+        uri,
+        headers: _buildFormHeaders(
+          cookie: cookie,
+          csrf: csrf,
+          referer: referer,
+        ),
+        body: body,
+      );
+      if (putResp.statusCode == 403) {
+        throw const RiverSideApiException(
+          'Login session expired. Please sign in again.',
+        );
+      }
+      if (putResp.statusCode >= 200 && putResp.statusCode < 300) {
+        return;
+      }
+      if (putResp.statusCode != 404 && putResp.statusCode != 405) {
+        final message = _extractErrorMessageFromResponse(putResp).trim();
+        lastError = RiverSideApiException(
+          message.isEmpty
+              ? 'Failed to pick avatar, HTTP ${putResp.statusCode}'
+              : message,
+        );
+      }
+
+      final postResp = await http.post(
+        uri,
+        headers: _buildFormHeaders(
+          cookie: cookie,
+          csrf: csrf,
+          referer: referer,
+        ),
+        body: body,
+      );
+      if (postResp.statusCode == 403) {
+        throw const RiverSideApiException(
+          'Login session expired. Please sign in again.',
+        );
+      }
+      if (postResp.statusCode >= 200 && postResp.statusCode < 300) {
+        return;
+      }
+      if (postResp.statusCode != 404 && postResp.statusCode != 405) {
+        final message = _extractErrorMessageFromResponse(postResp).trim();
+        lastError = RiverSideApiException(
+          message.isEmpty
+              ? 'Failed to pick avatar, HTTP ${postResp.statusCode}'
+              : message,
+        );
+      }
+    }
+
+    throw lastError ?? const RiverSideApiException('头像应用接口不可用。');
+  }
+
   Future<void> requestPasswordReset({
     required String login,
     required String cookieHeader,

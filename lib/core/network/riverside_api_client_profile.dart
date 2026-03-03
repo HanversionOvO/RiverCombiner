@@ -169,10 +169,9 @@ extension RiverSideApiClientProfileMethods on RiverSideApiClient {
     if (resolvedUsername.isEmpty) {
       throw const RiverSideApiException('Username is empty.');
     }
+    final encodedUsername = Uri.encodeComponent(resolvedUsername);
 
-    final uri = Uri.parse(
-      '$riverSideBaseUrl/u/${Uri.encodeComponent(resolvedUsername)}.json',
-    );
+    final uri = Uri.parse('$riverSideBaseUrl/u/$encodedUsername.json');
     final response = await http.get(
       uri,
       headers: _buildJsonHeaders(cookieHeader: cookieHeader),
@@ -200,6 +199,25 @@ extension RiverSideApiClientProfileMethods on RiverSideApiClient {
     final profile = _toStringMap(user['user_profile']);
     final userSummary = _toStringMap(decoded['user_summary']);
     final userStat = _toStringMap(user['user_stat']);
+    var summaryUserSummary = const <String, dynamic>{};
+    try {
+      final summaryUri = Uri.parse(
+        '$riverSideBaseUrl/u/$encodedUsername/summary.json',
+      );
+      final summaryResp = await http.get(
+        summaryUri,
+        headers: _buildJsonHeaders(cookieHeader: cookieHeader),
+      );
+      if (summaryResp.statusCode == 200) {
+        final summaryDecoded = _decodeJsonObject(
+          summaryResp,
+          fallbackMessage: 'Invalid profile summary response format',
+        );
+        summaryUserSummary = _toStringMap(summaryDecoded['user_summary']);
+      }
+    } catch (_) {
+      // Keep profile loading resilient if summary endpoint is temporarily unavailable.
+    }
     final usernameFromApi = (user['username'] ?? resolvedUsername)
         .toString()
         .trim();
@@ -251,13 +269,14 @@ extension RiverSideApiClientProfileMethods on RiverSideApiClient {
       trustLevel: _asInt(user['trust_level']) ?? 0,
       badgeCount: _asInt(user['badge_count']) ?? 0,
       profileViewCount: _asInt(user['profile_view_count']) ?? 0,
-      topicCount: readStat(const <String>['topic_count']),
+      topicCount:
+          _asInt(summaryUserSummary['topic_count']) ??
+          readStat(const <String>['topic_count']),
       postCount: readStat(const <String>['post_count', 'posts_count']),
       likesGiven: readStat(const <String>['likes_given', 'num_likes_given']),
-      likesReceived: readStat(const <String>[
-        'likes_received',
-        'num_likes_received',
-      ]),
+      likesReceived:
+          _asInt(summaryUserSummary['likes_received']) ??
+          readStat(const <String>['likes_received', 'num_likes_received']),
       followersCount: _asInt(user['total_followers']) ?? 0,
       followingCount: _asInt(user['total_following']) ?? 0,
       isFollowing: readOptionalBool(const <String>[
@@ -875,8 +894,9 @@ extension RiverSideApiClientProfileMethods on RiverSideApiClient {
     if (resolvedUsername.isEmpty) {
       throw const RiverSideApiException('Username is empty.');
     }
+    final encodedUsername = Uri.encodeComponent(resolvedUsername);
     final uri = Uri.parse(
-      '$riverSideBaseUrl/u/${Uri.encodeComponent(resolvedUsername)}/badges.json',
+      '$riverSideBaseUrl/user-badges/$encodedUsername.json',
     );
     final response = await http.get(
       uri,
@@ -916,21 +936,61 @@ extension RiverSideApiClientProfileMethods on RiverSideApiClient {
       }
     }
 
+    final badgesById = <int, Map<String, dynamic>>{};
     final badgesRaw = decoded['badges'];
-    if (badgesRaw is! List) {
+    if (badgesRaw is List) {
+      for (final rawBadge in badgesRaw) {
+        final badge = _toStringMap(rawBadge);
+        final badgeId = _asInt(badge['id']);
+        if (badgeId == null || badgeId <= 0) {
+          continue;
+        }
+        badgesById[badgeId] = badge;
+      }
+    }
+
+    final userBadgesRaw = decoded['user_badges'];
+    if (userBadgesRaw is! List) {
       return const <RiverSideProfileBadge>[];
     }
-    final badges = <RiverSideProfileBadge>[];
-    for (final rawBadge in badgesRaw) {
-      final badge = _toStringMap(rawBadge);
-      final id = _asInt(badge['id']);
-      if (id == null) {
-        continue;
+
+    final grantCountByBadgeId = <int, int>{};
+    final orderedBadgeIds = <int>[];
+    final orderedSeen = <int>{};
+    for (final rawUserBadge in userBadgesRaw) {
+      final userBadge = _toStringMap(rawUserBadge);
+      final nestedBadge = _toStringMap(userBadge['badge']);
+      final nestedBadgeId = _asInt(nestedBadge['id']);
+      if (nestedBadgeId != null &&
+          nestedBadgeId > 0 &&
+          nestedBadge.isNotEmpty &&
+          !badgesById.containsKey(nestedBadgeId)) {
+        badgesById[nestedBadgeId] = nestedBadge;
       }
 
+      final badgeId = _asInt(userBadge['badge_id']) ?? nestedBadgeId;
+      if (badgeId == null || badgeId <= 0) {
+        continue;
+      }
+      if (orderedSeen.add(badgeId)) {
+        orderedBadgeIds.add(badgeId);
+      }
+      grantCountByBadgeId[badgeId] = (grantCountByBadgeId[badgeId] ?? 0) + 1;
+    }
+
+    if (orderedBadgeIds.isEmpty && badgesById.isNotEmpty) {
+      orderedBadgeIds.addAll(badgesById.keys);
+    }
+
+    final badges = <RiverSideProfileBadge>[];
+    for (final badgeId in orderedBadgeIds) {
+      final badge = badgesById[badgeId] ?? const <String, dynamic>{};
+      if (badge.isEmpty) {
+        continue;
+      }
       badges.add(
         RiverSideProfileBadge(
-          id: id,
+          id: badgeId,
           name: (badge['name'] ?? '').toString().trim(),
           description: _sanitizeExcerpt(
             (badge['description'] ?? '').toString(),
@@ -939,7 +999,8 @@ extension RiverSideApiClientProfileMethods on RiverSideApiClient {
           imageUrl: _normalizeMaybeRelativeUrl(
             (badge['image_url'] ?? '').toString().trim(),
           ),
-          grantCount: _asInt(badge['grant_count']) ?? 0,
+          grantCount:
+              grantCountByBadgeId[badgeId] ?? _asInt(badge['grant_count']) ?? 0,
           badgeTypeName: typeNameById[_asInt(badge['badge_type_id'])] ?? '',
         ),
       );

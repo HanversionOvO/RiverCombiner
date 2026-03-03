@@ -1,11 +1,18 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
+import 'package:pro_image_editor/pro_image_editor.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
+import 'package:river/core/config/server_config.dart';
+import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/platform/riverside_webview_support.dart';
 import 'package:river/core/update/app_update_checker.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
@@ -45,6 +52,7 @@ class _MinePageState extends State<MinePage> {
   bool _isCheckingVersion = false;
   bool _avatarAsCardBackground = false;
   final ScrollController _scrollController = ScrollController();
+  final ImagePicker _imagePicker = ImagePicker();
   double _headerScrollFactor = 0;
 
   @override
@@ -425,8 +433,495 @@ class _MinePageState extends State<MinePage> {
     });
   }
 
-  void _onEditAvatarPressed() {
-    _showMessage('修改头像功能开发中...');
+  Future<void> _onEditAvatarPressed() async {
+    if (_isBusy) {
+      return;
+    }
+    final target = await _pickAvatarEditTarget();
+    if (target == null || !mounted) {
+      return;
+    }
+
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 100,
+      maxWidth: 4096,
+      maxHeight: 4096,
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+
+    final sourceBytes = await picked.readAsBytes();
+    if (sourceBytes.isEmpty || !mounted) {
+      _showMessage('选择的图片为空，请重新选择');
+      return;
+    }
+
+    final editedBytes = await _openAvatarCropEditor(sourceBytes);
+    if (editedBytes == null || editedBytes.isEmpty || !mounted) {
+      return;
+    }
+
+    _setBusy(true);
+    try {
+      if (target == _AvatarEditTarget.riverSide) {
+        await _updateRiverSideAvatar(editedBytes);
+        _showMessage('RiverSide 头像已更新');
+      } else {
+        await _updateQingShuiHePanAvatar(editedBytes);
+        _showMessage('清水河畔头像已更新');
+      }
+    } on RiverSideApiException catch (error) {
+      _showMessage(error.message);
+    } catch (error) {
+      _showMessage('头像修改失败：$error');
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  Future<_AvatarEditTarget?> _pickAvatarEditTarget() async {
+    final river = _activeAccount;
+    final qing = _activeQingShuiHePanAccount;
+    if (river == null && qing == null) {
+      _showMessage('请先登录账号');
+      return null;
+    }
+    if (river != null && qing == null) {
+      return _AvatarEditTarget.riverSide;
+    }
+    if (river == null && qing != null) {
+      return _AvatarEditTarget.qingShuiHePan;
+    }
+    if (!mounted) {
+      return null;
+    }
+    return showModalBottomSheet<_AvatarEditTarget>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.42),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const CircleAvatar(
+                    radius: 14,
+                    backgroundImage: AssetImage('assets/images/rs.png'),
+                  ),
+                  title: const Text('修改 RiverSide 头像'),
+                  onTap: () => Navigator.of(
+                    sheetContext,
+                  ).pop(_AvatarEditTarget.riverSide),
+                ),
+                Divider(
+                  height: 1,
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.22,
+                  ),
+                ),
+                ListTile(
+                  leading: const CircleAvatar(
+                    radius: 14,
+                    backgroundImage: AssetImage('assets/images/hp.png'),
+                  ),
+                  title: const Text('修改清水河畔头像'),
+                  onTap: () => Navigator.of(
+                    sheetContext,
+                  ).pop(_AvatarEditTarget.qingShuiHePan),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Uint8List?> _openAvatarCropEditor(Uint8List sourceBytes) async {
+    Uint8List? result;
+    final theme = Theme.of(context);
+    final configs = ProImageEditorConfigs(
+      designMode: defaultTargetPlatform == TargetPlatform.iOS
+          ? ImageEditorDesignMode.cupertino
+          : ImageEditorDesignMode.material,
+      theme: theme,
+      mainEditor: const MainEditorConfigs(
+        tools: <SubEditorMode>[SubEditorMode.cropRotate],
+      ),
+      cropRotateEditor: const CropRotateEditorConfigs(
+        initAspectRatio: 1.0,
+        aspectRatios: <AspectRatioItem>[AspectRatioItem(text: '1:1', value: 1)],
+        tools: <CropRotateTool>[],
+      ),
+    );
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProImageEditor.memory(
+          sourceBytes,
+          configs: configs,
+          callbacks: ProImageEditorCallbacks(
+            onImageEditingComplete: (editedBytes) async {
+              result = Uint8List.fromList(editedBytes);
+              if (mounted && Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ),
+      ),
+    );
+    return result;
+  }
+
+  Future<void> _updateRiverSideAvatar(Uint8List editedBytes) async {
+    final account = _activeAccount;
+    if (account == null) {
+      throw const RiverSideApiException('当前没有登录 RiverSide 账号');
+    }
+    final cookie = widget.dependencies.accountStore.riverSideCookieHeaderFor(
+      account.username,
+    );
+    if (cookie == null || cookie.trim().isEmpty) {
+      throw const RiverSideApiException('RiverSide 登录状态已失效，请重新登录');
+    }
+
+    await widget.dependencies.accountStore.riverSideApiClient.updateUserAvatar(
+      username: account.username,
+      cookieHeader: cookie,
+      fileName: 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      bytes: editedBytes,
+    );
+
+    try {
+      final refreshed = await widget
+          .dependencies
+          .accountStore
+          .riverSideApiClient
+          .fetchUserProfile(account.username, cookieHeader: cookie);
+      await widget.dependencies.accountStore.upsertRiverSideAccount(refreshed);
+    } catch (_) {
+      final avatar = _appendCacheBust(
+        account.avatarUrl,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      await widget.dependencies.accountStore.upsertRiverSideAccount(
+        account.copyWith(avatarUrl: avatar),
+      );
+    }
+  }
+
+  Future<void> _updateQingShuiHePanAvatar(Uint8List editedBytes) async {
+    final account = _activeQingShuiHePanAccount;
+    if (account == null) {
+      throw const RiverSideApiException('当前没有登录清水河畔账号');
+    }
+    final auth = widget.dependencies.accountStore.qingShuiHePanAuthFor(
+      account.username,
+    );
+    if (auth == null) {
+      throw const RiverSideApiException('清水河畔认证信息缺失，请重新登录');
+    }
+    final cookieHeader = _normalizeCookieHeader(auth.cookieHeader);
+    if (cookieHeader.isEmpty) {
+      throw const RiverSideApiException('清水河畔 Web 登录态缺失，请重新登录清水河畔账号后重试');
+    }
+
+    final resized = _buildQingAvatarPayloadSizes(editedBytes);
+    final uploadUri = await _resolveQingAvatarUploadUri(cookieHeader);
+    final request = http.MultipartRequest('POST', uploadUri);
+    request.headers['Cookie'] = cookieHeader;
+    request.fields.addAll(<String, String>{
+      'avatar1': resized.$1,
+      'avatar2': resized.$2,
+      'avatar3': resized.$3,
+    });
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode != 200) {
+      throw RiverSideApiException('清水河畔头像上传失败(HTTP ${response.statusCode})');
+    }
+    try {
+      await _refreshQingAccountAvatar(auth: auth, fallbackAccount: account);
+    } catch (_) {
+      final fallbackUrl = _appendCacheBust(
+        account.avatarUrl,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      await widget.dependencies.accountStore.upsertQingShuiHePanAccount(
+        account.copyWith(avatarUrl: fallbackUrl),
+      );
+      await widget.dependencies.accountStore.upsertQingShuiHePanAuth(
+        QingShuiHePanAuth(
+          username: auth.username,
+          token: auth.token,
+          secret: auth.secret,
+          userId: auth.userId,
+          displayName: auth.displayName,
+          avatarUrl: fallbackUrl,
+          cookieHeader: auth.cookieHeader,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+    }
+  }
+
+  Future<void> _refreshQingAccountAvatar({
+    required QingShuiHePanAuth auth,
+    required UserAccount fallbackAccount,
+  }) async {
+    final data = await _callQingApi(
+      auth: auth,
+      body: <String, String>{
+        'r': 'user/userinfo',
+        if (auth.userId != null && auth.userId! > 0) 'uid': '${auth.userId}',
+      },
+    );
+    final body = _asStringDynamicMap(data['body']);
+    final userInfo = _asStringDynamicMap(data['userInfo']);
+    final user = _asStringDynamicMap(data['user']);
+    final merged = <String, dynamic>{...body, ...userInfo, ...user, ...data};
+    final rawAvatar = _pickString(merged, const <String>[
+      'icon',
+      'avatar',
+      'userAvatar',
+    ]);
+    final avatarUrl = _resolveQingAvatarUrl(rawAvatar);
+    final nextUid = _asInt(merged['uid']) ?? _asInt(merged['user_id']);
+    final displayName = _pickString(merged, const <String>[
+      'name',
+      'userName',
+      'nickname',
+      'user_nick_name',
+    ]);
+
+    var resolvedAvatar = avatarUrl;
+    if (resolvedAvatar.isEmpty) {
+      final uid = nextUid ?? auth.userId;
+      if (uid != null && uid > 0) {
+        resolvedAvatar = _appendCacheBust(
+          '${RiverServerConfig.instance.qingShuiHePanBaseUrl}/uc_server/avatar.php?uid=$uid&size=big',
+          DateTime.now().millisecondsSinceEpoch,
+        );
+      } else {
+        resolvedAvatar = _appendCacheBust(
+          fallbackAccount.avatarUrl,
+          DateTime.now().millisecondsSinceEpoch,
+        );
+      }
+    }
+
+    final nextAccount = fallbackAccount.copyWith(
+      userId: nextUid ?? fallbackAccount.userId,
+      displayName: displayName.isEmpty
+          ? fallbackAccount.displayName
+          : displayName,
+      avatarUrl: resolvedAvatar,
+    );
+    await widget.dependencies.accountStore.upsertQingShuiHePanAccount(
+      nextAccount,
+    );
+    await widget.dependencies.accountStore.upsertQingShuiHePanAuth(
+      QingShuiHePanAuth(
+        username: auth.username,
+        token: auth.token,
+        secret: auth.secret,
+        userId: nextAccount.userId ?? auth.userId,
+        displayName: nextAccount.displayName,
+        avatarUrl: nextAccount.avatarUrl,
+        cookieHeader: auth.cookieHeader,
+        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  (String, String, String) _buildQingAvatarPayloadSizes(Uint8List editedBytes) {
+    final decoded = img.decodeImage(editedBytes);
+    if (decoded == null) {
+      throw const RiverSideApiException('头像图片解析失败，请更换图片重试');
+    }
+    Uint8List resizeTo(int size) {
+      final resized = img.copyResize(
+        decoded,
+        width: size,
+        height: size,
+        interpolation: img.Interpolation.average,
+      );
+      return Uint8List.fromList(img.encodeJpg(resized, quality: 92));
+    }
+
+    final avatar200 = base64Encode(resizeTo(200));
+    final avatar120 = base64Encode(resizeTo(120));
+    final avatar48 = base64Encode(resizeTo(48));
+    return (avatar200, avatar120, avatar48);
+  }
+
+  Future<Uri> _resolveQingAvatarUploadUri(String cookieHeader) async {
+    final baseUrl = RiverServerConfig.instance.qingShuiHePanBaseUrl;
+    final pageUri = Uri.parse('$baseUrl/home.php?mod=spacecp&ac=avatar');
+    final pageResponse = await http.post(
+      pageUri,
+      headers: <String, String>{'Cookie': cookieHeader},
+    );
+    if (pageResponse.statusCode != 200) {
+      throw RiverSideApiException(
+        '无法加载清水河畔头像页面(HTTP ${pageResponse.statusCode})',
+      );
+    }
+    final html = utf8.decode(pageResponse.bodyBytes);
+
+    final uploadPathMatch = RegExp(
+      r'''uc_server/index\.php\?m=user&a=rectavatar[^"']+''',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (uploadPathMatch != null) {
+      final raw = (uploadPathMatch.group(0) ?? '').replaceAll('&amp;', '&');
+      return Uri.parse(baseUrl).resolve(raw);
+    }
+
+    final input = RegExp(
+      r'''appid=1&input=([^&"']+)''',
+      caseSensitive: false,
+    ).firstMatch(html)?.group(1);
+    final agent = RegExp(
+      r'''&agent=([^&"']+)''',
+      caseSensitive: false,
+    ).firstMatch(html)?.group(1);
+    if ((input ?? '').isEmpty || (agent ?? '').isEmpty) {
+      throw const RiverSideApiException('清水河畔头像上传参数解析失败');
+    }
+
+    final base = Uri.parse(baseUrl);
+    final hostWithPort = base.hasPort ? '${base.host}:${base.port}' : base.host;
+    final ucApi = Uri.encodeQueryComponent('$hostWithPort/uc_server');
+    final fallbackPath =
+        'uc_server/index.php?m=user&a=rectavatar&base64=yes&appid=1&ucapi=$ucApi&avatartype=virtual&uploadSize=2048&input=$input&agent=$agent';
+    return base.resolve(fallbackPath);
+  }
+
+  Future<Map<String, dynamic>> _callQingApi({
+    required QingShuiHePanAuth auth,
+    required Map<String, String> body,
+  }) async {
+    final apiUrl =
+        '${RiverServerConfig.instance.qingShuiHePanBaseUrl}/mobcent/app/web/index.php';
+    final payload = <String, String>{
+      ...body,
+      'accessToken': auth.token,
+      'accessSecret': auth.secret,
+    };
+    final response = await http
+        .post(
+          Uri.parse(apiUrl),
+          headers: const <String, String>{
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          },
+          body: payload.entries
+              .map(
+                (entry) =>
+                    '${Uri.encodeQueryComponent(entry.key)}=${Uri.encodeQueryComponent(entry.value)}',
+              )
+              .join('&'),
+        )
+        .timeout(const Duration(seconds: 14));
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map) {
+      throw const RiverSideApiException('清水河畔接口返回异常');
+    }
+    final map = decoded.map((key, value) => MapEntry('$key', value));
+    if ('${map['rs']}' == '0') {
+      final head = _asStringDynamicMap(map['head']);
+      final message = '${head['errInfo'] ?? map['errcode'] ?? '请求失败'}'.trim();
+      throw RiverSideApiException(message.isEmpty ? '请求失败' : message);
+    }
+    return map;
+  }
+
+  Map<String, dynamic> _asStringDynamicMap(dynamic raw) {
+    if (raw is! Map) {
+      return const <String, dynamic>{};
+    }
+    return raw.map((key, value) => MapEntry('$key', value));
+  }
+
+  int? _asInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is double) {
+      return value.toInt();
+    }
+    return int.tryParse('${value ?? ''}'.trim());
+  }
+
+  String _pickString(Map<String, dynamic> source, List<String> keys) {
+    for (final key in keys) {
+      final value = '${source[key] ?? ''}'.trim();
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return '';
+  }
+
+  String _resolveQingAvatarUrl(String source) {
+    final raw = source.trim();
+    if (raw.isEmpty) {
+      return '';
+    }
+    final parsed = Uri.tryParse(raw);
+    if (parsed != null && parsed.hasScheme) {
+      return raw;
+    }
+    final base = Uri.parse(RiverServerConfig.instance.qingShuiHePanBaseUrl);
+    return base.resolve(raw.replaceAll('&amp;', '&')).toString();
+  }
+
+  String _appendCacheBust(String url, int stamp) {
+    final raw = url.trim();
+    if (raw.isEmpty) {
+      return '';
+    }
+    final parsed = Uri.tryParse(raw);
+    if (parsed == null) {
+      final joiner = raw.contains('?') ? '&' : '?';
+      return '$raw${joiner}t=$stamp';
+    }
+    final merged = <String, String>{...parsed.queryParameters, 't': '$stamp'};
+    return parsed.replace(queryParameters: merged).toString();
+  }
+
+  String _normalizeCookieHeader(String raw) {
+    final source = raw.trim();
+    if (source.isEmpty) {
+      return '';
+    }
+    if (!source.toLowerCase().contains('expires=')) {
+      return source;
+    }
+    final chunks = source.split(RegExp(r',\s*(?=[^;,\s]+=)'));
+    final pairs = <String>[];
+    for (final chunk in chunks) {
+      final first = chunk.split(';').first.trim();
+      if (!first.contains('=')) {
+        continue;
+      }
+      pairs.add(first);
+    }
+    return pairs.join('; ');
   }
 
   Future<void> _onOpenQingShuiHePanProfile() async {
@@ -928,241 +1423,16 @@ class _MinePageState extends State<MinePage> {
               qingShuiHePanAccount: qingAccount,
             ),
           ] else if (account != null) ...[
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 380),
-              curve: Curves.easeOutCubic,
-              height: _avatarAsCardBackground ? 292 : 244,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withValues(
-                  alpha: _avatarAsCardBackground ? 0.14 : 0.58,
-                ),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.26,
-                  ),
-                ),
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth;
-                  const collapsedAvatarSize = 88.0;
-                  final collapsedLeft = (width - collapsedAvatarSize) / 2;
-                  final expandedHeight = constraints.maxHeight;
-                  final expandedInfoTop = constraints.maxHeight - 124;
-                  final expandedActionsTop = constraints.maxHeight - 70;
-
-                  return Stack(
-                    children: [
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 380),
-                        curve: Curves.easeOutCubic,
-                        top: _avatarAsCardBackground ? 0 : 16,
-                        left: _avatarAsCardBackground ? 0 : collapsedLeft,
-                        width: _avatarAsCardBackground
-                            ? width
-                            : collapsedAvatarSize,
-                        height: _avatarAsCardBackground
-                            ? expandedHeight
-                            : collapsedAvatarSize,
-                        child: GestureDetector(
-                          onTap: _toggleAvatarCardVisual,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 360),
-                            curve: Curves.easeOutCubic,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                _avatarAsCardBackground ? 28 : 44,
-                              ),
-                              border: Border.all(
-                                color: theme.colorScheme.surface,
-                                width: _avatarAsCardBackground ? 0 : 4,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.14),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                              image: account.avatarUrl.isNotEmpty
-                                  ? DecorationImage(
-                                      image: NetworkImage(account.avatarUrl),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                              color: account.avatarUrl.isEmpty
-                                  ? theme.colorScheme.surfaceContainerHighest
-                                  : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: account.avatarUrl.isEmpty
-                                ? Icon(
-                                    Icons.person_rounded,
-                                    size: _avatarAsCardBackground ? 44 : 48,
-                                    color: theme.colorScheme.primary,
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 280),
-                            curve: Curves.easeOutCubic,
-                            opacity: _avatarAsCardBackground ? 1 : 0,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(28),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withValues(alpha: 0.12),
-                                    Colors.black.withValues(alpha: 0.22),
-                                    Colors.black.withValues(alpha: 0.40),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 360),
-                        curve: Curves.easeOutCubic,
-                        top: _avatarAsCardBackground ? expandedInfoTop : 118,
-                        left: 16,
-                        right: 16,
-                        child: AnimatedAlign(
-                          duration: const Duration(milliseconds: 360),
-                          curve: Curves.easeOutCubic,
-                          alignment: _avatarAsCardBackground
-                              ? Alignment.centerLeft
-                              : Alignment.center,
-                          child: Column(
-                            crossAxisAlignment: _avatarAsCardBackground
-                                ? CrossAxisAlignment.start
-                                : CrossAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                account.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: _avatarAsCardBackground
-                                      ? Colors.white
-                                      : null,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '@${account.username}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: _avatarAsCardBackground
-                                      ? Colors.white.withValues(alpha: 0.92)
-                                      : theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 360),
-                        curve: Curves.easeOutCubic,
-                        left: 14,
-                        right: 14,
-                        top: _avatarAsCardBackground ? expandedActionsTop : 190,
-                        child: AnimatedAlign(
-                          duration: const Duration(milliseconds: 360),
-                          curve: Curves.easeOutCubic,
-                          alignment: Alignment.center,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 220),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            child: _avatarAsCardBackground
-                                ? Container(
-                                    key: const ValueKey('icon_actions'),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.16,
-                                      ),
-                                      borderRadius: BorderRadius.circular(999),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.30,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        _buildProfileIconActionButton(
-                                          icon: Icons.person_rounded,
-                                          tooltip: '个人主页',
-                                          onTap: _openProfilePage,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        _buildProfileIconActionButton(
-                                          icon: Icons.switch_account_rounded,
-                                          tooltip: '切换账号',
-                                          onTap: _showAccountManagerSheet,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        _buildProfileIconActionButton(
-                                          icon: Icons.camera_alt_rounded,
-                                          tooltip: '修改头像',
-                                          onTap: _onEditAvatarPressed,
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : Wrap(
-                                    key: const ValueKey('text_actions'),
-                                    spacing: 10,
-                                    runSpacing: 8,
-                                    alignment: WrapAlignment.center,
-                                    children: [
-                                      _buildProfileActionChip(
-                                        icon: Icons.person_rounded,
-                                        label: '个人主页',
-                                        onTap: _openProfilePage,
-                                        emphasized: true,
-                                        overImage: false,
-                                      ),
-                                      _buildProfileActionChip(
-                                        icon: Icons.switch_account_rounded,
-                                        label: '切换账号',
-                                        onTap: _showAccountManagerSheet,
-                                        emphasized: false,
-                                        overImage: false,
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+            _buildSinglePlatformProfileCard(
+              context: context,
+              account: account,
+              onOpenProfile: _openProfilePage,
             ),
           ] else if (qingAccount != null) ...[
-            _buildSingleQingShuiHePanCard(
+            _buildSinglePlatformProfileCard(
               context: context,
               account: qingAccount,
+              onOpenProfile: _onOpenQingShuiHePanProfile,
             ),
           ] else ...[
             // 未登录状态
@@ -1218,6 +1488,235 @@ class _MinePageState extends State<MinePage> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildSinglePlatformProfileCard({
+    required BuildContext context,
+    required UserAccount account,
+    required Future<void> Function() onOpenProfile,
+  }) {
+    final theme = Theme.of(context);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+      height: _avatarAsCardBackground ? 292 : 244,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(
+          alpha: _avatarAsCardBackground ? 0.14 : 0.58,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.26),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          const collapsedAvatarSize = 88.0;
+          final collapsedLeft = (width - collapsedAvatarSize) / 2;
+          final expandedHeight = constraints.maxHeight;
+          final expandedInfoTop = constraints.maxHeight - 124;
+          final expandedActionsTop = constraints.maxHeight - 70;
+
+          return Stack(
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeOutCubic,
+                top: _avatarAsCardBackground ? 0 : 16,
+                left: _avatarAsCardBackground ? 0 : collapsedLeft,
+                width: _avatarAsCardBackground ? width : collapsedAvatarSize,
+                height: _avatarAsCardBackground
+                    ? expandedHeight
+                    : collapsedAvatarSize,
+                child: GestureDetector(
+                  onTap: _toggleAvatarCardVisual,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 360),
+                    curve: Curves.easeOutCubic,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(
+                        _avatarAsCardBackground ? 28 : 44,
+                      ),
+                      border: Border.all(
+                        color: theme.colorScheme.surface,
+                        width: _avatarAsCardBackground ? 0 : 4,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.14),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                      image: account.avatarUrl.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(account.avatarUrl),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                      color: account.avatarUrl.isEmpty
+                          ? theme.colorScheme.surfaceContainerHighest
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: account.avatarUrl.isEmpty
+                        ? Icon(
+                            Icons.person_rounded,
+                            size: _avatarAsCardBackground ? 44 : 48,
+                            color: theme.colorScheme.primary,
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutCubic,
+                    opacity: _avatarAsCardBackground ? 1 : 0,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.12),
+                            Colors.black.withValues(alpha: 0.22),
+                            Colors.black.withValues(alpha: 0.40),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 360),
+                curve: Curves.easeOutCubic,
+                top: _avatarAsCardBackground ? expandedInfoTop : 118,
+                left: 16,
+                right: 16,
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 360),
+                  curve: Curves.easeOutCubic,
+                  alignment: _avatarAsCardBackground
+                      ? Alignment.centerLeft
+                      : Alignment.center,
+                  child: Column(
+                    crossAxisAlignment: _avatarAsCardBackground
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        account.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: _avatarAsCardBackground ? Colors.white : null,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '@${account.username}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: _avatarAsCardBackground
+                              ? Colors.white.withValues(alpha: 0.92)
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 360),
+                curve: Curves.easeOutCubic,
+                left: 14,
+                right: 14,
+                top: _avatarAsCardBackground ? expandedActionsTop : 190,
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 360),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.center,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    child: _avatarAsCardBackground
+                        ? Container(
+                            key: const ValueKey('icon_actions'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.30),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildProfileIconActionButton(
+                                  icon: Icons.person_rounded,
+                                  tooltip: '个人主页',
+                                  onTap: () => onOpenProfile(),
+                                ),
+                                const SizedBox(width: 10),
+                                _buildProfileIconActionButton(
+                                  icon: Icons.switch_account_rounded,
+                                  tooltip: '切换账号',
+                                  onTap: _showAccountManagerSheet,
+                                ),
+                                const SizedBox(width: 10),
+                                _buildProfileIconActionButton(
+                                  icon: Icons.camera_alt_rounded,
+                                  tooltip: '修改头像',
+                                  onTap: _onEditAvatarPressed,
+                                ),
+                              ],
+                            ),
+                          )
+                        : Wrap(
+                            key: const ValueKey('text_actions'),
+                            spacing: 10,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              _buildProfileActionChip(
+                                icon: Icons.person_rounded,
+                                label: '个人主页',
+                                onTap: () => onOpenProfile(),
+                                emphasized: true,
+                                overImage: false,
+                              ),
+                              _buildProfileActionChip(
+                                icon: Icons.switch_account_rounded,
+                                label: '切换账号',
+                                onTap: _showAccountManagerSheet,
+                                emphasized: false,
+                                overImage: false,
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1349,6 +1848,11 @@ class _MinePageState extends State<MinePage> {
                   icon: Icons.switch_account_rounded,
                   tooltip: '切换账号',
                   onTap: _showAccountManagerSheet,
+                ),
+                _buildCompactActionButton(
+                  icon: Icons.camera_alt_rounded,
+                  tooltip: '修改头像',
+                  onTap: _onEditAvatarPressed,
                 ),
               ],
             ),
@@ -1562,79 +2066,9 @@ class _MinePageState extends State<MinePage> {
       ),
     );
   }
-
-  Widget _buildSingleQingShuiHePanCard({
-    required BuildContext context,
-    required UserAccount account,
-  }) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.surface.withValues(alpha: 0.78),
-            theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.88),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '清水河畔账号',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.1,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildPlatformAccountPanel(
-            platformName: '清水河畔',
-            account: account,
-            tintColor: theme.colorScheme.tertiary,
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withValues(alpha: 0.64),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.22),
-              ),
-            ),
-            child: Align(
-              alignment: Alignment.center,
-              child: _buildProfileActionChip(
-                icon: Icons.switch_account_rounded,
-                label: '切换账号',
-                onTap: _showAccountManagerSheet,
-                emphasized: false,
-                overImage: false,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
+
+enum _AvatarEditTarget { riverSide, qingShuiHePan }
 
 // -----------------------------------------------------------------------------
 // 组件

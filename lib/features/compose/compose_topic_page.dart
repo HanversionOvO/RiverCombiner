@@ -16,7 +16,6 @@ import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_profile_models.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/qing/qing_emoji_catalog.dart';
-import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/core/widgets/riverside_category_picker_sheet.dart';
 import 'package:river/core/widgets/river_markdown_editor.dart';
 import 'package:river/features/compose/compose_topic_preview_page.dart';
@@ -24,6 +23,7 @@ import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:toastification/toastification.dart';
 
 part 'compose_topic_page_view.dart';
 part 'compose_topic_page_actions.dart';

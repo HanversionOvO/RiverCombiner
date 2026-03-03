@@ -76,6 +76,7 @@ dependencies:
   card_stack_swiper: ^1.1.1
   flutter_widget_from_html_core: ^0.17.0
   flutter_markdown_plus: ^1.0.7
+  toastification: ^3.0.3
 
 dev_dependencies:
   flutter_test:
