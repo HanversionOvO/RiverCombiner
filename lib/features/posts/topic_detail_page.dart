@@ -234,6 +234,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
   final Map<int, GlobalKey> _postItemKeys = <int, GlobalKey>{};
   final GlobalKey _screenshotCaptureBoundaryKey = GlobalKey();
   final GlobalKey _repliesSectionAnchorKey = GlobalKey();
+  final GlobalKey _repliesHeaderKey = GlobalKey();
 
   RiverSideTopicDetail? _detail;
   List<RiverSideTopicPostDetail> _comments = const <RiverSideTopicPostDetail>[];
@@ -257,6 +258,9 @@ class _TopicDetailPageState extends State<TopicDetailPage>
   bool _hasRealtimeCommentUpdate = false;
   bool _loadingAiSummary = false;
   bool _showAiSummaryMarquee = false;
+  bool _showRepliesFloorSlider = false;
+  int _currentVisibleReplyFloor = 1;
+  static const double _repliesFloorJumpBarBaseHeight = 52;
   int _qingCurrentPage = 1;
   bool _qingHasMoreComments = false;
   int? _qingBoardId;
@@ -292,6 +296,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
   // 闁稿繈鍎遍悧顒勫礋閺囩姵娈柟璨夊啫鐓戦柛?
   late AnimationController _entranceController;
   late AnimationController _contentRevealController;
+  late AnimationController _repliesFloorSliderVisibilityController;
 
   @override
   void initState() {
@@ -306,6 +311,17 @@ class _TopicDetailPageState extends State<TopicDetailPage>
       duration: const Duration(milliseconds: 320),
       value: 1,
     );
+    _repliesFloorSliderVisibilityController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 220),
+          value: 0,
+        )..addListener(() {
+          if (!mounted) {
+            return;
+          }
+          setState(() {});
+        });
 
     widget.dependencies.settingsController.addListener(
       _onRefreshBannerSettingsChanged,
@@ -324,6 +340,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
     _aiSummaryMarqueeStopTimer?.cancel();
     _entranceController.dispose();
     _contentRevealController.dispose();
+    _repliesFloorSliderVisibilityController.dispose();
     _messageBusPoller?.stop();
     widget.dependencies.settingsController.removeListener(
       _onRefreshBannerSettingsChanged,
@@ -717,6 +734,119 @@ class _TopicDetailPageState extends State<TopicDetailPage>
     if (_showBackToTopButtonNotifier.value != nextShow) {
       _showBackToTopButtonNotifier.value = nextShow;
     }
+    _updateRepliesFloorSliderVisibility();
+    _syncCurrentReplyFloorWithViewport();
+  }
+
+  void _updateRepliesFloorSliderVisibility() {
+    final headerContext = _repliesHeaderKey.currentContext;
+    var nextVisible = false;
+    if (headerContext != null) {
+      final renderObject = headerContext.findRenderObject();
+      if (renderObject is RenderBox && renderObject.attached) {
+        final media = MediaQuery.maybeOf(context);
+        final statusBarTop = media?.padding.top ?? 0;
+        final pinnedTop = statusBarTop + kToolbarHeight;
+        final headerTop = renderObject.localToGlobal(Offset.zero).dy;
+        nextVisible = headerTop <= pinnedTop + 1 && _comments.isNotEmpty;
+      }
+    }
+    if (_showRepliesFloorSlider == nextVisible) {
+      return;
+    }
+    _mutateState(() {
+      _showRepliesFloorSlider = nextVisible;
+    });
+    if (nextVisible) {
+      _repliesFloorSliderVisibilityController.forward();
+    } else {
+      _repliesFloorSliderVisibilityController.reverse();
+    }
+  }
+
+  void _syncCurrentReplyFloorWithViewport() {
+    if (_repliesFloorSliderVisibilityController.value <= 0.01) {
+      return;
+    }
+    if (_comments.isEmpty) {
+      return;
+    }
+    final currentPostNumber = _findTopVisibleCommentPostNumber();
+    if (currentPostNumber == null) {
+      return;
+    }
+    if (_currentVisibleReplyFloor == currentPostNumber) {
+      return;
+    }
+    _mutateState(() {
+      _currentVisibleReplyFloor = currentPostNumber;
+    });
+  }
+
+  int? _findTopVisibleCommentPostNumber() {
+    final media = MediaQuery.maybeOf(context);
+    if (media == null) {
+      return null;
+    }
+    final sliderHeight =
+        _repliesFloorJumpBarBaseHeight *
+        _repliesFloorSliderVisibilityController.value;
+    final viewportTop = media.padding.top + kToolbarHeight + 48 + sliderHeight;
+    final viewportBottom = media.size.height;
+    var targetPostNumber = 0;
+    var targetTop = double.infinity;
+
+    for (final post in _comments) {
+      final key = _postItemKeys[post.postNumber];
+      final itemContext = key?.currentContext;
+      if (itemContext == null) {
+        continue;
+      }
+      final renderObject = itemContext.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.attached) {
+        continue;
+      }
+      final itemTop = renderObject.localToGlobal(Offset.zero).dy;
+      final itemBottom = itemTop + renderObject.size.height;
+      final isVisible =
+          itemBottom > viewportTop + 1 && itemTop < viewportBottom;
+      if (!isVisible) {
+        continue;
+      }
+      if (itemTop < targetTop) {
+        targetTop = itemTop;
+        targetPostNumber = post.postNumber;
+      }
+    }
+
+    if (targetPostNumber <= 0) {
+      return null;
+    }
+    return targetPostNumber;
+  }
+
+  Future<void> _showReplyFloorJumpDialog({
+    required int topicId,
+    required int currentFloor,
+  }) async {
+    final maxLoadedFloor = math.max(1, _comments.length + 1);
+    final targetFloor = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _ReplyFloorJumpSheet(
+        maxLoadedFloor: maxLoadedFloor,
+        initialFloor: currentFloor.clamp(1, maxLoadedFloor),
+      ),
+    );
+    if (!mounted || targetFloor == null) {
+      return;
+    }
+    _mutateState(() {
+      _currentVisibleReplyFloor = targetFloor;
+    });
+    await _jumpToPostNumber(postNumber: targetFloor, topicId: topicId);
   }
 
   String? _activeCookieHeader() {
@@ -1282,12 +1412,18 @@ class _TopicDetailPageState extends State<TopicDetailPage>
       final info = _convertQingBbCodeToMarkdown(
         '${map['infor'] ?? map['text'] ?? ''}',
       );
-      final rawUrl = _pickString(map, const <String>[
-        'url',
-        'originalInfo',
-        'infor',
-      ]);
-      final url = _resolveQingUrl(rawUrl);
+      final rawUrl = type == 1
+          ? _pickString(map, const <String>['originalInfo', 'infor', 'url'])
+          : _pickString(map, const <String>['url', 'originalInfo', 'infor']);
+      var url = _resolveQingUrl(rawUrl);
+      if (type == 1 &&
+          (url.isEmpty || !_looksLikeImageUrl(url)) &&
+          map.containsKey('url')) {
+        final fallbackUrl = _resolveQingUrl('${map['url'] ?? ''}');
+        if (fallbackUrl.isNotEmpty && _looksLikeImageUrl(fallbackUrl)) {
+          url = fallbackUrl;
+        }
+      }
       if (type == 1 && url.isNotEmpty) {
         lines.add('![]($url)');
         continue;
@@ -2408,6 +2544,13 @@ class _TopicDetailPageState extends State<TopicDetailPage>
     final titleHeroTag = _titleHeroTag;
     final mainAuthorAvatarHeroTag = _mainAuthorAvatarHeroTag(detail);
     final mainAuthorNameHeroTag = _mainAuthorNameHeroTag(detail);
+    final maxLoadedFloor = math.max(1, _comments.length + 1);
+    final currentVisibleFloor = _currentVisibleReplyFloor.clamp(
+      1,
+      maxLoadedFloor,
+    );
+    final jumpBarVisibility = _repliesFloorSliderVisibilityController.value
+        .clamp(0.0, 1.0);
 
     return RepaintBoundary(
       key: _screenshotCaptureBoundaryKey,
@@ -2645,6 +2788,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                   SliverPersistentHeader(
                     pinned: true,
                     delegate: _SectionHeaderDelegate(
+                      headerKey: _repliesHeaderKey,
                       title: _labelReplies,
                       count: detail.replyCount,
                       theme: theme,
@@ -2653,6 +2797,19 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                           _hasRealtimeCommentUpdate,
                       onRealtimeHintTap: _onRealtimeCommentHintTap,
                       onRealtimeHintClose: _dismissRealtimeCommentHint,
+                    ),
+                  ),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _RepliesFloorJumpHeaderDelegate(
+                      theme: theme,
+                      visibility: jumpBarVisibility,
+                      currentFloor: currentVisibleFloor,
+                      maxLoadedFloor: maxLoadedFloor,
+                      onJumpPressed: () => _showReplyFloorJumpDialog(
+                        topicId: detail.topicId,
+                        currentFloor: currentVisibleFloor,
+                      ),
                     ),
                   ),
 
@@ -3486,6 +3643,7 @@ class _SlideFadeTransition extends StatelessWidget {
 }
 
 class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Key? headerKey;
   final String title;
   final int count;
   final ThemeData theme;
@@ -3494,6 +3652,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback? onRealtimeHintClose;
 
   _SectionHeaderDelegate({
+    this.headerKey,
     required this.title,
     required this.count,
     required this.theme,
@@ -3511,6 +3670,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
     final opacity = (shrinkOffset / 12).clamp(0.92, 1.0);
 
     return Container(
+      key: headerKey,
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -3657,6 +3817,401 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
     return oldDelegate.count != count ||
         oldDelegate.title != title ||
         oldDelegate.theme != theme ||
-        oldDelegate.showRealtimeHint != showRealtimeHint;
+        oldDelegate.showRealtimeHint != showRealtimeHint ||
+        oldDelegate.headerKey != headerKey;
+  }
+}
+
+class _ReplyFloorJumpSheet extends StatefulWidget {
+  const _ReplyFloorJumpSheet({
+    required this.maxLoadedFloor,
+    required this.initialFloor,
+  });
+
+  final int maxLoadedFloor;
+  final int initialFloor;
+
+  @override
+  State<_ReplyFloorJumpSheet> createState() => _ReplyFloorJumpSheetState();
+}
+
+class _ReplyFloorJumpSheetState extends State<_ReplyFloorJumpSheet> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialFloor.clamp(1, widget.maxLoadedFloor);
+    _controller = TextEditingController(text: '$initial');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  int _normalizeFloor(int value) => value.clamp(1, widget.maxLoadedFloor);
+
+  void _applyQuickFloor(int floor) {
+    final next = _normalizeFloor(floor);
+    _controller
+      ..text = '$next'
+      ..selection = TextSelection.collapsed(offset: '$next'.length);
+    if (_errorText != null) {
+      setState(() {
+        _errorText = null;
+      });
+    }
+  }
+
+  void _submit() {
+    final parsed = int.tryParse(_controller.text.trim());
+    if (parsed == null || parsed < 1 || parsed > widget.maxLoadedFloor) {
+      setState(() {
+        _errorText = '请输入 1-${widget.maxLoadedFloor} 之间的楼层';
+      });
+      return;
+    }
+    Navigator.of(context).pop(parsed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final initialFloor = widget.initialFloor.clamp(1, widget.maxLoadedFloor);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12, 10, 12, math.max(12, bottomInset + 10)),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [colors.surfaceContainerHigh, colors.surfaceContainerLow],
+            ),
+            border: Border.all(
+              color: colors.outlineVariant.withValues(alpha: 0.58),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: colors.shadow.withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colors.outlineVariant.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: colors.primaryContainer.withValues(alpha: 0.62),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.route_rounded,
+                        size: 18,
+                        color: colors.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '跳转楼层',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '已加载 1-${widget.maxLoadedFloor}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _controller,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    prefixText: '#',
+                    hintText: '输入要跳转的楼层号',
+                    errorText: _errorText,
+                    filled: true,
+                    fillColor: colors.surface.withValues(alpha: 0.72),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colors.outlineVariant.withValues(alpha: 0.76),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colors.outlineVariant.withValues(alpha: 0.76),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: colors.primary, width: 1.2),
+                    ),
+                  ),
+                  onChanged: (_) {
+                    if (_errorText == null) {
+                      return;
+                    }
+                    setState(() {
+                      _errorText = null;
+                    });
+                  },
+                  onSubmitted: (_) => _submit(),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ActionChip(
+                      label: const Text('首楼'),
+                      onPressed: () => _applyQuickFloor(1),
+                    ),
+                    ActionChip(
+                      label: Text('当前 $initialFloor'),
+                      onPressed: () => _applyQuickFloor(initialFloor),
+                    ),
+                    ActionChip(
+                      label: const Text('-10'),
+                      onPressed: () {
+                        final current =
+                            int.tryParse(_controller.text.trim()) ??
+                            initialFloor;
+                        _applyQuickFloor(current - 10);
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('+10'),
+                      onPressed: () {
+                        final current =
+                            int.tryParse(_controller.text.trim()) ??
+                            initialFloor;
+                        _applyQuickFloor(current + 10);
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('最新'),
+                      onPressed: () => _applyQuickFloor(widget.maxLoadedFloor),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('取消'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _submit,
+                        icon: const Icon(Icons.arrow_downward_rounded),
+                        label: const Text('跳转'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RepliesFloorJumpHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _RepliesFloorJumpHeaderDelegate({
+    required this.theme,
+    required this.visibility,
+    required this.currentFloor,
+    required this.maxLoadedFloor,
+    required this.onJumpPressed,
+  });
+
+  final ThemeData theme;
+  final double visibility;
+  final int currentFloor;
+  final int maxLoadedFloor;
+  final VoidCallback onJumpPressed;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final progress = visibility.clamp(0.0, 1.0);
+    if (progress <= 0.001 || maxLoadedFloor <= 1) {
+      return const SizedBox.shrink();
+    }
+    final shownFloor = currentFloor.clamp(1, maxLoadedFloor);
+    final floorRatio = maxLoadedFloor <= 1
+        ? 0.0
+        : ((shownFloor - 1) / (maxLoadedFloor - 1)).clamp(0.0, 1.0);
+
+    return Opacity(
+      opacity: progress,
+      child: Transform.translate(
+        offset: Offset(0, -6 * (1 - progress)),
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.98),
+                theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.76),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.shadow.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                constraints: const BoxConstraints(minWidth: 72),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(
+                    alpha: 0.62,
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '当前 $shownFloor 楼',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '已加载 1-$maxLoadedFloor 楼',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: floorRatio,
+                        minHeight: 4,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonalIcon(
+                onPressed: onJumpPressed,
+                icon: const Icon(Icons.flag_rounded, size: 16),
+                label: const Text('跳转'),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  double get maxExtent {
+    if (maxLoadedFloor <= 1) {
+      return 0;
+    }
+    return _TopicDetailPageState._repliesFloorJumpBarBaseHeight *
+        visibility.clamp(0.0, 1.0);
+  }
+
+  @override
+  double get minExtent => maxExtent;
+
+  @override
+  bool shouldRebuild(covariant _RepliesFloorJumpHeaderDelegate oldDelegate) {
+    return oldDelegate.theme != theme ||
+        (oldDelegate.visibility - visibility).abs() > 0.001 ||
+        oldDelegate.currentFloor != currentFloor ||
+        oldDelegate.maxLoadedFloor != maxLoadedFloor ||
+        oldDelegate.onJumpPressed != onJumpPressed;
   }
 }
