@@ -1,6 +1,49 @@
 part of 'chat_detail_page.dart';
 
 extension _ChatDetailPageActions on _ChatDetailPageState {
+  RiverSideChatMessageItem _normalizeSentMessageForLocalRender({
+    required RiverSideChatMessageItem message,
+    required String fallbackMarkdown,
+  }) {
+    final account = widget.dependencies.accountStore.activeRiverSideAccount;
+    final activeUsername =
+        widget.dependencies.accountStore.activeRiverSideUsername?.trim() ?? '';
+
+    final resolvedUsername = message.username.trim().isNotEmpty
+        ? message.username.trim()
+        : (account?.username.trim().isNotEmpty == true
+              ? account!.username.trim()
+              : activeUsername);
+    final resolvedDisplayName = message.displayName.trim().isNotEmpty
+        ? message.displayName.trim()
+        : (account?.displayName.trim().isNotEmpty == true
+              ? account!.displayName.trim()
+              : resolvedUsername);
+    final resolvedAvatar = message.avatarUrl.trim().isNotEmpty
+        ? message.avatarUrl.trim()
+        : (account?.avatarUrl.trim() ?? '');
+    final resolvedRaw =
+        (message.raw.trim().isNotEmpty || message.cooked.trim().isNotEmpty)
+        ? message.raw
+        : fallbackMarkdown.trim();
+
+    return RiverSideChatMessageItem(
+      id: message.id,
+      channelId: message.channelId <= 0 ? widget.channel.id : message.channelId,
+      userId: message.userId ?? account?.userId,
+      username: resolvedUsername,
+      displayName: resolvedDisplayName,
+      avatarUrl: resolvedAvatar,
+      raw: resolvedRaw,
+      cooked: message.cooked,
+      createdAt: message.createdAt ?? DateTime.now(),
+      deleted: message.deleted,
+      uploadUrls: message.uploadUrls,
+      inReplyTo: message.inReplyTo,
+      reactions: message.reactions,
+    );
+  }
+
   String _emojiKey(String raw) {
     final value = raw.trim();
     if (value.startsWith(':') && value.endsWith(':') && value.length > 2) {
@@ -432,23 +475,10 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       if (!mounted) {
         return false;
       }
-      final normalizedMessage = message.createdAt != null
-          ? message
-          : RiverSideChatMessageItem(
-              id: message.id,
-              channelId: message.channelId,
-              userId: message.userId,
-              username: message.username,
-              displayName: message.displayName,
-              avatarUrl: message.avatarUrl,
-              raw: message.raw,
-              cooked: message.cooked,
-              createdAt: DateTime.now(),
-              deleted: message.deleted,
-              uploadUrls: message.uploadUrls,
-              inReplyTo: message.inReplyTo,
-              reactions: message.reactions,
-            );
+      final normalizedMessage = _normalizeSentMessageForLocalRender(
+        message: message,
+        fallbackMarkdown: markdown,
+      );
       _mutateState(() {
         _messages = _mergeMessages(_messages, <RiverSideChatMessageItem>[
           normalizedMessage,
@@ -1089,5 +1119,3 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
     });
   }
 }
-
-
