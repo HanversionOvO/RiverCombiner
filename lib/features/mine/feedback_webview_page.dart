@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 
-const String riverFeedbackUrl = 'https://www.kdocs.cn/l/crYGmP57aWPQ';
+const String riverFeedbackUrl = 'https://nbyua3hx.jsjform.com/f/RqYrch';
 
 class FeedbackWebViewPage extends StatefulWidget {
   const FeedbackWebViewPage({super.key});
