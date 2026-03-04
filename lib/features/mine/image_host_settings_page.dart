@@ -659,15 +659,15 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
             subtitle: '使用 WebView 注册/登录 PicUI，并自动获取 API Token',
             child: Column(
               children: [
-                SwitchListTile.adaptive(
+                _ImageHostSwitchTile(
+                  icon: Icons.cloud_upload_rounded,
+                  title: '启用 PicUI 图床',
+                  subtitle: '启用后编辑器上传默认走 PicUI',
                   value: _enabled,
                   onChanged: (value) {
                     setState(() => _enabled = value);
                     widget.settingsController.updatePicUiEnabled(value);
                   },
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('启用 PicUI 图床'),
-                  subtitle: const Text('启用后编辑器上传默认走 PicUI'),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -1106,6 +1106,76 @@ class _ImageHostSectionCard extends StatelessWidget {
             child,
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ImageHostSwitchTile extends StatelessWidget {
+  const _ImageHostSwitchTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final selectedColor = theme.colorScheme.primary;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: value
+            ? selectedColor.withValues(alpha: 0.08)
+            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: value
+              ? selectedColor.withValues(alpha: 0.45)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.65),
+        ),
+      ),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        leading: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: value
+                ? selectedColor.withValues(alpha: 0.16)
+                : theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            size: 18,
+            color: value ? selectedColor : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: value ? selectedColor : theme.colorScheme.onSurface,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: Switch(value: value, onChanged: onChanged),
       ),
     );
   }
