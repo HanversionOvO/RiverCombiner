@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -117,6 +118,81 @@ class _MentionTrigger {
   final int start;
   final int end;
   final String query;
+}
+
+Map<String, dynamic>? _compressImageBytesToLimitTask(
+  Map<String, dynamic> args,
+) {
+  final rawBytes = args['bytes'];
+  final maxBytes = args['maxBytes'];
+  if (rawBytes is! List || maxBytes is! int) {
+    return null;
+  }
+  final sourceBytes = rawBytes.cast<int>();
+  final decoded = img.decodeImage(Uint8List.fromList(sourceBytes));
+  if (decoded == null) {
+    return null;
+  }
+
+  List<int> bestBytes = sourceBytes;
+  var bestExtension = 'jpg';
+
+  void rememberBest(List<int> candidateBytes, String extension) {
+    if (candidateBytes.isNotEmpty && candidateBytes.length < bestBytes.length) {
+      bestBytes = candidateBytes;
+      bestExtension = extension;
+    }
+  }
+
+  if (decoded.hasAlpha) {
+    final pngBytes = img.encodePng(decoded, level: 9);
+    if (pngBytes.length <= maxBytes) {
+      return <String, dynamic>{'bytes': pngBytes, 'extension': 'png'};
+    }
+    rememberBest(pngBytes, 'png');
+  }
+
+  img.Image current = decoded.hasAlpha
+      ? _flattenImageAlphaTask(decoded)
+      : decoded;
+  const jpegQualities = <int>[88, 80, 72, 64, 56, 48, 40];
+  for (var step = 0; step < 6; step++) {
+    for (final quality in jpegQualities) {
+      final jpgBytes = img.encodeJpg(current, quality: quality);
+      if (jpgBytes.length <= maxBytes) {
+        return <String, dynamic>{'bytes': jpgBytes, 'extension': 'jpg'};
+      }
+      rememberBest(jpgBytes, 'jpg');
+    }
+
+    final nextWidth = (current.width * 0.85).round();
+    final nextHeight = (current.height * 0.85).round();
+    if (nextWidth < 320 || nextHeight < 320) {
+      break;
+    }
+    current = img.copyResize(
+      current,
+      width: nextWidth,
+      height: nextHeight,
+      interpolation: img.Interpolation.cubic,
+    );
+  }
+
+  if (bestBytes.length < sourceBytes.length) {
+    return <String, dynamic>{'bytes': bestBytes, 'extension': bestExtension};
+  }
+  return null;
+}
+
+img.Image _flattenImageAlphaTask(img.Image source) {
+  final flattened = img.Image(width: source.width, height: source.height);
+  img.fill(flattened, color: img.ColorRgb8(255, 255, 255));
+  img.compositeImage(flattened, source);
+  return flattened;
+}
+
+bool _canDecodeImageBytesTask(List<int> bytes) {
+  return img.decodeImage(Uint8List.fromList(bytes)) != null;
 }
 
 class RiverMarkdownEditor extends StatefulWidget {
@@ -511,7 +587,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
       final insertedSegments = <String>[];
 
       for (final image in pickedImages) {
-        final prepared = _prepareImageForUpload(image);
+        final prepared = await _prepareImageForUpload(image);
         final inserted = await callback(prepared.fileName, prepared.bytes);
         if (inserted != null && inserted.trim().isNotEmpty) {
           successCount++;
@@ -648,7 +724,8 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     if (source.bytes.length <= _imageUploadCompressThresholdBytes) {
       return source;
     }
-    if (!_shouldTranscodeAssetBeforeCompress(source)) {
+    final shouldTranscode = await _shouldTranscodeAssetBeforeCompress(source);
+    if (!shouldTranscode) {
       return source;
     }
     final jpegBytes = await _buildJpegFallbackBytes(entity);
@@ -661,13 +738,20 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     );
   }
 
-  bool _shouldTranscodeAssetBeforeCompress(_PickedImageUploadData source) {
+  Future<bool> _shouldTranscodeAssetBeforeCompress(
+    _PickedImageUploadData source,
+  ) async {
     final ext = _fileExtensionFromName(source.fileName);
     const unsupportedForImagePkg = <String>{'heic', 'heif'};
     if (unsupportedForImagePkg.contains(ext)) {
       return true;
     }
-    return img.decodeImage(Uint8List.fromList(source.bytes)) == null;
+    try {
+      final canDecode = await compute(_canDecodeImageBytesTask, source.bytes);
+      return !canDecode;
+    } catch (_) {
+      return img.decodeImage(Uint8List.fromList(source.bytes)) == null;
+    }
   }
 
   Future<List<int>?> _buildJpegFallbackBytes(AssetEntity entity) async {
@@ -690,11 +774,13 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     return smallestSuccess;
   }
 
-  _PickedImageUploadData _prepareImageForUpload(_PickedImageUploadData source) {
+  Future<_PickedImageUploadData> _prepareImageForUpload(
+    _PickedImageUploadData source,
+  ) async {
     if (source.bytes.length <= _imageUploadCompressThresholdBytes) {
       return source;
     }
-    final compressed = _compressImageBytesToLimit(
+    final compressed = await _compressImageBytesToLimitAsync(
       source.bytes,
       maxBytes: _imageUploadTargetMaxBytes,
     );
@@ -705,6 +791,32 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
       fileName: _replaceFileExtension(source.fileName, compressed.extension),
       bytes: compressed.bytes,
     );
+  }
+
+  Future<_PreparedUploadBytes?> _compressImageBytesToLimitAsync(
+    List<int> sourceBytes, {
+    required int maxBytes,
+  }) async {
+    try {
+      final result = await compute(
+        _compressImageBytesToLimitTask,
+        <String, dynamic>{'bytes': sourceBytes, 'maxBytes': maxBytes},
+      );
+      if (result == null) {
+        return null;
+      }
+      final rawBytes = result['bytes'];
+      final extension = '${result['extension'] ?? ''}'.trim().toLowerCase();
+      if (rawBytes is! List || rawBytes.isEmpty) {
+        return null;
+      }
+      return _PreparedUploadBytes(
+        bytes: rawBytes.cast<int>(),
+        extension: extension.isEmpty ? 'jpg' : extension,
+      );
+    } catch (_) {
+      return _compressImageBytesToLimit(sourceBytes, maxBytes: maxBytes);
+    }
   }
 
   _PreparedUploadBytes? _compressImageBytesToLimit(
