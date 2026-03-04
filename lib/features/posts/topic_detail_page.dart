@@ -166,6 +166,7 @@ class TopicDetailPage extends StatefulWidget {
     this.provider = AccountProvider.riverSide,
     this.qingBoardId,
     this.scrollToRepliesOnOpen = false,
+    this.initialPostNumberOnOpen,
   });
 
   final AppDependencies dependencies;
@@ -174,6 +175,7 @@ class TopicDetailPage extends StatefulWidget {
   final AccountProvider provider;
   final int? qingBoardId;
   final bool scrollToRepliesOnOpen;
+  final int? initialPostNumberOnOpen;
 
   @override
   State<TopicDetailPage> createState() => _TopicDetailPageState();
@@ -278,6 +280,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
   String? _error;
   bool _presenceReady = false;
   bool _didInitialRepliesScroll = false;
+  bool _didInitialPostNumberJump = false;
   final Set<int> _onlineUserIds = <int>{};
   final Set<String> _onlineUsernames = <String>{};
   final Map<int, String> _knownOnlineUsernameById = <int, String>{};

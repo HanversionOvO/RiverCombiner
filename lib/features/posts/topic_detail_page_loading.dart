@@ -411,7 +411,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         } else {
           _contentRevealController.value = 1;
         }
-        unawaited(_maybeScrollToRepliesSectionOnOpen());
+        unawaited(_runInitialOpenNavigation());
         return;
       }
 
@@ -464,7 +464,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       } else {
         _contentRevealController.value = 1;
       }
-      unawaited(_maybeScrollToRepliesSectionOnOpen());
+      unawaited(_runInitialOpenNavigation());
       _maybeAutoLoadMore();
     } on RiverSideApiException catch (error) {
       if (!mounted) {
@@ -1180,8 +1180,39 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
     await completer.future;
   }
 
+  Future<void> _runInitialOpenNavigation() async {
+    await _maybeJumpToInitialPostNumberOnOpen();
+    await _maybeScrollToRepliesSectionOnOpen();
+  }
+
+  Future<void> _maybeJumpToInitialPostNumberOnOpen() async {
+    final targetPostNumber = widget.initialPostNumberOnOpen;
+    if (targetPostNumber == null ||
+        targetPostNumber <= 1 ||
+        _didInitialPostNumberJump ||
+        !mounted) {
+      return;
+    }
+    _didInitialPostNumberJump = true;
+    await _waitNextFrame();
+    if (!mounted) {
+      return;
+    }
+    final detail = _detail;
+    if (detail == null) {
+      return;
+    }
+    await _jumpToPostNumber(
+      postNumber: targetPostNumber,
+      topicId: detail.topicId,
+    );
+  }
+
   Future<void> _maybeScrollToRepliesSectionOnOpen() async {
-    if (!widget.scrollToRepliesOnOpen || _didInitialRepliesScroll || !mounted) {
+    if (!widget.scrollToRepliesOnOpen ||
+        _didInitialRepliesScroll ||
+        _didInitialPostNumberJump ||
+        !mounted) {
       return;
     }
     _didInitialRepliesScroll = true;

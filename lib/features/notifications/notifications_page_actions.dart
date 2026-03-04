@@ -335,6 +335,10 @@ extension _NotificationsPageActions on _NotificationsPageState {
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: item.topicId!,
+          initialPostNumberOnOpen:
+              (item.postNumber != null && item.postNumber! > 1)
+              ? item.postNumber
+              : null,
           preview: TopicDetailPreview(
             title: title,
             authorDisplayName: authorName,
