@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:motion/motion.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/core/network/riverside_api_client.dart';
@@ -14,6 +16,7 @@ import 'package:river/features/notifications/chat_detail_page.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
 part 'riverside_profile_page_widgets.dart';
 
 class RiverSideProfilePage extends StatefulWidget {
@@ -339,6 +342,40 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
 
   Future<List<RiverSideProfileFollowUser>> _ensureFollowersFuture() {
     return _followersFuture ??= _loadFollowUsers(followers: true);
+  }
+
+  String _badgeHeroTag(RiverSideProfileBadge badge) {
+    return 'profile_badge_${widget.account.provider.name}_${_username.toLowerCase()}_${badge.id}';
+  }
+
+  Future<void> _openBadgeDetail(RiverSideProfileBadge badge) async {
+    if (_isQingShuiHePanProfile) {
+      return;
+    }
+    final cookieHeader = _effectiveCookieHeader();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      builder: (sheetContext) {
+        return _BadgeDetailDialog(
+          badge: badge,
+          heroTag: _badgeHeroTag(badge),
+          username: _username,
+          isBottomSheet: true,
+          onLoadDetail: () {
+            return widget.dependencies.accountStore.riverSideApiClient
+                .fetchProfileBadgeDetail(
+                  badgeId: badge.id,
+                  username: _username,
+                  cookieHeader: cookieHeader,
+                );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _openTopicDetail(RiverSideProfileActivityItem item) async {
@@ -678,6 +715,8 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
               return _BadgesTab(
                 overviewFuture: _overviewFuture,
                 badgesFuture: _ensureBadgesFuture(),
+                onBadgeTap: _openBadgeDetail,
+                badgeHeroTagBuilder: _badgeHeroTag,
                 onRefresh: () async {
                   setState(() => _badgesFuture = _loadBadges());
                   await _badgesFuture;
@@ -1357,14 +1396,564 @@ class _ActivityLoadMoreFooter extends StatelessWidget {
   }
 }
 
+Color _badgeAccentColor(BuildContext context, int badgeId) {
+  final scheme = Theme.of(context).colorScheme;
+  final palette = <Color>[
+    scheme.primary,
+    scheme.secondary,
+    scheme.tertiary,
+    scheme.primaryContainer,
+  ];
+  return palette[badgeId.abs() % palette.length];
+}
+
+IconData _badgeIconFromToken(String source) {
+  final normalized = source
+      .trim()
+      .toLowerCase()
+      .replaceAll('far-', '')
+      .replaceAll('fas-', '')
+      .replaceAll('fa-', '')
+      .replaceAll('_', '-');
+  switch (normalized) {
+    case 'certificate':
+    case 'id-badge':
+      return Icons.workspace_premium_rounded;
+    case 'graduation-cap':
+    case 'award':
+      return Icons.school_rounded;
+    case 'heart':
+      return Icons.favorite_rounded;
+    case 'star':
+    case 'star-o':
+      return Icons.auto_awesome_rounded;
+    case 'fire':
+      return Icons.local_fire_department_rounded;
+    case 'rocket':
+      return Icons.rocket_launch_rounded;
+    case 'bolt':
+      return Icons.flash_on_rounded;
+    case 'gem':
+      return Icons.diamond_rounded;
+    case 'check':
+    case 'check-circle':
+      return Icons.verified_rounded;
+    default:
+      return Icons.military_tech_rounded;
+  }
+}
+
+class _ProfileBadgeVisual extends StatelessWidget {
+  const _ProfileBadgeVisual({
+    required this.badgeId,
+    required this.imageUrl,
+    required this.iconToken,
+    required this.size,
+  });
+
+  final int badgeId;
+  final String imageUrl;
+  final String iconToken;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = _badgeAccentColor(context, badgeId);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(size * 0.28),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            accent.withValues(alpha: 0.24),
+            accent.withValues(alpha: 0.08),
+          ],
+        ),
+        border: Border.all(color: accent.withValues(alpha: 0.34)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.14),
+            blurRadius: size * 0.22,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: imageUrl.trim().isNotEmpty
+          ? Image.network(
+              imageUrl.trim(),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildFallbackIcon(accent);
+              },
+            )
+          : _buildFallbackIcon(accent),
+    );
+  }
+
+  Widget _buildFallbackIcon(Color accent) {
+    return Center(
+      child: Icon(
+        _badgeIconFromToken(iconToken),
+        size: size * 0.56,
+        color: accent.withValues(alpha: 0.95),
+      ),
+    );
+  }
+}
+
+class _BadgeDetailDialog extends StatefulWidget {
+  const _BadgeDetailDialog({
+    required this.badge,
+    required this.heroTag,
+    required this.username,
+    this.isBottomSheet = false,
+    required this.onLoadDetail,
+  });
+
+  final RiverSideProfileBadge badge;
+  final String heroTag;
+  final String username;
+  final bool isBottomSheet;
+  final Future<RiverSideProfileBadgeDetail> Function() onLoadDetail;
+
+  @override
+  State<_BadgeDetailDialog> createState() => _BadgeDetailDialogState();
+}
+
+class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
+  late Future<RiverSideProfileBadgeDetail> _detailFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _detailFuture = widget.onLoadDetail();
+  }
+
+  void _reload() {
+    setState(() => _detailFuture = widget.onLoadDetail());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = _badgeAccentColor(context, widget.badge.id);
+    final size = MediaQuery.sizeOf(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxHeight = (size.height * (widget.isBottomSheet ? 0.88 : 0.82))
+        .clamp(420.0, 820.0);
+    final content = Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              theme.colorScheme.surface.withValues(alpha: 0.98),
+              theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.98),
+            ],
+          ),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+          ),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 30,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (widget.isBottomSheet) ...<Widget>[
+              const SizedBox(height: 10),
+              Align(
+                child: Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.36,
+                    ),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+            _buildHeader(theme, accent),
+            Divider(
+              height: 1,
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            Expanded(
+              child: FutureBuilder<RiverSideProfileBadgeDetail>(
+                future: _detailFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return _buildLoadingBody(theme);
+                  }
+                  if (snapshot.hasError || !snapshot.hasData) {
+                    final message = snapshot.error is RiverSideApiException
+                        ? (snapshot.error as RiverSideApiException).message
+                        : '加载徽章详情失败';
+                    return _buildErrorBody(theme, message);
+                  }
+                  return _buildDetailBody(theme, snapshot.data!, accent);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!widget.isBottomSheet) {
+      return SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 520, maxHeight: maxHeight),
+              child: content,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SafeArea(
+      top: false,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(12, 10, 12, 12 + bottomInset),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 620, maxHeight: maxHeight),
+            child: content,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ThemeData theme, Color accent) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: <Widget>[
+          Positioned(
+            top: 0,
+            right: 0,
+            child: IconButton.filledTonal(
+              onPressed: () => Navigator.of(context).maybePop(),
+              style: IconButton.styleFrom(
+                backgroundColor: theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.7),
+              ),
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(44, 6, 44, 0),
+            child: Column(
+              children: <Widget>[
+                Hero(
+                  tag: widget.heroTag,
+                  child: Motion.elevated(
+                    elevation: 24,
+                    borderRadius: BorderRadius.circular(24),
+                    child: _ProfileBadgeVisual(
+                      badgeId: widget.badge.id,
+                      imageUrl: widget.badge.imageUrl,
+                      iconToken: widget.badge.icon,
+                      size: 86,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  widget.badge.name.isEmpty ? '徽章详情' : widget.badge.name,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '@${widget.username}',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: <Widget>[
+                    _MetaChip(
+                      label: 'Badge #${widget.badge.id}',
+                      icon: Icons.tag_rounded,
+                      color: accent,
+                    ),
+                    if (widget.badge.grantCount > 0)
+                      _MetaChip(
+                        label: '授予 ${widget.badge.grantCount}',
+                        icon: Icons.celebration_outlined,
+                        color: theme.colorScheme.secondary,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingBody(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          SizedBox(
+            width: 26,
+            height: 26,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.4,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            '正在加载徽章详情...',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorBody(ThemeData theme, String message) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.error_outline_rounded,
+              size: 42,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.tonalIcon(
+              onPressed: _reload,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('重试'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailBody(
+    ThemeData theme,
+    RiverSideProfileBadgeDetail detail,
+    Color accent,
+  ) {
+    final chips = <Widget>[
+      if (detail.badgeTypeName.isNotEmpty)
+        _MetaChip(
+          label: detail.badgeTypeName,
+          icon: Icons.workspace_premium_outlined,
+          color: accent,
+        ),
+      _MetaChip(
+        label: '总授予 ${detail.grantCount}',
+        icon: Icons.bar_chart_rounded,
+        color: theme.colorScheme.secondary,
+      ),
+      if (detail.allowTitle)
+        _MetaChip(
+          label: '可作为头衔',
+          icon: Icons.title_rounded,
+          color: theme.colorScheme.primary,
+        ),
+      if (detail.multipleGrant)
+        _MetaChip(
+          label: '支持多次授予',
+          icon: Icons.repeat_rounded,
+          color: theme.colorScheme.tertiary,
+        ),
+    ];
+
+    final normalizedDescription = detail.description.trim();
+    final normalizedLongDescription = detail.longDescription.trim();
+    final hasLongDescription =
+        normalizedLongDescription.isNotEmpty &&
+        normalizedLongDescription != normalizedDescription;
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (chips.isNotEmpty) ...<Widget>[
+            Wrap(spacing: 8, runSpacing: 8, children: chips),
+            const SizedBox(height: 14),
+          ],
+          if (normalizedDescription.isNotEmpty)
+            _BadgeMarkdownCard(title: '简介', markdown: normalizedDescription),
+          if (hasLongDescription) ...<Widget>[
+            const SizedBox(height: 12),
+            _BadgeMarkdownCard(
+              title: '详细说明',
+              markdown: normalizedLongDescription,
+            ),
+          ],
+          if (detail.slug.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLowest.withValues(
+                  alpha: 0.78,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.5,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.link_rounded,
+                    size: 16,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      detail.slug,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BadgeMarkdownCard extends StatelessWidget {
+  const _BadgeMarkdownCard({required this.title, required this.markdown});
+
+  final String title;
+  final String markdown;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          MarkdownBody(
+            data: markdown,
+            selectable: true,
+            onTapLink: (text, href, title) {
+              final raw = href?.trim() ?? '';
+              if (raw.isEmpty) {
+                return;
+              }
+              final uri = Uri.tryParse(raw);
+              if (uri == null) {
+                return;
+              }
+              unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
+            },
+            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+              p: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.55,
+              ),
+              a: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _BadgesTab extends StatefulWidget {
   final Future<RiverSideProfileOverview> overviewFuture;
   final Future<List<RiverSideProfileBadge>> badgesFuture;
+  final Future<void> Function(RiverSideProfileBadge badge) onBadgeTap;
+  final String Function(RiverSideProfileBadge badge) badgeHeroTagBuilder;
   final Future<void> Function() onRefresh;
 
   const _BadgesTab({
     required this.overviewFuture,
     required this.badgesFuture,
+    required this.onBadgeTap,
+    required this.badgeHeroTagBuilder,
     required this.onRefresh,
   });
 
@@ -1431,21 +2020,110 @@ class _BadgesTabState extends State<_BadgesTab>
                           const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final badge = items[index];
-                        return ListTile(
-                          tileColor: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerLow,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          leading: badge.imageUrl.isNotEmpty
-                              ? Image.network(badge.imageUrl, width: 40)
-                              : const Icon(Icons.shield_outlined, size: 40),
-                          title: Text(badge.name),
-                          subtitle: Text(
-                            badge.description.isNotEmpty
-                                ? badge.description
-                                : badge.badgeTypeName,
+                        final heroTag = widget.badgeHeroTagBuilder(badge);
+                        final subtitle = badge.description.isNotEmpty
+                            ? badge.description
+                            : (badge.badgeTypeName.isNotEmpty
+                                  ? badge.badgeTypeName
+                                  : '点击查看徽章详情');
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              unawaited(widget.onBadgeTap(badge));
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withValues(alpha: 0.5),
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                children: <Widget>[
+                                  Hero(
+                                    tag: heroTag,
+                                    child: _ProfileBadgeVisual(
+                                      badgeId: badge.id,
+                                      imageUrl: badge.imageUrl,
+                                      iconToken: badge.icon,
+                                      size: 42,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(
+                                          badge.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          subtitle,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                                height: 1.3,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: <Widget>[
+                                      const Icon(
+                                        Icons.chevron_right_rounded,
+                                        size: 20,
+                                      ),
+                                      if (badge.grantCount > 0) ...<Widget>[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'x${badge.grantCount}',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         );
                       },
@@ -1567,6 +2245,3 @@ class _UsersTabState extends State<_UsersTab>
     );
   }
 }
-
-
-

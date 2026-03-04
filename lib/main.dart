@@ -1,10 +1,16 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:motion/motion.dart';
 import 'package:river/app/app.dart';
 import 'package:toastification/toastification.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Motion.instance.initialize();
+  } catch (_) {
+    // Keep app startup resilient if motion sensor bridge is unavailable.
+  }
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

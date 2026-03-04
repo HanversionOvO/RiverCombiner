@@ -1008,6 +1008,116 @@ extension RiverSideApiClientProfileMethods on RiverSideApiClient {
     return badges;
   }
 
+  Future<RiverSideProfileBadgeDetail> fetchProfileBadgeDetail({
+    required int badgeId,
+    required String username,
+    String? cookieHeader,
+  }) async {
+    if (badgeId <= 0) {
+      throw const RiverSideApiException('Badge ID is invalid.');
+    }
+    final resolvedUsername = username.trim();
+    if (resolvedUsername.isEmpty) {
+      throw const RiverSideApiException('Username is empty.');
+    }
+
+    final uris = <Uri>[
+      Uri.parse('$riverSideBaseUrl/badges/$badgeId/-').replace(
+        queryParameters: <String, String>{
+          'username': resolvedUsername,
+          'format': 'json',
+        },
+      ),
+      Uri.parse('$riverSideBaseUrl/badges/$badgeId/-.json').replace(
+        queryParameters: <String, String>{'username': resolvedUsername},
+      ),
+      Uri.parse('$riverSideBaseUrl/badges/$badgeId.json').replace(
+        queryParameters: <String, String>{'username': resolvedUsername},
+      ),
+    ];
+
+    http.Response? lastResponse;
+    for (final uri in uris) {
+      final response = await http.get(
+        uri,
+        headers: _buildJsonHeaders(cookieHeader: cookieHeader),
+      );
+      lastResponse = response;
+      if (response.statusCode == 404) {
+        continue;
+      }
+      if (response.statusCode == 403) {
+        throw const RiverSideApiException(
+          'Login session expired. Please sign in again.',
+        );
+      }
+      if (response.statusCode != 200) {
+        continue;
+      }
+
+      final decoded = _decodeJsonObject(
+        response,
+        fallbackMessage: 'Invalid badge detail response format',
+      );
+      final badgeRaw = _toStringMap(decoded['badge']);
+      final badge = badgeRaw.isNotEmpty ? badgeRaw : decoded;
+      if (badge.isEmpty) {
+        throw const RiverSideApiException('Badge detail payload is missing.');
+      }
+
+      final typeNameById = <int, String>{};
+      final badgeTypesRaw = decoded['badge_types'];
+      if (badgeTypesRaw is List) {
+        for (final rawType in badgeTypesRaw) {
+          final type = _toStringMap(rawType);
+          final id = _asInt(type['id']);
+          if (id == null) {
+            continue;
+          }
+          final name = (type['name'] ?? '').toString().trim();
+          if (name.isNotEmpty) {
+            typeNameById[id] = name;
+          }
+        }
+      }
+
+      final badgeTypeRaw = _toStringMap(decoded['badge_type']);
+      final fallbackTypeName = (badgeTypeRaw['name'] ?? '').toString().trim();
+      final badgeTypeName =
+          typeNameById[_asInt(badge['badge_type_id'])] ?? fallbackTypeName;
+
+      return RiverSideProfileBadgeDetail(
+        id: _asInt(badge['id']) ?? badgeId,
+        name: (badge['name'] ?? '').toString().trim(),
+        description: _cookHtmlToMarkdown(
+          (badge['description'] ?? '').toString().trim(),
+        ),
+        longDescription: _cookHtmlToMarkdown(
+          (badge['long_description'] ?? '').toString().trim(),
+        ),
+        icon: (badge['icon'] ?? '').toString().trim(),
+        imageUrl: _normalizeMaybeRelativeUrl(
+          (badge['image_url'] ?? '').toString().trim(),
+        ),
+        grantCount: _asInt(badge['grant_count']) ?? 0,
+        badgeTypeName: badgeTypeName,
+        allowTitle: _asBool(badge['allow_title']),
+        multipleGrant: _asBool(badge['multiple_grant']),
+        listable: _asBool(badge['listable']),
+        enabled: _asBool(badge['enabled']),
+        showInPostHeader: _asBool(badge['show_in_post_header']),
+        slug: (badge['slug'] ?? '').toString().trim(),
+      );
+    }
+
+    if (lastResponse != null) {
+      throw RiverSideApiException(
+        'Failed to fetch badge detail, HTTP ${lastResponse.statusCode}',
+      );
+    }
+    throw const RiverSideApiException('Badge detail endpoint is unavailable.');
+  }
+
   Future<List<RiverSideProfileFollowUser>> fetchProfileFollowUsers(
     String username, {
     required bool followers,

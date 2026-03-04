@@ -1335,7 +1335,6 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
   Widget build(BuildContext context) {
     final count = widget.items.length;
     final current = _currentIndex + 1;
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(

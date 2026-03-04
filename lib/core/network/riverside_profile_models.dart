@@ -120,6 +120,41 @@ class RiverSideProfileBadge {
 }
 
 @immutable
+class RiverSideProfileBadgeDetail {
+  const RiverSideProfileBadgeDetail({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.longDescription,
+    required this.icon,
+    required this.imageUrl,
+    required this.grantCount,
+    required this.badgeTypeName,
+    required this.allowTitle,
+    required this.multipleGrant,
+    required this.listable,
+    required this.enabled,
+    required this.showInPostHeader,
+    required this.slug,
+  });
+
+  final int id;
+  final String name;
+  final String description;
+  final String longDescription;
+  final String icon;
+  final String imageUrl;
+  final int grantCount;
+  final String badgeTypeName;
+  final bool allowTitle;
+  final bool multipleGrant;
+  final bool listable;
+  final bool enabled;
+  final bool showInPostHeader;
+  final String slug;
+}
+
+@immutable
 class RiverSideProfileFollowUser {
   const RiverSideProfileFollowUser({
     required this.id,

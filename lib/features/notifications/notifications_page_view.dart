@@ -307,16 +307,41 @@ extension _NotificationsPageView on _NotificationsPageState {
       );
     }
 
+    final visibleNotifications = _displayNotifications;
+    final showQingFilter = _isQingForum;
+    if (visibleNotifications.isEmpty && showQingFilter) {
+      return RefreshIndicator(
+        onRefresh: _refreshCurrentTab,
+        child: ListView(
+          controller: _notificationsScrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+          children: [
+            _buildQingNotificationFilterBar(theme),
+            const SizedBox(height: 12),
+            _buildEmptyView('该分类下暂无通知', Icons.mark_chat_read_outlined),
+          ],
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _refreshCurrentTab,
       child: ListView.separated(
         controller: _notificationsScrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-        itemCount: _notifications.length + (_loadingMoreNotifications ? 1 : 0),
+        itemCount:
+            visibleNotifications.length +
+            (showQingFilter ? 1 : 0) +
+            (_loadingMoreNotifications ? 1 : 0),
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          if (index == _notifications.length) {
+          if (showQingFilter && index == 0) {
+            return _buildQingNotificationFilterBar(theme);
+          }
+          final dataIndex = showQingFilter ? index - 1 : index;
+          if (dataIndex == visibleNotifications.length) {
             return Padding(
               padding: const EdgeInsets.fromLTRB(0, 2, 0, 2),
               child: Skeletonizer(
@@ -340,9 +365,209 @@ extension _NotificationsPageView on _NotificationsPageState {
           }
           return _buildNotificationCard(
             theme: theme,
-            item: _notifications[index],
+            item: visibleNotifications[dataIndex],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildQingNotificationFilterBar(ThemeData theme) {
+    final totalCount = _notifications.length;
+    final selectedColor = theme.colorScheme.primary;
+    final selectedSurface = theme.colorScheme.primaryContainer.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.48 : 0.78,
+    );
+    final borderColor = theme.colorScheme.outlineVariant.withValues(
+      alpha: 0.36,
+    );
+    final filterItems =
+        <
+          ({
+            _QingNotificationFilter filter,
+            IconData icon,
+            String label,
+            int count,
+          })
+        >[
+          (
+            filter: _QingNotificationFilter.all,
+            icon: Icons.grid_view_rounded,
+            label: '全部',
+            count: totalCount,
+          ),
+          (
+            filter: _QingNotificationFilter.atMe,
+            icon: Icons.alternate_email_rounded,
+            label: '@我',
+            count: _qingCountForKind(_QingNotificationKind.atMe),
+          ),
+          (
+            filter: _QingNotificationFilter.reply,
+            icon: Icons.reply_rounded,
+            label: '回复',
+            count: _qingCountForKind(_QingNotificationKind.reply),
+          ),
+          (
+            filter: _QingNotificationFilter.notice,
+            icon: Icons.notifications_rounded,
+            label: '通知',
+            count: _qingCountForKind(_QingNotificationKind.notice),
+          ),
+        ];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.surfaceContainerLow,
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.38),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.tune_rounded,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '清水河畔通知筛选',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '共 $totalCount 条',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final item in filterItems) ...[
+                  _buildQingNotificationFilterChip(
+                    theme: theme,
+                    icon: item.icon,
+                    label: item.label,
+                    count: item.count,
+                    selected: _qingNotificationFilter == item.filter,
+                    selectedSurface: selectedSurface,
+                    selectedColor: selectedColor,
+                    onTap: () => _setQingNotificationFilter(item.filter),
+                  ),
+                  if (item != filterItems.last) const SizedBox(width: 8),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQingNotificationFilterChip({
+    required ThemeData theme,
+    required IconData icon,
+    required String label,
+    required int count,
+    required bool selected,
+    required Color selectedSurface,
+    required Color selectedColor,
+    required VoidCallback onTap,
+  }) {
+    final foregroundColor = selected
+        ? theme.colorScheme.onPrimaryContainer
+        : theme.colorScheme.onSurfaceVariant;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: selected
+            ? selectedSurface
+            : theme.colorScheme.surface.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: selected
+              ? selectedColor.withValues(alpha: 0.46)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+        ),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: selectedColor.withValues(alpha: 0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : const [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: foregroundColor),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (count > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 18),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? selectedColor.withValues(alpha: 0.22)
+                          : theme.colorScheme.primary.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$count',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: selected
+                            ? selectedColor
+                            : theme.colorScheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -376,6 +601,11 @@ extension _NotificationsPageView on _NotificationsPageState {
         typeIcon = Icons.military_tech_rounded;
         typeColor = Colors.amber.shade700;
         iconBgColor = Colors.amber.shade50;
+        break;
+      case 13: // System notice
+        typeIcon = Icons.notifications_rounded;
+        typeColor = Colors.teal.shade600;
+        iconBgColor = Colors.teal.shade50;
         break;
       default: // Mention or others
         typeIcon = Icons.alternate_email_rounded;
@@ -799,6 +1029,51 @@ extension _NotificationsPageView on _NotificationsPageState {
     );
   }
 
+  Widget _buildRealtimeChatUnavailablePlaceholder(
+    ThemeData theme, {
+    required ScrollController controller,
+  }) {
+    return RefreshIndicator(
+      onRefresh: _refreshCurrentTab,
+      child: ListView(
+        controller: controller,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 80),
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _NotificationsPageState
+                        ._labelNeedSwitchToRiverSideRealtimeChat,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNotificationsSkeletonList(ThemeData theme) {
     final fakeItems = List<RiverSideNotificationItem>.generate(6, (index) {
       return RiverSideNotificationItem(
@@ -1074,5 +1349,3 @@ extension _NotificationsPageView on _NotificationsPageState {
     return '${time.month}月${time.day}日';
   }
 }
-
-

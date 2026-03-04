@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:river/app/app_dependencies.dart';
+import 'package:river/core/account/account_models.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/features/compose/compose_topic_page.dart';
@@ -14,6 +15,7 @@ import 'package:river/features/mine/mine_page.dart';
 import 'package:river/features/notifications/notifications_page.dart';
 import 'package:river/features/posts/posts_page.dart';
 import 'package:river/features/search/search_page.dart';
+import 'package:soft_edge_blur/soft_edge_blur.dart';
 
 enum HomeQuickAction { compose, search, latestCreated, latestReplied, hot }
 
@@ -64,17 +66,15 @@ class _HomeShellPageState extends State<HomeShellPage> {
   int _notificationsUnreadCount = 0;
   double _postsSecondFloorProgress = 0;
   DateTime? _lastPostsTabTapAt;
+  AccountProvider _notificationsForumProvider = AccountProvider.riverSide;
   final PostsPageController _postsPageController = PostsPageController();
 
   late final PostsPage _postsPage = PostsPage(
     dependencies: widget.dependencies,
     controller: _postsPageController,
+    onForumProviderChanged: _onPostsForumProviderChanged,
     onSecondFloorVisibilityChanged: _onPostsSecondFloorVisibilityChanged,
     onSecondFloorProgressChanged: _onPostsSecondFloorProgressChanged,
-  );
-  late final NotificationsPage _notificationsPage = NotificationsPage(
-    dependencies: widget.dependencies,
-    onUnreadCountChanged: _onUnreadCountChanged,
   );
   late final MinePage _minePage = MinePage(dependencies: widget.dependencies);
 
@@ -100,6 +100,15 @@ class _HomeShellPageState extends State<HomeShellPage> {
     }
     setState(() {
       _notificationsUnreadCount = value;
+    });
+  }
+
+  void _onPostsForumProviderChanged(AccountProvider provider) {
+    if (!mounted || _notificationsForumProvider == provider) {
+      return;
+    }
+    setState(() {
+      _notificationsForumProvider = provider;
     });
   }
 
@@ -253,7 +262,11 @@ class _HomeShellPageState extends State<HomeShellPage> {
     final bottomOpacity = (1 - secondFloorProgress).clamp(0.0, 1.0);
     final bottomSizeFactor = (1 - secondFloorProgress).clamp(0.0, 1.0);
     return Scaffold(
-      body: IndexedStack(index: safeSelectedTabIndex, children: pages),
+      extendBody: true,
+      body: _buildMaterialBodyWithSoftEdgeBlur(
+        secondFloorProgress: secondFloorProgress,
+        child: IndexedStack(index: safeSelectedTabIndex, children: pages),
+      ),
       bottomNavigationBar: ClipRect(
         child: Align(
           alignment: Alignment.topCenter,
@@ -287,7 +300,11 @@ class _HomeShellPageState extends State<HomeShellPage> {
         dependencies: widget.dependencies,
         bottomToolbarExtraInset: composeBottomInset,
       ),
-      _notificationsPage,
+      NotificationsPage(
+        dependencies: widget.dependencies,
+        forumProvider: _notificationsForumProvider,
+        onUnreadCountChanged: _onUnreadCountChanged,
+      ),
       _minePage,
     ];
   }
@@ -410,6 +427,10 @@ class _HomeShellPageState extends State<HomeShellPage> {
   Widget _buildMaterialTabBar() {
     final currentIndex = _selectedTabIndex.clamp(0, 3);
     return NavigationBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
       selectedIndex: currentIndex,
       onDestinationSelected: _onMaterialDestinationSelected,
       destinations: <NavigationDestination>[
@@ -451,6 +472,57 @@ class _HomeShellPageState extends State<HomeShellPage> {
           label: '\u6211\u7684',
         ),
       ],
+    );
+  }
+
+  Widget _buildMaterialBodyWithSoftEdgeBlur({
+    required Widget child,
+    required double secondFloorProgress,
+  }) {
+    final visibility = (1 - secondFloorProgress).clamp(0.0, 1.0);
+    final theme = Theme.of(context);
+    final scaffoldColor = theme.scaffoldBackgroundColor;
+    final navHeight = theme.navigationBarTheme.height ?? 80;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final tintBandHeight = navHeight + bottomInset + 42;
+    return SoftEdgeBlur(
+      edges: <EdgeBlur>[
+        EdgeBlur(
+          type: EdgeType.bottomEdge,
+          size: 130 * visibility,
+          sigma: 30 * visibility,
+          tintColor: scaffoldColor.withValues(alpha: 0.8 * visibility),
+          controlPoints: <ControlPoint>[
+            ControlPoint(position: 0.4, type: ControlPointType.visible),
+            ControlPoint(position: 1, type: ControlPointType.transparent),
+          ],
+        ),
+      ],
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(child: child),
+          IgnorePointer(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                height: tintBandHeight,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const <double>[0, 0.55, 1],
+                    colors: <Color>[
+                      scaffoldColor.withValues(alpha: 0),
+                      scaffoldColor.withValues(alpha: 0.64 * visibility),
+                      scaffoldColor.withValues(alpha: 0.96 * visibility),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

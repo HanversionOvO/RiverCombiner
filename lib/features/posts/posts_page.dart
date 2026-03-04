@@ -1622,12 +1622,14 @@ class PostsPage extends StatefulWidget {
     super.key,
     required this.dependencies,
     this.controller,
+    this.onForumProviderChanged,
     this.onSecondFloorVisibilityChanged,
     this.onSecondFloorProgressChanged,
   });
 
   final AppDependencies dependencies;
   final PostsPageController? controller;
+  final ValueChanged<AccountProvider>? onForumProviderChanged;
   final ValueChanged<bool>? onSecondFloorVisibilityChanged;
   final ValueChanged<double>? onSecondFloorProgressChanged;
 
@@ -1722,6 +1724,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     _lastActiveQingUsername =
         widget.dependencies.accountStore.activeQingShuiHePanUsername;
     _forumProvider = _resolveInitialForumProvider();
+    _notifyForumProviderChanged();
     widget.dependencies.accountStore.addListener(_onAccountStoreChanged);
     widget.dependencies.settingsController.addListener(
       _onRefreshBannerSettingsChanged,
@@ -1939,6 +1942,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     if (!_isForumAvailable(_forumProvider)) {
       _forumProvider = _resolveInitialForumProvider();
     }
+    final forumChanged = previousForum != _forumProvider;
     if (!mounted) {
       return;
     }
@@ -1953,10 +1957,23 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       _knownUserPreviewsByUsername.clear();
       _restoreBoardFilterForForum(_forumProvider);
     });
+    if (forumChanged) {
+      _notifyForumProviderChanged();
+    }
     unawaited(_loadCategories(forceRefresh: true));
     unawaited(_loadMiniApps(forceRefresh: true));
     unawaited(_scrollToTopAndRefresh());
     _restartRealtimePolling();
+  }
+
+  AccountProvider _currentForumAccountProvider() {
+    return _forumProvider == _PostsForumProvider.qingShuiHePan
+        ? AccountProvider.qingShuiHePan
+        : AccountProvider.riverSide;
+  }
+
+  void _notifyForumProviderChanged() {
+    widget.onForumProviderChanged?.call(_currentForumAccountProvider());
   }
 
   String? _activeCookieHeader() {
@@ -2065,6 +2082,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       _knownUserPreviewsByUsername.clear();
       _onlineUsersCount = 0;
     });
+    _notifyForumProviderChanged();
 
     await _loadCategories();
     unawaited(_scrollToTopAndRefresh());
