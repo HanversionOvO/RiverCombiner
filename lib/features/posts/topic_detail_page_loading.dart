@@ -396,6 +396,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       _loadingMore = false;
       _error = null;
       _hasRealtimeCommentUpdate = false;
+      _topicFavoriteResolved = false;
       if (shouldSkipEntranceAnimation) {
         _skipNextEntranceAnimation = true;
         _contentRevealController.value = 0;
@@ -452,6 +453,8 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       _mutateState(() {
         _detail = mergedDetail;
         _comments = comments;
+        _topicFavoriteResolved = true;
+        _topicFavorited = mergedDetail.isBookmarked;
         _loadedPostIds
           ..clear()
           ..addAll(detail.loadedPostIds);
@@ -530,6 +533,8 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
     _mutateState(() {
       _detail = parsed.detail;
       _comments = parsed.comments;
+      _topicFavoriteResolved = true;
+      _topicFavorited = parsed.isFavorited;
       _loadedPostIds
         ..clear()
         ..add(parsed.detail.mainPost.id)
@@ -601,6 +606,9 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
             canUndo: true,
           )
         : null;
+    final isBookmarked = topicSource.isEmpty
+        ? (currentDetail?.isBookmarked ?? false)
+        : _extractQingFavorited(topicSource);
 
     final mainPost = RiverSideTopicPostDetail(
       id: mainPostId,
@@ -892,6 +900,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       streamPostIds: streamPostIds,
       loadedPostIds: streamPostIds.toSet(),
       validReactions: const <String>{'+1', '-1'},
+      isBookmarked: isBookmarked,
     );
 
     _qingBoardId = boardId ?? _qingBoardId;
@@ -899,6 +908,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       detail: detail,
       comments: nextComments,
       hasMore: hasNext,
+      isFavorited: isBookmarked,
     );
   }
 
@@ -944,6 +954,8 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         _mutateState(() {
           _detail = parsed.detail;
           _comments = parsed.comments;
+          _topicFavoriteResolved = true;
+          _topicFavorited = parsed.isFavorited;
           _loadedPostIds
             ..clear()
             ..add(parsed.detail.mainPost.id)
@@ -1251,9 +1263,11 @@ class _QingTopicLoadResult {
     required this.detail,
     required this.comments,
     required this.hasMore,
+    required this.isFavorited,
   });
 
   final RiverSideTopicDetail detail;
   final List<RiverSideTopicPostDetail> comments;
   final bool hasMore;
+  final bool isFavorited;
 }

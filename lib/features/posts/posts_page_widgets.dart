@@ -684,11 +684,7 @@ class _TopicListTabState extends State<_TopicListTab>
   }
 
   Widget _buildTopicListContent() {
-    final isIPhone =
-        !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.iOS &&
-        MediaQuery.sizeOf(context).shortestSide < 600;
-    final backToTopBottom = isIPhone ? 98.0 : 16.0;
+    final backToTopBottom = 98.0;
     final hasInlineHint = widget.showInlineRealtimeHint && _topics.isNotEmpty;
     if (hasInlineHint && _realtimeHintAnchorIndex == null) {
       _pinRealtimeHintAnchorToCurrentViewport();
@@ -760,11 +756,8 @@ class _TopicListTabState extends State<_TopicListTab>
                   displayCategoryName: _displayCategoryName(topic),
                   isHotFeed: widget.feed == RiverSideTopicFeed.hot,
                   onTap: (sourceContext) => _openDetail(sourceContext, topic),
-                  onCommentTap: (sourceContext) => _openDetail(
-                    sourceContext,
-                    topic,
-                    jumpToReplies: true,
-                  ),
+                  onCommentTap: (sourceContext) =>
+                      _openDetail(sourceContext, topic, jumpToReplies: true),
                   onAuthorTap: () => _openAuthor(topic),
                 ),
               );
@@ -1360,5 +1353,3 @@ class _SkeletonBox extends StatelessWidget {
     );
   }
 }
-
-

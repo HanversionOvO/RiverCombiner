@@ -170,6 +170,7 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
     final createdAt = DateTime.tryParse(
       (decoded['created_at'] ?? '').toString(),
     );
+    final isBookmarked = _asBool(decoded['bookmarked']);
     final validReactions = _asStringSet(decoded['valid_reactions']);
 
     final postStream = _toStringMap(decoded['post_stream']);
@@ -213,6 +214,7 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
       streamPostIds: streamPostIds,
       loadedPostIds: loadedPostIds,
       validReactions: validReactions,
+      isBookmarked: isBookmarked,
     );
   }
 

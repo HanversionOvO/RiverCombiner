@@ -525,6 +525,141 @@ extension RiverSideApiClientPostMethods on RiverSideApiClient {
     return post;
   }
 
+  Future<void> toggleTopicBookmark({
+    required int topicId,
+    required bool bookmarked,
+    required String cookieHeader,
+  }) async {
+    final cookie = cookieHeader.trim();
+    if (cookie.isEmpty) {
+      throw const RiverSideApiException('Cookie header is empty.');
+    }
+    if (topicId <= 0) {
+      throw const RiverSideApiException('Topic id is invalid.');
+    }
+
+    final csrf = await fetchSessionCsrfToken(cookieHeader: cookie);
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'Cookie': cookie,
+      'X-CSRF-Token': csrf,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Origin': riverSideBaseUrl,
+      'Referer': '$riverSideBaseUrl/t/topic/$topicId',
+    };
+    http.Response response;
+    if (bookmarked) {
+      response = await http.put(
+        Uri.parse('$riverSideBaseUrl/t/$topicId/bookmark'),
+        headers: headers,
+        body: const <String, String>{'bookmarked': 'true'},
+        encoding: utf8,
+      );
+    } else {
+      response = await http.put(
+        Uri.parse('$riverSideBaseUrl/t/$topicId/remove_bookmarks'),
+        headers: headers,
+      );
+      // Fallback for deployments exposing old bookmark destroy routes.
+      if (response.statusCode == 404 || response.statusCode == 405) {
+        response = await http.delete(
+          Uri.parse('$riverSideBaseUrl/bookmarks/$topicId.json'),
+          headers: headers,
+        );
+      }
+    }
+
+    if (response.statusCode == 403) {
+      throw const RiverSideApiException(
+        'Login session expired. Please sign in again.',
+      );
+    }
+    if (response.statusCode == 409) {
+      // Already in target state.
+      return;
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(
+        message.isEmpty
+            ? (bookmarked
+                  ? '收藏失败，HTTP ${response.statusCode}'
+                  : '取消收藏失败，HTTP ${response.statusCode}')
+            : message,
+      );
+    }
+  }
+
+  Future<void> reportTopicMainPost({
+    required int topicId,
+    required int postId,
+    required String message,
+    required String cookieHeader,
+  }) async {
+    final cookie = cookieHeader.trim();
+    if (cookie.isEmpty) {
+      throw const RiverSideApiException('Cookie header is empty.');
+    }
+    if (topicId <= 0 || postId <= 0) {
+      throw const RiverSideApiException('Post id is invalid.');
+    }
+    final trimmedMessage = message.trim();
+    if (trimmedMessage.isEmpty) {
+      throw const RiverSideApiException('举报内容不能为空。');
+    }
+
+    final csrf = await fetchSessionCsrfToken(cookieHeader: cookie);
+    final typeCandidates = <int>[8, 4, 3];
+    RiverSideApiException? lastError;
+    for (final actionTypeId in typeCandidates) {
+      final response = await http.post(
+        Uri.parse('$riverSideBaseUrl/post_actions'),
+        headers: <String, String>{
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Cookie': cookie,
+          'X-CSRF-Token': csrf,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Origin': riverSideBaseUrl,
+          'Referer': '$riverSideBaseUrl/t/topic/$topicId',
+        },
+        body: <String, String>{
+          'id': '$postId',
+          'post_action_type_id': '$actionTypeId',
+          'message': trimmedMessage,
+        },
+        encoding: utf8,
+      );
+
+      if (response.statusCode == 403) {
+        throw const RiverSideApiException(
+          'Login session expired. Please sign in again.',
+        );
+      }
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return;
+      }
+
+      final message = _extractErrorMessageFromResponse(response).trim();
+      // Discourse may return conflict when the same flag already exists.
+      if (response.statusCode == 409 &&
+          (message.isEmpty || message.contains('already'))) {
+        return;
+      }
+      if (response.statusCode == 400 || response.statusCode == 422) {
+        lastError = RiverSideApiException(
+          message.isEmpty ? '举报失败，请稍后重试。' : message,
+        );
+        continue;
+      }
+      throw RiverSideApiException(
+        message.isEmpty ? '举报失败，HTTP ${response.statusCode}' : message,
+      );
+    }
+    throw (lastError ?? const RiverSideApiException('举报失败，请稍后重试。'));
+  }
+
   Map<String, dynamic> _decodeDraftData(dynamic rawData) {
     if (rawData is Map<String, dynamic>) {
       return rawData;

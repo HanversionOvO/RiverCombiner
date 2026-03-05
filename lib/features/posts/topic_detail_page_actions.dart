@@ -471,7 +471,321 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showRiverSnackBar(message);
+    try {
+      _scaffoldMessenger?.showRiverSnackBar(message);
+    } catch (_) {
+      // Ignore calls while route is deactivating.
+    }
+  }
+
+  Future<void> _openTopicMoreActionSheet() async {
+    final detail = _detail;
+    final resolvedFavorited = _topicFavoriteResolved
+        ? _topicFavorited
+        : (detail?.isBookmarked ?? false);
+    final favoriteLabel = resolvedFavorited
+        ? _TopicDetailPageState._labelUnfavorite
+        : _TopicDetailPageState._labelFavorite;
+
+    final picked = await showModalBottomSheet<_TopicMoreAction>(
+      context: context,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final sheetTheme = Theme.of(sheetContext);
+        final canOperate = detail != null;
+        final busy = _topicFavoriteBusy || _topicReportBusy;
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        sheetTheme.colorScheme.surface,
+                        sheetTheme.colorScheme.surfaceContainerLow,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: sheetTheme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.34,
+                      ),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: sheetTheme.colorScheme.shadow.withValues(
+                          alpha: 0.08,
+                        ),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          dense: true,
+                          leading: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: sheetTheme.colorScheme.primaryContainer
+                                  .withValues(alpha: 0.72),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.more_horiz_rounded,
+                              size: 19,
+                              color: sheetTheme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          title: Text(
+                            '帖子操作',
+                            style: sheetTheme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '分享、举报与收藏',
+                            style: sheetTheme.textTheme.bodySmall?.copyWith(
+                              color: sheetTheme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        _TopicMoreActionTile(
+                          icon: Icons.share_outlined,
+                          title: _TopicDetailPageState._labelSharePoster,
+                          subtitle: canOperate ? '生成海报并分享' : '帖子尚未加载',
+                          enabled: canOperate,
+                          onTap: () => Navigator.of(
+                            sheetContext,
+                          ).pop(_TopicMoreAction.share),
+                        ),
+                        const SizedBox(height: 8),
+                        _TopicMoreActionTile(
+                          icon: Icons.flag_outlined,
+                          title: _TopicDetailPageState._labelReport,
+                          subtitle: canOperate ? '反馈帖子问题给管理员' : '帖子尚未加载',
+                          enabled: canOperate && !busy,
+                          onTap: () => Navigator.of(
+                            sheetContext,
+                          ).pop(_TopicMoreAction.report),
+                        ),
+                        const SizedBox(height: 8),
+                        _TopicMoreActionTile(
+                          icon: resolvedFavorited
+                              ? Icons.bookmark_remove_outlined
+                              : Icons.bookmark_add_outlined,
+                          title: favoriteLabel,
+                          subtitle: canOperate ? '保存到账号收藏列表' : '帖子尚未加载',
+                          enabled: canOperate && !busy,
+                          onTap: () => Navigator.of(
+                            sheetContext,
+                          ).pop(_TopicMoreAction.favorite),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted || picked == null) {
+      return;
+    }
+    switch (picked) {
+      case _TopicMoreAction.share:
+        await _openSharePosterSheet();
+        break;
+      case _TopicMoreAction.report:
+        await _reportTopic();
+        break;
+      case _TopicMoreAction.favorite:
+        await _toggleTopicFavorite();
+        break;
+    }
+  }
+
+  Future<void> _reportTopic() async {
+    if (_topicReportBusy) {
+      return;
+    }
+    final detail = _detail;
+    if (detail == null) {
+      _showSimpleToast('帖子尚未加载完成');
+      return;
+    }
+    final message = await _showTopicReportInputSheet();
+    if (!mounted || message == null) {
+      return;
+    }
+    _mutateState(() => _topicReportBusy = true);
+    try {
+      if (_isQingShuiHePanTopic) {
+        final auth = _activeQingAuth();
+        if (auth == null) {
+          _showSimpleToast(_loginRequiredLabel);
+          return;
+        }
+        await _callQingApi(
+          auth: auth,
+          body: <String, String>{
+            'r': 'user/report',
+            'idType': 'thread',
+            'id': '${detail.topicId}',
+            'message': message,
+          },
+        );
+      } else {
+        final cookie = _activeCookieHeader();
+        if (cookie == null || cookie.trim().isEmpty) {
+          _showSimpleToast(_loginRequiredLabel);
+          return;
+        }
+        await widget.dependencies.accountStore.riverSideApiClient
+            .reportTopicMainPost(
+              topicId: detail.topicId,
+              postId: detail.mainPost.id,
+              message: message,
+              cookieHeader: cookie,
+            );
+      }
+      _showSimpleToast('举报已提交');
+    } on RiverSideApiException catch (error) {
+      _showSimpleToast(error.message);
+    } catch (_) {
+      _showSimpleToast('举报失败，请稍后重试');
+    } finally {
+      _mutateState(() => _topicReportBusy = false);
+    }
+  }
+
+  Future<void> _toggleTopicFavorite() async {
+    if (_topicFavoriteBusy) {
+      return;
+    }
+    final detail = _detail;
+    if (detail == null) {
+      _showSimpleToast('帖子尚未加载完成');
+      return;
+    }
+    final currentFavorited = _topicFavoriteResolved
+        ? _topicFavorited
+        : detail.isBookmarked;
+    final nextFavorited = !currentFavorited;
+    _mutateState(() => _topicFavoriteBusy = true);
+    try {
+      if (_isQingShuiHePanTopic) {
+        final auth = _activeQingAuth();
+        if (auth == null) {
+          _showSimpleToast(_loginRequiredLabel);
+          return;
+        }
+        await _toggleQingTopicFavorite(
+          auth: auth,
+          topicId: detail.topicId,
+          favorited: nextFavorited,
+        );
+      } else {
+        final cookie = _activeCookieHeader();
+        if (cookie == null || cookie.trim().isEmpty) {
+          _showSimpleToast(_loginRequiredLabel);
+          return;
+        }
+        await widget.dependencies.accountStore.riverSideApiClient
+            .toggleTopicBookmark(
+              topicId: detail.topicId,
+              bookmarked: nextFavorited,
+              cookieHeader: cookie,
+            );
+      }
+      _mutateState(() {
+        _topicFavoriteResolved = true;
+        _topicFavorited = nextFavorited;
+        if (_detail != null) {
+          _detail = _detail!.copyWith(isBookmarked: nextFavorited);
+        }
+      });
+      _showSimpleToast(nextFavorited ? '收藏成功' : '已取消收藏');
+    } on RiverSideApiException catch (error) {
+      _showSimpleToast(error.message);
+    } catch (error) {
+      _showSimpleToast(nextFavorited ? '收藏失败：$error' : '取消收藏失败：$error');
+    } finally {
+      _mutateState(() => _topicFavoriteBusy = false);
+    }
+  }
+
+  Future<void> _toggleQingTopicFavorite({
+    required QingShuiHePanAuth auth,
+    required int topicId,
+    required bool favorited,
+  }) async {
+    final action = favorited ? 'favorite' : 'delfavorite';
+    final idTypeCandidates = <String>['tid', 'topic', 'thread'];
+    RiverSideApiException? lastError;
+    for (final idType in idTypeCandidates) {
+      try {
+        await _callQingApi(
+          auth: auth,
+          body: <String, String>{
+            'r': 'user/userfavorite',
+            'idType': idType,
+            'action': action,
+            'id': '$topicId',
+          },
+        );
+        return;
+      } on RiverSideApiException catch (error) {
+        final lower = error.message.toLowerCase();
+        if (favorited &&
+            (error.message.contains('已收藏') || lower.contains('already'))) {
+          return;
+        }
+        if (!favorited &&
+            (error.message.contains('未收藏') || lower.contains('not'))) {
+          return;
+        }
+        lastError = error;
+      } catch (error) {
+        lastError = RiverSideApiException('收藏接口异常：$error');
+      }
+    }
+    throw (lastError ?? const RiverSideApiException('收藏失败，请稍后重试'));
+  }
+
+  Future<String?> _showTopicReportInputSheet() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _TopicReportSheet(theme: Theme.of(sheetContext));
+      },
+    );
+    if (result == null) {
+      return null;
+    }
+    final text = result.trim();
+    if (text.isEmpty) {
+      return null;
+    }
+    return text;
   }
 
   String _normalizeRiverSourceMarkdownForCrossPost(String source) {
@@ -2467,6 +2781,262 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
         await _deleteComment(post);
         break;
     }
+  }
+}
+
+enum _TopicMoreAction { share, report, favorite }
+
+class _TopicMoreActionTile extends StatelessWidget {
+  const _TopicMoreActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: enabled
+          ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.78)
+          : theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.46),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: enabled
+                      ? theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.72,
+                        )
+                      : theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: enabled
+                      ? theme.colorScheme.onPrimaryContainer
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopicReportSheet extends StatefulWidget {
+  const _TopicReportSheet({required this.theme});
+
+  final ThemeData theme;
+
+  @override
+  State<_TopicReportSheet> createState() => _TopicReportSheetState();
+}
+
+class _TopicReportSheetState extends State<_TopicReportSheet> {
+  late final TextEditingController _controller;
+  String _errorText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      setState(() {
+        _errorText = '请输入举报内容';
+      });
+      return;
+    }
+    Navigator.of(context).pop(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final viewInsetsBottom = MediaQuery.viewInsetsOf(context).bottom;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12, 0, 12, 10 + viewInsetsBottom),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.surface,
+                  theme.colorScheme.surfaceContainerLow,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.34),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.errorContainer.withValues(
+                            alpha: 0.72,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.flag_outlined,
+                          size: 18,
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '举报内容',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              '请简要描述问题，便于管理员处理',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _controller,
+                    minLines: 3,
+                    maxLines: 6,
+                    textInputAction: TextInputAction.done,
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) => _submit(),
+                    decoration: InputDecoration(
+                      hintText: '请输入举报内容',
+                      errorText: _errorText.isEmpty ? null : _errorText,
+                      filled: true,
+                      fillColor: theme.colorScheme.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${_controller.text.trim().length}/300',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('取消'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: _submit,
+                          child: const Text('提交举报'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -1527,6 +1527,10 @@ class _BadgeDetailDialog extends StatefulWidget {
 
 class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
   late Future<RiverSideProfileBadgeDetail> _detailFuture;
+  late final MotionController _motionController = MotionController(
+    damping: null,
+    maxAngle: 0.62,
+  );
 
   @override
   void initState() {
@@ -1671,6 +1675,7 @@ class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
                   tag: widget.heroTag,
                   child: Motion.elevated(
                     elevation: 24,
+                    controller: _motionController,
                     borderRadius: BorderRadius.circular(24),
                     child: _ProfileBadgeVisual(
                       badgeId: widget.badge.id,

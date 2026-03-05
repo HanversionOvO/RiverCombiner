@@ -227,6 +227,10 @@ class _TopicDetailPageState extends State<TopicDetailPage>
   static const String _labelAiSummaryTitle = 'AI总结';
   static const String _labelAiSummaryLoadFailed = 'AI总结加载失败，请稍后重试';
   static const String _labelSharePoster = '分享';
+  static const String _labelMoreActions = '更多';
+  static const String _labelReport = '举报';
+  static const String _labelFavorite = '收藏';
+  static const String _labelUnfavorite = '取消收藏';
   static const String _labelSharePosterTitle = '分享帖子海报';
   static const String _labelSharePosterButton = '分享海报';
   static const String _labelCopyTopicLinkButton = '复制帖子链接';
@@ -289,6 +293,11 @@ class _TopicDetailPageState extends State<TopicDetailPage>
   ScreenshotCallback? _screenshotCallback;
   bool _handlingScreenshotEvent = false;
   bool _sharePosterSheetVisible = false;
+  bool _topicFavoriteResolved = false;
+  bool _topicFavorited = false;
+  bool _topicFavoriteBusy = false;
+  bool _topicReportBusy = false;
+  ScaffoldMessengerState? _scaffoldMessenger;
   final DateTime _visibleWatermarkTime = DateTime.now();
 
   bool get _isQingShuiHePanTopic =>
@@ -336,6 +345,12 @@ class _TopicDetailPageState extends State<TopicDetailPage>
     _initScreenshotCallback();
     _restartRealtimePolling();
     _loadInitial();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
   }
 
   @override
@@ -1602,6 +1617,26 @@ class _TopicDetailPageState extends State<TopicDetailPage>
     return false;
   }
 
+  bool _extractQingFavorited(Map<String, dynamic> source) {
+    for (final key in const <String>[
+      'is_favor',
+      'isFavor',
+      'is_favorite',
+      'isFavorite',
+      'favorite',
+      'favorited',
+      'hasFavor',
+      'hasFavorite',
+    ]) {
+      final value = source[key];
+      if (value == null) {
+        continue;
+      }
+      return _asBool(value);
+    }
+    return false;
+  }
+
   void _mutateState(VoidCallback action) {
     if (!mounted) return;
     setState(action);
@@ -2304,9 +2339,9 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: IconButton(
-                    tooltip: _labelSharePoster,
-                    icon: const Icon(Icons.share_outlined),
-                    onPressed: _openSharePosterSheet,
+                    tooltip: _labelMoreActions,
+                    icon: const Icon(Icons.more_horiz_rounded),
+                    onPressed: _openTopicMoreActionSheet,
                     style: IconButton.styleFrom(
                       backgroundColor: theme.colorScheme.surface.withValues(
                         alpha: 0.88,
@@ -2593,9 +2628,9 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: IconButton(
-                          tooltip: _labelSharePoster,
-                          icon: const Icon(Icons.share_outlined),
-                          onPressed: _openSharePosterSheet,
+                          tooltip: _labelMoreActions,
+                          icon: const Icon(Icons.more_horiz_rounded),
+                          onPressed: _openTopicMoreActionSheet,
                           style: IconButton.styleFrom(
                             backgroundColor: theme.colorScheme.surface
                                 .withValues(alpha: 0.88),

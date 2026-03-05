@@ -327,6 +327,7 @@ class RiverSideTopicDetail {
     required this.streamPostIds,
     required this.loadedPostIds,
     this.validReactions = const <String>{},
+    this.isBookmarked = false,
   });
 
   final int topicId;
@@ -340,6 +341,7 @@ class RiverSideTopicDetail {
   final List<int> streamPostIds;
   final Set<int> loadedPostIds;
   final Set<String> validReactions;
+  final bool isBookmarked;
 
   RiverSideTopicDetail copyWith({
     int? topicId,
@@ -353,6 +355,7 @@ class RiverSideTopicDetail {
     List<int>? streamPostIds,
     Set<int>? loadedPostIds,
     Set<String>? validReactions,
+    bool? isBookmarked,
   }) {
     return RiverSideTopicDetail(
       topicId: topicId ?? this.topicId,
@@ -366,6 +369,7 @@ class RiverSideTopicDetail {
       streamPostIds: streamPostIds ?? this.streamPostIds,
       loadedPostIds: loadedPostIds ?? this.loadedPostIds,
       validReactions: validReactions ?? this.validReactions,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
     );
   }
 }
@@ -453,4 +457,3 @@ class RiverSidePostReactionState {
   final RiverSideCurrentUserReaction? currentUserReaction;
   final int reactionUsersCount;
 }
-
