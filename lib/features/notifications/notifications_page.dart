@@ -14,7 +14,7 @@ import 'package:river/core/config/server_config.dart';
 import 'package:river/core/navigation/river_page_route.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_notification_models.dart';
-import 'package:river/core/realtime/riverside_message_bus_poller.dart';
+import 'package:river/core/realtime/riverside_realtime_inbox_service.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/notifications/chat_detail_page.dart';
@@ -88,7 +88,6 @@ class _NotificationsPageState extends State<NotificationsPage>
   static const String _labelNeedLogin = '请先登录 RiverSide 账号';
   static const String _labelNeedQingLogin = '请先登录清水河畔账号';
   static const String _labelLoadFailed = '加载失败，请重试';
-  static const String _labelSessionExpired = '登录态已失效，请重新登录';
   static const String _labelNeedSwitchToRiverSideRealtimeChat =
       '请切换至RiverSide论坛以使用实时聊天功能';
   static const int _qingNotificationsPageSize = 20;
@@ -109,7 +108,8 @@ class _NotificationsPageState extends State<NotificationsPage>
   bool _loadingMoreNotifications = false;
   double _headerScrollFactor = 0;
   int _requestSerial = 0;
-  String? _error;
+  String? _notificationsError;
+  String? _chatError;
   String? _lastActiveRiverUsername;
   String? _lastActiveQingUsername;
   late AccountProvider _forumProvider;
@@ -125,9 +125,6 @@ class _NotificationsPageState extends State<NotificationsPage>
   _QingUnreadCounts _qingUnreadCounts = const _QingUnreadCounts();
   String? _qingReadCutoffUsername;
   int? _qingReadCutoffMillis;
-
-  RiverSideMessageBusPoller? _messageBusPoller;
-  bool _hasRealtimeNotifications = false;
 
   void _setState(VoidCallback fn) {
     setState(fn);
@@ -151,8 +148,11 @@ class _NotificationsPageState extends State<NotificationsPage>
     _lastActiveQingUsername =
         widget.dependencies.accountStore.activeQingShuiHePanUsername;
     widget.dependencies.accountStore.addListener(_onAccountStoreChanged);
-    widget.dependencies.settingsController.addListener(
-      _onRefreshBannerSettingsChanged,
+    widget.dependencies.riverSideRealtimeInboxService.addListener(
+      _onRiverRealtimeInboxChanged,
+    );
+    widget.dependencies.riverSideRealtimeInboxService.updateForumProvider(
+      _forumProvider,
     );
     _notificationsScrollController.addListener(_onNotificationsScroll);
     _channelScrollController.addListener(_onChannelScroll);
@@ -167,17 +167,18 @@ class _NotificationsPageState extends State<NotificationsPage>
       return;
     }
     _forumProvider = widget.forumProvider;
-    _messageBusPoller?.stop();
-    _messageBusPoller = null;
+    widget.dependencies.riverSideRealtimeInboxService.updateForumProvider(
+      _forumProvider,
+    );
     _setState(() {
       _loading = true;
-      _error = null;
+      _notificationsError = null;
+      _chatError = null;
       _notifications = const [];
       _qingNotificationRecords = const [];
       _channelMessages = const [];
       _directMessages = const [];
       _deletingDirectMessageIds.clear();
-      _hasRealtimeNotifications = false;
       _nextNotificationsPath = '';
       _qingNotificationFilter = _QingNotificationFilter.all;
       _qingKindByNotificationId.clear();
@@ -193,10 +194,9 @@ class _NotificationsPageState extends State<NotificationsPage>
 
   @override
   void dispose() {
-    _messageBusPoller?.stop();
     widget.dependencies.accountStore.removeListener(_onAccountStoreChanged);
-    widget.dependencies.settingsController.removeListener(
-      _onRefreshBannerSettingsChanged,
+    widget.dependencies.riverSideRealtimeInboxService.removeListener(
+      _onRiverRealtimeInboxChanged,
     );
     _tabController.removeListener(_onTabChanged);
     _showBackToTopNotifier.dispose();
@@ -282,8 +282,6 @@ class _NotificationsPageState extends State<NotificationsPage>
               },
             ),
           ),
-          if (_forumProvider == AccountProvider.riverSide)
-            _buildRealtimeBanner(theme),
         ],
       ),
     );

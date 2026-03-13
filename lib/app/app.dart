@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:river/core/account/account_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_floating_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_host_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_suspension_store.dart';
+import 'package:river/core/navigation/river_route_observer.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/platform/app_icon_switcher.dart';
@@ -24,6 +26,9 @@ import 'package:river/features/mini_apps/mini_app_webview_page.dart';
 import 'package:river/core/widgets/river_home_widget_service.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
 import 'package:river/core/navigation/river_page_route.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:river/core/realtime/riverside_realtime_inbox_service.dart';
+import 'package:river/features/notifications/chat_detail_page.dart';
 
 class RiverApp extends StatefulWidget {
   const RiverApp({super.key});
@@ -44,8 +49,6 @@ class _RiverAppState extends State<RiverApp> {
   final HomeShellController _homeShellController = HomeShellController();
   final GlobalKey<NavigatorState> _appNavigatorKey =
       GlobalKey<NavigatorState>();
-  final DateTime _launchStartedAt = DateTime.now();
-  static const Duration _minLaunchDisplay = Duration(milliseconds: 1250);
   bool _initialized = false;
   bool _didAutoCheckUpdate = false;
   StreamSubscription<Uri?>? _homeWidgetClickSubscription;
@@ -75,7 +78,15 @@ class _RiverAppState extends State<RiverApp> {
   }
 
   Future<void> _bootstrap() async {
-    await _dependencies.settingsController.initialize();
+    final sharedPreferencesFuture = SharedPreferences.getInstance();
+    final settingsFuture = _dependencies.settingsController.initialize(
+      sharedPreferencesFuture: sharedPreferencesFuture,
+    );
+    final accountFuture = _dependencies.accountStore.initialize(
+      sharedPreferencesFuture: sharedPreferencesFuture,
+    );
+
+    await settingsFuture;
     unawaited(
       AppIconSwitcher.switchToPreset(
         _dependencies.settingsController.iconPreset,
@@ -84,15 +95,10 @@ class _RiverAppState extends State<RiverApp> {
     if (mounted && !_initialized) {
       setState(() {});
     }
-    await _dependencies.accountStore.initialize();
+    await accountFuture;
     _dependencies.postsStartupPreloadStore.start(
       accountStore: _dependencies.accountStore,
     );
-    await _dependencies.updateChecker.initialize();
-    final elapsed = DateTime.now().difference(_launchStartedAt);
-    if (elapsed < _minLaunchDisplay) {
-      await Future<void>.delayed(_minLaunchDisplay - elapsed);
-    }
     if (!mounted) {
       return;
     }
@@ -285,12 +291,43 @@ class _RiverAppState extends State<RiverApp> {
     });
   }
 
+  Future<void> _handleInAppMessageTap(
+    RiverSideInAppMessageBanner banner,
+  ) async {
+    final context = _appNavigatorKey.currentContext;
+    if (context == null || !context.mounted) {
+      return;
+    }
+    switch (banner.kind) {
+      case RiverSideInAppMessageKind.notification:
+        _homeShellController.performQuickAction(HomeQuickAction.notifications);
+        return;
+      case RiverSideInAppMessageKind.channelMessage:
+      case RiverSideInAppMessageKind.directMessage:
+        final channel = banner.channel;
+        if (channel == null) {
+          _homeShellController.performQuickAction(HomeQuickAction.notifications);
+          return;
+        }
+        await Navigator.of(context).push(
+          riverPageRoute<void>(
+            builder: (_) => ChatDetailPage(
+              dependencies: _dependencies,
+              channel: channel,
+            ),
+          ),
+        );
+        return;
+    }
+  }
+
   @override
   void dispose() {
     _homeWidgetClickSubscription?.cancel();
     _homeWidgetSyncDebounceTimer?.cancel();
     _dependencies.accountStore.removeListener(_scheduleHomeWidgetSync);
     _dependencies.settingsController.removeListener(_scheduleHomeWidgetSync);
+    _dependencies.riverSideRealtimeInboxService.dispose();
     _dependencies.settingsController.dispose();
     _dependencies.accountStore.dispose();
     _dependencies.miniAppHostStore.dispose();
@@ -309,6 +346,7 @@ class _RiverAppState extends State<RiverApp> {
           title: 'River Login',
           debugShowCheckedModeBanner: false,
           navigatorKey: _appNavigatorKey,
+          navigatorObservers: <NavigatorObserver>[riverRouteObserver],
           locale: const Locale('zh', 'CN'),
           supportedLocales: const <Locale>[
             Locale('zh', 'CN'),
@@ -333,6 +371,7 @@ class _RiverAppState extends State<RiverApp> {
                 floatingStore: _dependencies.miniAppFloatingStore,
                 onOpenFloatingMiniApp: _openMiniAppFromFloatingEntry,
                 onCloseFloatingMiniApp: _closeFloatingMiniApp,
+                onTapInAppMessage: _handleInAppMessageTap,
                 child: child ?? const SizedBox.shrink(),
               ),
             );
@@ -436,9 +475,7 @@ class _RiverAppState extends State<RiverApp> {
     final base = ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
-      visualDensity: isCompact
-          ? VisualDensity.compact
-          : VisualDensity.standard,
+      visualDensity: isCompact ? VisualDensity.compact : VisualDensity.standard,
       materialTapTargetSize: isCompact
           ? MaterialTapTargetSize.shrinkWrap
           : MaterialTapTargetSize.padded,
@@ -570,7 +607,9 @@ class _RiverAppState extends State<RiverApp> {
         ),
       ),
       listTileTheme: base.listTileTheme.copyWith(
-        visualDensity: isCompact ? VisualDensity.compact : VisualDensity.standard,
+        visualDensity: isCompact
+            ? VisualDensity.compact
+            : VisualDensity.standard,
         dense: isCompact,
         contentPadding: EdgeInsets.symmetric(
           horizontal: isCompact ? 12 : 16,
@@ -594,10 +633,7 @@ class _RiverAppState extends State<RiverApp> {
     }
   }
 
-  TextTheme _applyFontWeightPreset(
-    TextTheme theme,
-    double scale,
-  ) {
+  TextTheme _applyFontWeightPreset(TextTheme theme, double scale) {
     final delta = ((scale - 1.0) * 10).round().clamp(-3, 3);
     if (delta == 0) {
       return theme;
@@ -626,18 +662,13 @@ class _RiverAppState extends State<RiverApp> {
       return null;
     }
     return style.copyWith(
-        fontWeight: _shiftFontWeight(style.fontWeight ?? FontWeight.w400, delta),
+      fontWeight: _shiftFontWeight(style.fontWeight ?? FontWeight.w400, delta),
     );
   }
 
-  TextTheme _applyFontVariationPreset(
-    TextTheme theme,
-    double scale,
-  ) {
+  TextTheme _applyFontVariationPreset(TextTheme theme, double scale) {
     final axisWeight = (500 * scale).clamp(320.0, 780.0);
-    final variations = <FontVariation>[
-      FontVariation('wght', axisWeight),
-    ];
+    final variations = <FontVariation>[FontVariation('wght', axisWeight)];
     TextStyle? apply(TextStyle? style) {
       if (style == null) {
         return null;
@@ -749,6 +780,7 @@ class _AppRootSnackbarHost extends StatelessWidget {
     required this.floatingStore,
     required this.onOpenFloatingMiniApp,
     required this.onCloseFloatingMiniApp,
+    required this.onTapInAppMessage,
   });
 
   final AppDependencies dependencies;
@@ -757,6 +789,8 @@ class _AppRootSnackbarHost extends StatelessWidget {
   final RiverMiniAppFloatingStore floatingStore;
   final ValueChanged<RiverMiniAppFloatingEntry> onOpenFloatingMiniApp;
   final ValueChanged<String> onCloseFloatingMiniApp;
+  final Future<void> Function(RiverSideInAppMessageBanner banner)
+  onTapInAppMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -771,7 +805,450 @@ class _AppRootSnackbarHost extends StatelessWidget {
             onOpen: onOpenFloatingMiniApp,
             onClose: onCloseFloatingMiniApp,
           ),
+          _RiverInAppBannerHost(
+            service: dependencies.riverSideRealtimeInboxService,
+            onTapBanner: onTapInAppMessage,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _RiverInAppBannerHost extends StatefulWidget {
+  const _RiverInAppBannerHost({
+    required this.service,
+    required this.onTapBanner,
+  });
+
+  final RiverSideRealtimeInboxService service;
+  final Future<void> Function(RiverSideInAppMessageBanner banner) onTapBanner;
+
+  @override
+  State<_RiverInAppBannerHost> createState() => _RiverInAppBannerHostState();
+}
+
+class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
+    with SingleTickerProviderStateMixin {
+  static const Duration _bannerVisibleDuration = Duration(seconds: 5);
+  static const double _dismissDragThreshold = 72;
+
+  StreamSubscription<RiverSideInAppMessageBanner>? _subscription;
+  RiverSideInAppMessageBanner? _currentBanner;
+  Timer? _hideTimer;
+  late final AnimationController _visibilityController;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<Offset> _slideAnimation;
+  int _bannerVersion = 0;
+  double _dragOffsetY = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _visibilityController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+      reverseDuration: const Duration(milliseconds: 220),
+    );
+    _opacityAnimation = CurvedAnimation(
+      parent: _visibilityController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.96,
+      end: 1,
+    ).animate(
+      CurvedAnimation(
+        parent: _visibilityController,
+        curve: Curves.easeOutBack,
+        reverseCurve: Curves.easeInOutCubic,
+      ),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, -0.16),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _visibilityController,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+    _subscription = widget.service.bannerStream.listen(_showBanner);
+  }
+
+  @override
+  void didUpdateWidget(covariant _RiverInAppBannerHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.service == widget.service) {
+      return;
+    }
+    _subscription?.cancel();
+    _subscription = widget.service.bannerStream.listen(_showBanner);
+  }
+
+  void _showBanner(RiverSideInAppMessageBanner banner) {
+    _hideTimer?.cancel();
+    _bannerVersion += 1;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _currentBanner = banner;
+      _dragOffsetY = 0;
+    });
+    _visibilityController.forward(from: 0);
+    _scheduleAutoDismiss();
+  }
+
+  Future<void> _dismissBanner() async {
+    final banner = _currentBanner;
+    if (!mounted || banner == null) {
+      return;
+    }
+    _hideTimer?.cancel();
+    final version = ++_bannerVersion;
+    if (_visibilityController.status != AnimationStatus.dismissed) {
+      await _visibilityController.reverse();
+    }
+    if (!mounted || _bannerVersion != version) {
+      return;
+    }
+    setState(() {
+      _currentBanner = null;
+      _dragOffsetY = 0;
+    });
+  }
+
+  void _scheduleAutoDismiss() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(_bannerVisibleDuration, () {
+      unawaited(_dismissBanner());
+    });
+  }
+
+  void _handleVerticalDragStart(DragStartDetails details) {
+    _hideTimer?.cancel();
+  }
+
+  void _handleVerticalDragUpdate(DragUpdateDetails details) {
+    final nextOffset = (_dragOffsetY + details.delta.dy).clamp(-140.0, 0.0);
+    if (nextOffset == _dragOffsetY) {
+      return;
+    }
+    setState(() {
+      _dragOffsetY = nextOffset;
+    });
+  }
+
+  void _handleVerticalDragEnd(DragEndDetails details) {
+    final shouldDismiss =
+        _dragOffsetY <= -_dismissDragThreshold ||
+        details.primaryVelocity != null && details.primaryVelocity! < -320;
+    if (shouldDismiss) {
+      unawaited(_dismissBanner());
+      return;
+    }
+    setState(() {
+      _dragOffsetY = 0;
+    });
+    _scheduleAutoDismiss();
+  }
+
+  Future<void> _handleTap() async {
+    final banner = _currentBanner;
+    if (banner == null) {
+      return;
+    }
+    await _dismissBanner();
+    await widget.onTapBanner(banner);
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    _subscription?.cancel();
+    _visibilityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final banner = _currentBanner;
+    if (banner == null) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    final topInset = MediaQuery.paddingOf(context).top;
+    final accent = switch (banner.kind) {
+      RiverSideInAppMessageKind.notification => theme.colorScheme.primary,
+      RiverSideInAppMessageKind.channelMessage => theme.colorScheme.tertiary,
+      RiverSideInAppMessageKind.directMessage => theme.colorScheme.secondary,
+    };
+    final icon = switch (banner.kind) {
+      RiverSideInAppMessageKind.notification => Icons.notifications_rounded,
+      RiverSideInAppMessageKind.channelMessage => Icons.forum_rounded,
+      RiverSideInAppMessageKind.directMessage => Icons.mail_rounded,
+    };
+    final label = switch (banner.kind) {
+      RiverSideInAppMessageKind.notification => '新通知',
+      RiverSideInAppMessageKind.channelMessage => '频道消息',
+      RiverSideInAppMessageKind.directMessage => '私信消息',
+    };
+    final dragProgress = (-_dragOffsetY / _dismissDragThreshold).clamp(0.0, 1.0);
+    return Positioned(
+      top: topInset + 8,
+      left: 12,
+      right: 12,
+      child: SafeArea(
+        bottom: false,
+        child: IgnorePointer(
+          ignoring: _currentBanner == null ||
+              _visibilityController.status == AnimationStatus.dismissed,
+          child: FadeTransition(
+            opacity: _opacityAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                alignment: Alignment.topCenter,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  transform: Matrix4.translationValues(0, _dragOffsetY, 0),
+                  child: Opacity(
+                    opacity: 1 - dragProgress * 0.28,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onVerticalDragStart: _handleVerticalDragStart,
+                        onVerticalDragUpdate: _handleVerticalDragUpdate,
+                        onVerticalDragEnd: _handleVerticalDragEnd,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(28),
+                          onTap: _handleTap,
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: <BoxShadow>[
+                                BoxShadow(
+                                  color: accent.withValues(alpha: 0.16),
+                                  blurRadius: 30,
+                                  offset: const Offset(0, 14),
+                                ),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(28),
+                              child: BackdropFilter(
+                                filter: ui.ImageFilter.blur(
+                                  sigmaX: 18,
+                                  sigmaY: 18,
+                                ),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: <Color>[
+                                        Color.alphaBlend(
+                                          accent.withValues(alpha: 0.12),
+                                          theme.colorScheme.surface.withValues(
+                                            alpha: 0.96,
+                                          ),
+                                        ),
+                                        theme.colorScheme.surface.withValues(
+                                          alpha: 0.9,
+                                        ),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(28),
+                                    border: Border.all(
+                                      color: accent.withValues(alpha: 0.22),
+                                    ),
+                                  ),
+                                  child: Stack(
+                                    children: <Widget>[
+                                      Positioned(
+                                        left: -12,
+                                        top: -18,
+                                        child: IgnorePointer(
+                                          child: Container(
+                                            width: 104,
+                                            height: 104,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: RadialGradient(
+                                                colors: <Color>[
+                                                  accent.withValues(alpha: 0.18),
+                                                  accent.withValues(alpha: 0),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          16,
+                                          16,
+                                          16,
+                                          18,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            Container(
+                                              width: 46,
+                                              height: 46,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                  colors: <Color>[
+                                                    accent.withValues(
+                                                      alpha: 0.9,
+                                                    ),
+                                                    accent.withValues(
+                                                      alpha: 0.62,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Icon(
+                                                icon,
+                                                color: theme.colorScheme.onPrimary,
+                                                size: 20,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: <Widget>[
+                                                  Row(
+                                                    children: <Widget>[
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 8,
+                                                              vertical: 4,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color: accent
+                                                              .withValues(
+                                                                alpha: 0.12,
+                                                              ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                999,
+                                                              ),
+                                                        ),
+                                                        child: Text(
+                                                          label,
+                                                          style: theme
+                                                              .textTheme
+                                                              .labelSmall
+                                                              ?.copyWith(
+                                                                color: accent,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                letterSpacing:
+                                                                    0.1,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          banner.title,
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: theme
+                                                              .textTheme
+                                                              .titleSmall
+                                                              ?.copyWith(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w800,
+                                                                letterSpacing:
+                                                                    -0.12,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    banner.message,
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: theme
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                          height: 1.4,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Positioned(
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 8,
+                                        child: IgnorePointer(
+                                          child: Center(
+                                            child: Container(
+                                              width: 34,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant
+                                                    .withValues(alpha: 0.22),
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1054,7 +1531,8 @@ class _MiniAppFloatingDockState extends State<_MiniAppFloatingDock> {
                   minLeft,
                   maxLeft,
                 );
-            final isDragging = _isDragging || _dragLeft != null || _dragTop != null;
+            final isDragging =
+                _isDragging || _dragLeft != null || _dragTop != null;
             final snapDuration = Duration(milliseconds: isDragging ? 0 : 260);
             final anchorX = _snapToRight
                 ? (resolvedLeft + 8.0)
@@ -1071,7 +1549,10 @@ class _MiniAppFloatingDockState extends State<_MiniAppFloatingDock> {
             bool isPointInsideDismissZone(Offset point) {
               final dx = dismissCorner.dx - point.dx;
               final dy = dismissCorner.dy - point.dy;
-              if (dx < 0 || dy < 0 || dx > dismissZoneRadius || dy > dismissZoneRadius) {
+              if (dx < 0 ||
+                  dy < 0 ||
+                  dx > dismissZoneRadius ||
+                  dy > dismissZoneRadius) {
                 return false;
               }
               return dx * dx + dy * dy <= dismissZoneRadius * dismissZoneRadius;
@@ -1129,15 +1610,15 @@ class _MiniAppFloatingDockState extends State<_MiniAppFloatingDock> {
                         ),
                       ),
                     ),
-                    Positioned(
-                      right: dismissZoneRight,
-                      bottom: dismissZoneBottom,
-                      child: _MiniAppDismissZone(
-                        visible: isDragging,
-                        active: _dragOverDismissZone,
-                        radius: dismissZoneRadius,
-                      ),
+                  Positioned(
+                    right: dismissZoneRight,
+                    bottom: dismissZoneBottom,
+                    child: _MiniAppDismissZone(
+                      visible: isDragging,
+                      active: _dragOverDismissZone,
+                      radius: dismissZoneRadius,
                     ),
+                  ),
                   AnimatedPositioned(
                     duration: snapDuration,
                     curve: Curves.easeOutCubic,
@@ -1182,7 +1663,9 @@ class _MiniAppFloatingDockState extends State<_MiniAppFloatingDock> {
                             _dragLeft! + dockWidth / 2,
                             _dragTop! + dockHeight / 2,
                           );
-                          _dragOverDismissZone = isPointInsideDismissZone(center);
+                          _dragOverDismissZone = isPointInsideDismissZone(
+                            center,
+                          );
                         });
                       },
                       onPanEnd: (_) {
@@ -1259,9 +1742,7 @@ class _MiniAppFloatingHandle extends StatelessWidget {
     final theme = Theme.of(context);
     final edgeRadius = dragging ? 26.0 : (dockedRight ? 0.0 : 26.0);
     final farRadius = dragging ? 26.0 : (dockedRight ? 26.0 : 0.0);
-    final targetOpacity = closingAll
-        ? 0.10
-        : (dimmed ? 0.44 : 1.0);
+    final targetOpacity = closingAll ? 0.10 : (dimmed ? 0.44 : 1.0);
     return AnimatedScale(
       duration: const Duration(milliseconds: 190),
       curve: Curves.easeInOutCubic,
@@ -1307,7 +1788,10 @@ class _MiniAppFloatingHandle extends StatelessWidget {
                   return FadeTransition(
                     opacity: animation,
                     child: ScaleTransition(
-                      scale: Tween<double>(begin: 0.86, end: 1).animate(animation),
+                      scale: Tween<double>(
+                        begin: 0.86,
+                        end: 1,
+                      ).animate(animation),
                       child: child,
                     ),
                   );
@@ -1368,7 +1852,9 @@ class _MiniAppFloatingHandle extends StatelessWidget {
                         color: theme.colorScheme.primary,
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                          color: theme.colorScheme.surface.withValues(alpha: 0.96),
+                          color: theme.colorScheme.surface.withValues(
+                            alpha: 0.96,
+                          ),
                           width: 1,
                         ),
                       ),
@@ -1440,7 +1926,9 @@ class _MiniAppDismissZone extends StatelessWidget {
                   border: Border.all(
                     color: active
                         ? theme.colorScheme.onError.withValues(alpha: 0.28)
-                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.22),
+                        : theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.22,
+                          ),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -1478,7 +1966,8 @@ class _MiniAppDismissZone extends StatelessWidget {
                             overflow: TextOverflow.fade,
                             softWrap: false,
                             textAlign: TextAlign.center,
-                            style: theme.textTheme.labelSmall?.copyWith(
+                            style:
+                                theme.textTheme.labelSmall?.copyWith(
                                   color: fg,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.2,
@@ -1538,8 +2027,14 @@ class _MiniAppFloatingPanel extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableTop = math.max(0.0, anchor.dy - 28.0);
-        final availableBottom = math.max(0.0, constraints.maxHeight - anchor.dy - 28.0);
-        final verticalLimit = math.max(52.0, math.min(availableTop, availableBottom));
+        final availableBottom = math.max(
+          0.0,
+          constraints.maxHeight - anchor.dy - 28.0,
+        );
+        final verticalLimit = math.max(
+          52.0,
+          math.min(availableTop, availableBottom),
+        );
 
         var radius = 96.0 + (count - 1) * 12.0;
         radius = radius.clamp(92.0, 176.0);
@@ -1567,15 +2062,20 @@ class _MiniAppFloatingPanel extends StatelessWidget {
                 curve: Curves.linear,
                 builder: (context, value, _) {
                   final start = (i * 0.06).clamp(0.0, 0.45);
-                  final itemRaw = ((value - start) / (1 - start)).clamp(0.0, 1.0);
-                  final arcT = (expanded
-                          ? openCurve.transform(itemRaw)
-                          : closeCurve.transform(itemRaw))
-                      .clamp(0.0, 1.0);
-                  final popT = (expanded
-                          ? openScaleCurve.transform(itemRaw)
-                          : closeScaleCurve.transform(itemRaw))
-                      .clamp(0.0, 1.0);
+                  final itemRaw = ((value - start) / (1 - start)).clamp(
+                    0.0,
+                    1.0,
+                  );
+                  final arcT =
+                      (expanded
+                              ? openCurve.transform(itemRaw)
+                              : closeCurve.transform(itemRaw))
+                          .clamp(0.0, 1.0);
+                  final popT =
+                      (expanded
+                              ? openScaleCurve.transform(itemRaw)
+                              : closeScaleCurve.transform(itemRaw))
+                          .clamp(0.0, 1.0);
                   final normalized = count <= 1 ? 0.0 : (-0.5 + step * i);
                   final targetRad =
                       (normalized * angleRange) * (math.pi / 180.0);
@@ -1644,7 +2144,9 @@ class _MiniAppFloatingItemButton extends StatelessWidget {
                 containedInkWell: true,
                 highlightShape: BoxShape.circle,
                 splashColor: theme.colorScheme.primary.withValues(alpha: 0.14),
-                highlightColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+                highlightColor: theme.colorScheme.primary.withValues(
+                  alpha: 0.08,
+                ),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -1660,11 +2162,12 @@ class _MiniAppFloatingItemButton extends StatelessWidget {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: theme.colorScheme.surfaceContainerHigh.withValues(
-                          alpha: 0.90,
-                        ),
+                        color: theme.colorScheme.surfaceContainerHigh
+                            .withValues(alpha: 0.90),
                         border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.14,
+                          ),
                           width: 0.8,
                         ),
                       ),
@@ -2000,7 +2503,7 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '连接 RiverSide 与 清水河畔',
+                    '好的河畔，没有围栏',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: palette.subTextColor,
                       fontWeight: FontWeight.w500,
@@ -2020,7 +2523,7 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
               right: 0,
               bottom: MediaQuery.paddingOf(context).bottom + 32,
               child: Text(
-                '即将进入河畔',
+                '@MikannQAQ',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: palette.subTextColor.withValues(alpha: 0.6),

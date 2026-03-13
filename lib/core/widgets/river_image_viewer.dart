@@ -395,13 +395,13 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     final actions = <RiverImageViewerAction>[
       RiverImageViewerAction(
         id: _actionSaveOriginal,
-        label: '\u4fdd\u5b58\u539f\u56fe',
+        label: '保存原图',
         icon: Icons.download_outlined,
         onSelected: (context, selected) => _saveOriginalImage(selected),
       ),
       RiverImageViewerAction(
         id: _actionEditImage,
-        label: '\u7f16\u8f91\u56fe\u7247',
+        label: '编辑图片',
         icon: Icons.tune_rounded,
         onSelected: (context, selected) => _editImage(selected),
       ),
@@ -437,7 +437,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
       }
       final message = error is StateError
           ? error.message.toString()
-          : '\u64cd\u4f5c\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5';
+          : '操作失败，请稍后重试';
       ScaffoldMessenger.of(context).showRiverSnackBar(message);
     }
   }
@@ -728,7 +728,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
   Future<void> _saveOriginalImage(RiverImageViewerItem item) async {
     final uri = Uri.tryParse(item.url);
     if (uri == null) {
-      throw StateError('\u56fe\u7247\u5730\u5740\u65e0\u6548');
+      throw StateError('图片地址无效');
     }
     final granted = await _ensureStoragePermission();
     if (!mounted) {
@@ -736,12 +736,12 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     }
     if (!granted) {
       throw StateError(
-        '\u672a\u83b7\u5f97\u76f8\u518c\u6743\u9650\uff0c\u65e0\u6cd5\u4fdd\u5b58\u56fe\u7247',
+        '未获得相册权限，无法保存图片',
       );
     }
     ScaffoldMessenger.of(
       context,
-    ).showRiverSnackBar('\u6b63\u5728\u4fdd\u5b58\u539f\u56fe...');
+    ).showRiverSnackBar('正在保存原图...');
     final bytes = await _downloadImageBytes(uri, item.headers);
     final name = _guessImageFileName(uri);
     final result = await ImageGallerySaverPlus.saveImage(
@@ -752,21 +752,21 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     final outcome = _parseSaveResult(result);
     if (!outcome.success) {
       throw StateError(
-        outcome.message ?? '\u7cfb\u7edf\u76f8\u518c\u4fdd\u5b58\u5931\u8d25',
+        outcome.message ?? '系统相册保存失败',
       );
     }
     if (!mounted) {
       return;
     }
     ScaffoldMessenger.of(context).showRiverSnackBar(
-      '\u539f\u56fe\u5df2\u4fdd\u5b58\u5230\u7cfb\u7edf\u76f8\u518c',
+      '原图已保存到系统相册',
     );
   }
 
   Future<void> _editImage(RiverImageViewerItem item) async {
     final uri = Uri.tryParse(item.url);
     if (uri == null) {
-      throw StateError('\u56fe\u7247\u5730\u5740\u65e0\u6548');
+      throw StateError('图片地址无效');
     }
     final bytes = await _downloadImageBytes(uri, item.headers);
     if (!mounted) {
@@ -787,7 +787,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
               }
               if (!granted) {
                 ScaffoldMessenger.of(context).showRiverSnackBar(
-                  '\u672a\u83b7\u5f97\u76f8\u518c\u6743\u9650\uff0c\u65e0\u6cd5\u4fdd\u5b58\u56fe\u7247',
+                  '未获得相册权限，无法保存图片',
                 );
                 return;
               }
@@ -803,7 +803,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                 }
                 ScaffoldMessenger.of(context).showRiverSnackBar(
                   outcome.message ??
-                      '\u7f16\u8f91\u56fe\u7247\u4fdd\u5b58\u5931\u8d25',
+                      '编辑图片保存失败',
                 );
                 return;
               }
@@ -821,7 +821,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
       return;
     }
     ScaffoldMessenger.of(context).showRiverSnackBar(
-      '\u7f16\u8f91\u540e\u7684\u56fe\u7247\u5df2\u4fdd\u5b58\u5230\u7cfb\u7edf\u76f8\u518c',
+      '编辑后的图片已保存到系统相册',
     );
   }
 
@@ -1237,7 +1237,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
     }
     final joined = statuses.isEmpty ? 'unknown' : statuses.join('/');
     throw StateError(
-      '\u56fe\u7247\u4e0b\u8f7d\u5931\u8d25\uff08HTTP $joined\uff09',
+      '图片下载失败（HTTP $joined）',
     );
   }
 
@@ -1300,7 +1300,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
         success: result,
         message: result
             ? null
-            : '\u7cfb\u7edf\u76f8\u518c\u4fdd\u5b58\u5931\u8d25',
+            : '系统相册保存失败',
       );
     }
     if (result is Map) {
@@ -1321,13 +1321,13 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
       return (
         success: false,
         message: errorMessage.isEmpty
-            ? '\u7cfb\u7edf\u76f8\u518c\u4fdd\u5b58\u5931\u8d25'
+            ? '系统相册保存失败'
             : errorMessage,
       );
     }
     return (
       success: false,
-      message: '\u7cfb\u7edf\u76f8\u518c\u4fdd\u5b58\u5931\u8d25',
+      message: '系统相册保存失败',
     );
   }
 

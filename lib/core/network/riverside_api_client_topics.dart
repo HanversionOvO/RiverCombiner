@@ -94,9 +94,9 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
 
       final topicCategoryId = _asInt(topic['category_id']);
       final categoryName = topicCategoryId == null
-          ? '\u672a\u5206\u7c7b'
+          ? '未分类'
           : (categoryNamesById[topicCategoryId] ??
-                '\u5206\u7c7b#$topicCategoryId');
+                '分类#$topicCategoryId');
 
       final authorUserId = _findPrimaryPosterUserId(topic['posters']);
       final user = authorUserId == null ? null : usersById[authorUserId];
@@ -107,7 +107,7 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
               .trim();
       final displayName = (user?['name'] ?? '').toString().trim();
       final authorName = displayName.isEmpty
-          ? (username.isEmpty ? '\u533f\u540d\u7528\u6237' : username)
+          ? (username.isEmpty ? '匿名用户' : username)
           : displayName;
       final avatarTemplate = (user?['avatar_template'] ?? '').toString();
 

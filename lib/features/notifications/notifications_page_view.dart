@@ -293,17 +293,25 @@ extension _NotificationsPageView on _NotificationsPageState {
       );
     }
 
-    if (_error != null && _notifications.isEmpty) {
+    if (_notificationsError != null && _notifications.isEmpty) {
       return _buildRefreshPlaceholder(
         onRefresh: _refreshCurrentTab,
-        child: _buildErrorView(),
+        child: _buildErrorView(
+          theme,
+          message: _notificationsError,
+        ),
       );
     }
 
     if (_notifications.isEmpty) {
       return _buildRefreshPlaceholder(
         onRefresh: _refreshCurrentTab,
-        child: _buildEmptyView('暂无通知', Icons.notifications_none_rounded),
+        child: _buildEmptyView(
+          theme,
+          '暂无通知',
+          Icons.notifications_none_rounded,
+          message: '下拉刷新后会在这里显示新的系统通知和互动提醒。',
+        ),
       );
     }
 
@@ -319,7 +327,12 @@ extension _NotificationsPageView on _NotificationsPageState {
           children: [
             _buildQingNotificationFilterBar(theme),
             const SizedBox(height: 12),
-            _buildEmptyView('该分类下暂无通知', Icons.mark_chat_read_outlined),
+            _buildEmptyView(
+              theme,
+              '该分类下暂无通知',
+              Icons.mark_chat_read_outlined,
+              message: '切换筛选项或下拉刷新后再试。',
+            ),
           ],
         ),
       );
@@ -822,10 +835,25 @@ extension _NotificationsPageView on _NotificationsPageState {
       );
     }
 
+    if (_chatError != null && items.isEmpty) {
+      return _buildRefreshPlaceholder(
+        onRefresh: _refreshCurrentTab,
+        child: _buildErrorView(
+          theme,
+          message: _chatError,
+        ),
+      );
+    }
+
     if (items.isEmpty) {
       return _buildRefreshPlaceholder(
         onRefresh: _refreshCurrentTab,
-        child: _buildEmptyView(emptyMsg, Icons.chat_bubble_outline_rounded),
+        child: _buildEmptyView(
+          theme,
+          emptyMsg,
+          Icons.chat_bubble_outline_rounded,
+          message: '新消息到达后会出现在这里。',
+        ),
       );
     }
 
@@ -1033,43 +1061,16 @@ extension _NotificationsPageView on _NotificationsPageState {
     ThemeData theme, {
     required ScrollController controller,
   }) {
-    return RefreshIndicator(
+    return _buildRefreshPlaceholder(
       onRefresh: _refreshCurrentTab,
-      child: ListView(
-        controller: controller,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 80),
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _NotificationsPageState
-                        ._labelNeedSwitchToRiverSideRealtimeChat,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      child: _buildStatePlaceholder(
+        theme,
+        icon: Icons.forum_outlined,
+        title: '当前论坛暂不支持实时聊天',
+        message:
+            _NotificationsPageState._labelNeedSwitchToRiverSideRealtimeChat,
+        actionLabel: '刷新',
+        onAction: _loadAll,
       ),
     );
   }
@@ -1183,157 +1184,136 @@ extension _NotificationsPageView on _NotificationsPageState {
     );
   }
 
-  Widget _buildRealtimeBanner(ThemeData theme) {
-    if (!_showNotificationsRealtimeRefreshBanner) {
-      return const SizedBox.shrink();
-    }
-    return Positioned(
-      left: 16,
-      right: 16,
-      bottom: 24,
-      child: SafeArea(
-        top: false,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 240),
-          transitionBuilder: (child, animation) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.18),
-                  end: Offset.zero,
-                ).animate(curved),
-                child: child,
-              ),
-            );
-          },
-          child: _hasRealtimeNotifications
-              ? Material(
-                  key: const ValueKey<String>('notifications-realtime-hint'),
-                  color: Colors.transparent,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
+  Widget _buildEmptyView(
+    ThemeData theme,
+    String text,
+    IconData icon, {
+    String? message,
+  }) {
+    return _buildStatePlaceholder(
+      theme,
+      icon: icon,
+      title: text,
+      message: message,
+      actionLabel: '刷新',
+      onAction: () => _loadAll(showLoading: true),
+    );
+  }
+
+  Widget _buildErrorView(
+    ThemeData theme, {
+    String? message,
+  }) {
+    return _buildStatePlaceholder(
+      theme,
+      icon: Icons.wifi_off_rounded,
+      title: '加载失败',
+      message: message ?? _NotificationsPageState._labelLoadFailed,
+      actionLabel: '重试',
+      onAction: _loadAll,
+      accentColor: theme.colorScheme.error,
+      filledAction: true,
+    );
+  }
+
+  Widget _buildStatePlaceholder(
+    ThemeData theme, {
+    required IconData icon,
+    required String title,
+    String? message,
+    required String actionLabel,
+    required Future<void> Function() onAction,
+    Color? accentColor,
+    bool filledAction = false,
+  }) {
+    final accent = accentColor ?? theme.colorScheme.primary;
+    final secondaryText = message?.trim() ?? '';
+    final iconSurface = accent.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.16 : 0.08,
+    );
+    final innerSurface = theme.colorScheme.surface.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.82 : 0.92,
+    );
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: iconSurface,
+                ),
+                child: Center(
+                  child: Container(
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer.withValues(
-                        alpha: 0.38,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
+                      shape: BoxShape.circle,
+                      color: innerSurface,
                       border: Border.all(
-                        color: theme.colorScheme.primary.withValues(
-                          alpha: 0.24,
+                        color: accent.withValues(
+                          alpha: theme.brightness == Brightness.dark ? 0.18 : 0.1,
                         ),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(14),
-                            onTap: _consumeRealtimeNotifications,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                12,
-                                10,
-                                10,
-                                10,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.notifications_active_rounded,
-                                    size: 16,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '有新通知，点击查看',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.labelMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                            color: theme.colorScheme.onSurface,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: '关闭',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => _setState(
-                            () => _hasRealtimeNotifications = false,
-                          ),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ],
-                    ),
+                    child: Icon(icon, size: 28, color: accent),
                   ),
-                )
-              : const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.15,
+                ),
+              ),
+              if (secondaryText.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 10),
+                Text(
+                  secondaryText,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 22),
+              filledAction
+                  ? FilledButton.icon(
+                      onPressed: onAction,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: Text(actionLabel),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 13,
+                        ),
+                      ),
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: onAction,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: Text(actionLabel),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 13,
+                        ),
+                      ),
+                    ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyView(String text, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 48, color: Colors.grey.shade400),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            text,
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            onPressed: () => _loadAll(showLoading: true),
-            icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('刷新'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.redAccent),
-          const SizedBox(height: 16),
-          Text(_error ?? _NotificationsPageState._labelLoadFailed),
-          const SizedBox(height: 24),
-          FilledButton.tonal(onPressed: _loadAll, child: const Text('重试')),
-        ],
       ),
     );
   }

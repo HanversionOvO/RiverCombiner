@@ -4,6 +4,7 @@ import 'package:river/core/ai/river_ai_service.dart';
 import 'package:river/core/config/server_config.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
+
 class AiSettingsPage extends StatefulWidget {
   const AiSettingsPage({super.key, required this.settingsController});
 
@@ -141,7 +142,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
         children: [
           _SettingsSection(
             title: '服务配置',
-            subtitle: '支持 DeepSeek 与 OpenAI-Compatible 网关',
+            subtitle: '支持 OpenAI-Compatible 接口的服务商',
             child: Column(
               children: [
                 DropdownButtonFormField<AppAiProvider>(
@@ -334,6 +335,3 @@ class _SettingsSection extends StatelessWidget {
     );
   }
 }
-
-
-

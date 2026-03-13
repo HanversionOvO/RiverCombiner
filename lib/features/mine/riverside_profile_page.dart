@@ -1527,9 +1527,13 @@ class _BadgeDetailDialog extends StatefulWidget {
 
 class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
   late Future<RiverSideProfileBadgeDetail> _detailFuture;
-  late final MotionController _motionController = MotionController(
+  late final MotionController _dialogMotionController = MotionController(
     damping: null,
-    maxAngle: 0.62,
+    maxAngle: 0.42,
+  );
+  late final MotionController _badgeMotionController = MotionController(
+    damping: null,
+    maxAngle: 0.72,
   );
 
   @override
@@ -1550,72 +1554,80 @@ class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final maxHeight = (size.height * (widget.isBottomSheet ? 0.88 : 0.82))
         .clamp(420.0, 820.0);
-    final content = Material(
-      color: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              theme.colorScheme.surface.withValues(alpha: 0.98),
-              theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.98),
+    final content = Motion.elevated(
+      elevation: 32,
+      controller: _dialogMotionController,
+      borderRadius: BorderRadius.circular(28),
+      glare: false,
+      shadow: false,
+      translation: false,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                theme.colorScheme.surface.withValues(alpha: 0.98),
+                theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.98),
+              ],
+            ),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 16),
+              ),
             ],
           ),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
-          ),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 30,
-              offset: const Offset(0, 16),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            if (widget.isBottomSheet) ...<Widget>[
-              const SizedBox(height: 10),
-              Align(
-                child: Container(
-                  width: 42,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.36,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (widget.isBottomSheet) ...<Widget>[
+                const SizedBox(height: 10),
+                Align(
+                  child: Container(
+                    width: 42,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.36,
+                      ),
+                      borderRadius: BorderRadius.circular(99),
                     ),
-                    borderRadius: BorderRadius.circular(99),
                   ),
                 ),
+                const SizedBox(height: 6),
+              ],
+              _buildHeader(theme, accent),
+              Divider(
+                height: 1,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
               ),
-              const SizedBox(height: 6),
+              Expanded(
+                child: FutureBuilder<RiverSideProfileBadgeDetail>(
+                  future: _detailFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return _buildLoadingBody(theme);
+                    }
+                    if (snapshot.hasError || !snapshot.hasData) {
+                      final message = snapshot.error is RiverSideApiException
+                          ? (snapshot.error as RiverSideApiException).message
+                          : '加载徽章详情失败';
+                      return _buildErrorBody(theme, message);
+                    }
+                    return _buildDetailBody(theme, snapshot.data!, accent);
+                  },
+                ),
+              ),
             ],
-            _buildHeader(theme, accent),
-            Divider(
-              height: 1,
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-            Expanded(
-              child: FutureBuilder<RiverSideProfileBadgeDetail>(
-                future: _detailFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return _buildLoadingBody(theme);
-                  }
-                  if (snapshot.hasError || !snapshot.hasData) {
-                    final message = snapshot.error is RiverSideApiException
-                        ? (snapshot.error as RiverSideApiException).message
-                        : '加载徽章详情失败';
-                    return _buildErrorBody(theme, message);
-                  }
-                  return _buildDetailBody(theme, snapshot.data!, accent);
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1674,8 +1686,8 @@ class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
                 Hero(
                   tag: widget.heroTag,
                   child: Motion.elevated(
-                    elevation: 24,
-                    controller: _motionController,
+                    elevation: 40,
+                    controller: _badgeMotionController,
                     borderRadius: BorderRadius.circular(24),
                     child: _ProfileBadgeVisual(
                       badgeId: widget.badge.id,

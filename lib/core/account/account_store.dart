@@ -47,12 +47,14 @@ class AccountStore extends ChangeNotifier {
 
   RiverSideApiClient get riverSideApiClient => _riverSideApiClient;
 
-  Future<void> initialize() async {
+  Future<void> initialize({
+    Future<SharedPreferences>? sharedPreferencesFuture,
+  }) async {
     if (_initialized) {
       return;
     }
 
-    _prefs = await SharedPreferences.getInstance();
+    _prefs = await (sharedPreferencesFuture ?? SharedPreferences.getInstance());
     _initialized = true;
 
     final rawAccounts = _prefs?.getString(_storageKeyAccounts);

@@ -1631,7 +1631,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       }
       ScaffoldMessenger.of(
         context,
-      ).showRiverSnackBar('\u56de\u590d\u53d1\u9001\u5931\u8d25');
+      ).showRiverSnackBar('回复发送失败');
       return false;
     }
   }
@@ -2424,7 +2424,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     }
     ScaffoldMessenger.of(
       context,
-    ).showRiverSnackBar('\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f');
+    ).showRiverSnackBar('已复制到剪贴板');
   }
 
   void _replacePostInState(RiverSideTopicPostDetail updated) {
@@ -2508,7 +2508,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       }
       ScaffoldMessenger.of(
         context,
-      ).showRiverSnackBar('\u7f16\u8f91\u8bc4\u8bba\u5931\u8d25');
+      ).showRiverSnackBar('编辑评论失败');
       return false;
     }
   }
@@ -2670,7 +2670,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       }
       ScaffoldMessenger.of(
         context,
-      ).showRiverSnackBar('\u5220\u9664\u8bc4\u8bba\u5931\u8d25');
+      ).showRiverSnackBar('删除评论失败');
     }
   }
 
@@ -2724,7 +2724,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       }
       ScaffoldMessenger.of(
         context,
-      ).showRiverSnackBar('\u5220\u9664\u4e3b\u8d34\u5931\u8d25');
+      ).showRiverSnackBar('删除主贴失败');
     }
   }
 

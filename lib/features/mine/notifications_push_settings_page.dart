@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
+
 class NotificationsPushSettingsPage extends StatelessWidget {
   const NotificationsPushSettingsPage({
     super.key,
@@ -13,7 +14,7 @@ class NotificationsPushSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MineSettingsPageScaffold(
       title: '通知与推送',
-      subtitle: '横幅提醒与刷新行为',
+      subtitle: '应用内消息与刷新提示',
       icon: Icons.notifications_active_outlined,
       heroTagPrefix: 'mine_settings_notifications_push',
       body: AnimatedBuilder(
@@ -23,33 +24,31 @@ class NotificationsPushSettingsPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
             children: [
               _SettingsSection(
-                title: '实时刷新横幅',
-                subtitle: '控制各页面“有新内容，点击刷新”提示',
+                title: '应用内提醒',
+                subtitle: '控制应用内顶部消息横幅与刷新提示',
                 child: Column(
                   children: [
                     _SwitchTile(
+                      icon: Icons.notifications_active_rounded,
+                      title: '应用内消息',
+                      subtitle: '在页面顶部显示实时通知和私信横幅',
+                      value: settingsController.showInAppMessages,
+                      onChanged: settingsController.updateShowInAppMessages,
+                    ),
+                    const SizedBox(height: 8),
+                    _SwitchTile(
                       icon: Icons.newspaper_rounded,
                       title: '帖子页新帖子横幅',
-                      subtitle: '控制“有新帖子，点击刷新”是否显示',
+                      subtitle: '“有新帖子，点击刷新”横幅',
                       value: settingsController.showPostsRealtimeRefreshBanner,
                       onChanged: settingsController
                           .updateShowPostsRealtimeRefreshBanner,
                     ),
                     const SizedBox(height: 8),
                     _SwitchTile(
-                      icon: Icons.notifications_rounded,
-                      title: '通知页新消息横幅',
-                      subtitle: '控制“收到新消息，点击刷新”是否显示',
-                      value: settingsController
-                          .showNotificationsRealtimeRefreshBanner,
-                      onChanged: settingsController
-                          .updateShowNotificationsRealtimeRefreshBanner,
-                    ),
-                    const SizedBox(height: 8),
-                    _SwitchTile(
                       icon: Icons.chat_bubble_rounded,
                       title: '帖子详情新评论横幅',
-                      subtitle: '控制“有新评论，点击刷新”是否显示',
+                      subtitle: '“有新评论，点击刷新”横幅',
                       value: settingsController
                           .showTopicCommentsRealtimeRefreshBanner,
                       onChanged: settingsController
@@ -183,6 +182,3 @@ class _SwitchTile extends StatelessWidget {
     );
   }
 }
-
-
-

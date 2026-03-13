@@ -69,7 +69,7 @@ class _ReactionOption {
 const List<_ReactionOption> _defaultReactionOptions = <_ReactionOption>[
   _ReactionOption(id: '+1', emoji: '\u{1F44D}'),
   _ReactionOption(id: 'laughing', emoji: '\u{1F606}'),
-  _ReactionOption(id: 'heart', emoji: '\u2764\uFE0F'),
+  _ReactionOption(id: 'heart', emoji: '❤️'),
   _ReactionOption(id: 'open_mouth', emoji: '\u{1F62E}'),
   _ReactionOption(id: 'thinking', emoji: '\u{1F914}'),
   _ReactionOption(id: 'anxious_face_with_sweat', emoji: '\u{1F605}'),
@@ -85,7 +85,7 @@ String _reactionEmoji(String reactionId) {
       return option.emoji;
     }
   }
-  return '\u2753';
+  return '❓';
 }
 
 String _commentHeroTag(int postId) => 'comment-card-$postId';

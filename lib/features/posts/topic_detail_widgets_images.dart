@@ -194,7 +194,7 @@ class _MarkdownImageState extends State<_MarkdownImage> {
           const Icon(Icons.broken_image_outlined),
           const SizedBox(height: 6),
           Text(
-            '\u56fe\u7247\u52a0\u8f7d\u5931\u8d25',
+            '图片加载失败',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

@@ -25,13 +25,17 @@ extension RiverSideApiClientNotificationMethods on RiverSideApiClient {
     );
 
     if (response.statusCode == 403) {
-      throw const RiverSideApiException(
-        'Login session expired. Please sign in again.',
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(
+        message.isEmpty ? 'Login session expired. Please sign in again.' : message,
       );
     }
     if (response.statusCode != 200) {
+      final message = _extractErrorMessageFromResponse(response).trim();
       throw RiverSideApiException(
-        'Failed to load notifications, HTTP ${response.statusCode}',
+        message.isEmpty
+            ? 'Failed to load notifications, HTTP ${response.statusCode}'
+            : message,
       );
     }
 
@@ -152,7 +156,7 @@ extension RiverSideApiClientNotificationMethods on RiverSideApiClient {
         data['title'],
         data['original_post_title'],
         item['fancy_title'],
-        badgeName.isEmpty ? '' : '\u5fbd\u7ae0\uff1a$badgeName',
+        badgeName.isEmpty ? '' : '徽章：$badgeName',
         username,
         topicId == null ? '' : 'Topic #$topicId',
         'Notification #$id',
@@ -270,48 +274,48 @@ extension RiverSideApiClientNotificationMethods on RiverSideApiClient {
     required int count,
   }) {
     final prefix = username.isEmpty ? '' : '@$username ';
-    final countPrefix = count > 1 ? '$count \u4eba' : prefix;
+    final countPrefix = count > 1 ? '$count 人' : prefix;
     switch (type) {
       case 1:
-        return '$prefix\u63d0\u5230\u4e86\u4f60';
+        return '$prefix提到了你';
       case 2:
-        return '$countPrefix\u56de\u590d\u4e86\u4f60';
+        return '$countPrefix回复了你';
       case 3:
-        return '$prefix\u5f15\u7528\u4e86\u4f60';
+        return '$prefix引用了你';
       case 4:
-        return '$prefix\u7f16\u8f91\u4e86\u76f8\u5173\u5185\u5bb9';
+        return '$prefix编辑了相关内容';
       case 5:
-        return '$countPrefix\u70b9\u8d5e\u4e86\u4f60';
+        return '$countPrefix点赞了你';
       case 6:
-        return '$prefix\u7ed9\u4f60\u53d1\u6765\u4e86\u79c1\u4fe1';
+        return '$prefix给你发来了私信';
       case 9:
-        return '$prefix\u53d1\u5e03\u4e86\u65b0\u5e16';
+        return '$prefix发布了新帖';
       case 10:
-        return '\u4f60\u5173\u6ce8\u7684\u5206\u7c7b/\u6807\u7b7e\u6709\u65b0\u52a8\u6001';
+        return '你关注的分类/标签有新动态';
       case 11:
-        return '\u65b0\u529f\u80fd\u901a\u77e5';
+        return '新功能通知';
       case 12:
       case 15:
         return badgeName.isEmpty
-            ? '\u4f60\u83b7\u5f97\u4e86\u5fbd\u7ae0'
-            : '\u4f60\u83b7\u5f97\u4e86\u5fbd\u7ae0\uff1a$badgeName';
+            ? '你获得了徽章'
+            : '你获得了徽章：$badgeName';
       case 13:
       case 16:
-        return '$prefix\u9080\u8bf7\u4f60\u53c2\u4e0e\u8bdd\u9898';
+        return '$prefix邀请你参与话题';
       case 14:
-        return '$prefix\u63d0\u53ca\u4e86\u4f60\u7684\u5185\u5bb9';
+        return '$prefix提及了你的内容';
       case 18:
-        return '$prefix\u5728\u7ec4\u5185\u63d0\u5230\u4e86\u4f60';
+        return '$prefix在组内提到了你';
       case 36:
-        return '\u7cfb\u7edf\u901a\u77e5';
+        return '系统通知';
       case 800:
-        return '$prefix\u5173\u6ce8\u4e86\u4f60';
+        return '$prefix关注了你';
       case 801:
-        return '$prefix\u53d1\u5e03\u4e86\u65b0\u5e16';
+        return '$prefix发布了新帖';
       default:
         return prefix.isEmpty
-            ? '\u65b0\u901a\u77e5'
-            : '$prefix\u53d1\u6765\u4e86\u901a\u77e5';
+            ? '新通知'
+            : '$prefix发来了通知';
     }
   }
 

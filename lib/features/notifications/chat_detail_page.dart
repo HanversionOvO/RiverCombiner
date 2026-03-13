@@ -10,6 +10,7 @@ import 'package:html2md/html2md.dart' as html2md;
 import 'package:markdown/markdown.dart' as md;
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/constants.dart';
+import 'package:river/core/navigation/river_route_observer.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_message_bus_models.dart';
 import 'package:river/core/network/riverside_notification_models.dart';
@@ -42,7 +43,7 @@ class ChatDetailPage extends StatefulWidget {
   State<ChatDetailPage> createState() => _ChatDetailPageState();
 }
 
-class _ChatDetailPageState extends State<ChatDetailPage> {
+class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
   static const int _maxComposerImagePickCount = 3;
   static const String _chatGlobalRealtimeChannel = '/chat';
   static const List<String> _defaultReactionEmojiNames = <String>[
@@ -62,7 +63,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     '+1': '\u{1F44D}',
     '-1': '\u{1F44E}',
     'laughing': '\u{1F606}',
-    'heart': '\u2764\uFE0F',
+    'heart': '❤️',
     'open_mouth': '\u{1F62E}',
     'thinking': '\u{1F914}',
     'anxious_face_with_sweat': '\u{1F605}',
@@ -72,25 +73,25 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   };
 
   static const String _labelNeedLogin =
-      '\u8bf7\u5148\u767b\u5f55 RiverSide \u8d26\u53f7';
+      '请先登录 RiverSide 账号';
   static const String _labelLoadFailed =
-      '\u6d88\u606f\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5';
+      '消息加载失败，请稍后重试';
   static const String _labelSendFailed =
-      '\u53d1\u9001\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5';
-  static const String _labelNoMessages = '\u6682\u65e0\u6d88\u606f';
+      '发送失败，请稍后重试';
+  static const String _labelNoMessages = '暂无消息';
   static const String _labelNoMore =
-      '\u6ca1\u6709\u66f4\u591a\u5386\u53f2\u6d88\u606f';
-  static const String _labelMessageDeleted = '\u6d88\u606f\u5df2\u5220\u9664';
-  static const String _labelRetry = '\u91cd\u8bd5';
-  static const String _labelDelete = '\u5220\u9664';
-  static const String _labelCancel = '\u53d6\u6d88';
-  static const String _labelCopied = '\u5df2\u590d\u5236';
-  static const String _labelDeleteSuccess = '\u6d88\u606f\u5df2\u5220\u9664';
+      '没有更多历史消息';
+  static const String _labelMessageDeleted = '消息已删除';
+  static const String _labelRetry = '重试';
+  static const String _labelDelete = '删除';
+  static const String _labelCancel = '取消';
+  static const String _labelCopied = '已复制';
+  static const String _labelDeleteSuccess = '消息已删除';
   static const String _labelDeleteConfirm =
-      '\u786e\u5b9a\u5220\u9664\u8fd9\u6761\u6d88\u606f\u5417\uff1f';
-  static const String _labelReply = '\u56de\u590d';
-  static const String _labelCopy = '\u590d\u5236\u5185\u5bb9';
-  static const String _labelUnknownUser = '\u672a\u77e5\u7528\u6237';
+      '确定删除这条消息吗？';
+  static const String _labelReply = '回复';
+  static const String _labelCopy = '复制内容';
+  static const String _labelUnknownUser = '未知用户';
 
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _composerController =
@@ -121,6 +122,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   String? _lastActiveUsername;
   int _requestSerial = 0;
   RiverSideMessageBusPoller? _messageBusPoller;
+  PageRoute<dynamic>? _subscribedRoute;
 
   @override
   void initState() {
@@ -138,7 +140,49 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is! PageRoute<dynamic> || route == _subscribedRoute) {
+      return;
+    }
+    if (_subscribedRoute != null) {
+      riverRouteObserver.unsubscribe(this);
+    }
+    _subscribedRoute = route;
+    riverRouteObserver.subscribe(this, route);
+    if (route.isCurrent) {
+      _syncActiveChatChannel();
+    } else {
+      _clearActiveChatChannel();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.channel.id == widget.channel.id &&
+        oldWidget.channel.isDirectMessage == widget.channel.isDirectMessage &&
+        oldWidget.dependencies.riverSideRealtimeInboxService ==
+            widget.dependencies.riverSideRealtimeInboxService) {
+      return;
+    }
+    if (oldWidget.channel.isDirectMessage) {
+      oldWidget.dependencies.riverSideRealtimeInboxService.setActiveChatChannel(
+        null,
+      );
+    }
+    _syncActiveChatChannel();
+  }
+
+  @override
   void dispose() {
+    riverRouteObserver.unsubscribe(this);
+    if (widget.channel.isDirectMessage) {
+      widget.dependencies.riverSideRealtimeInboxService.setActiveChatChannel(
+        null,
+      );
+    }
     _messageBusPoller?.stop();
     _pressedMessageClearTimer?.cancel();
     _composerController.removeListener(_onComposerTextChanged);
@@ -150,6 +194,26 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       ..removeListener(_onScroll)
       ..dispose();
     super.dispose();
+  }
+
+  @override
+  void didPush() {
+    _syncActiveChatChannel();
+  }
+
+  @override
+  void didPopNext() {
+    _syncActiveChatChannel();
+  }
+
+  @override
+  void didPushNext() {
+    _clearActiveChatChannel();
+  }
+
+  @override
+  void didPop() {
+    _clearActiveChatChannel();
   }
 
   void _onAccountStoreChanged() {
@@ -165,6 +229,21 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _loadInitial(clearExisting: true);
     _loadEmojiData();
     _restartRealtimePolling();
+  }
+
+  void _syncActiveChatChannel() {
+    widget.dependencies.riverSideRealtimeInboxService.setActiveChatChannel(
+      widget.channel.isDirectMessage ? widget.channel.id : null,
+    );
+  }
+
+  void _clearActiveChatChannel() {
+    if (!widget.channel.isDirectMessage) {
+      return;
+    }
+    widget.dependencies.riverSideRealtimeInboxService.setActiveChatChannel(
+      null,
+    );
   }
 
   void _onScroll() {

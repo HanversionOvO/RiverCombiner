@@ -391,7 +391,8 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                     children: [
                       _buildProviderSection(
                         title: 'RiverSide',
-                        icon: Icons.water_rounded,
+                        assetPath: 'assets/images/rs.png',
+                        fallbackIcon: Icons.water_rounded,
                         accounts: _riverSideAccounts,
                         activeUsername: _activeRiverSideUsername,
                         onSwitch: widget.onSwitchRiverSide,
@@ -400,7 +401,8 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                       const SizedBox(height: 10),
                       _buildProviderSection(
                         title: '清水河畔',
-                        icon: Icons.school_rounded,
+                        assetPath: 'assets/images/hp.png',
+                        fallbackIcon: Icons.school_rounded,
                         accounts: _qingShuiHePanAccounts,
                         activeUsername: _activeQingShuiHePanUsername,
                         onSwitch: widget.onSwitchQingShuiHePan,
@@ -416,7 +418,6 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                     _buildBottomAction(
                       icon: Icons.add_circle_outline_rounded,
                       title: '添加 RiverSide 账号',
-                      subtitle: '支持 WebView 与账号密码登录',
                       onTap: () {
                         Navigator.of(context).maybePop();
                         widget.onAdd();
@@ -427,7 +428,6 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                     _buildBottomAction(
                       icon: Icons.school_outlined,
                       title: '添加 清水河畔 账号',
-                      subtitle: '账号密码登录',
                       onTap: () {
                         Navigator.of(context).maybePop();
                         widget.onAddQingShui();
@@ -446,7 +446,8 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
 
   Widget _buildProviderSection({
     required String title,
-    required IconData icon,
+    required String assetPath,
+    required IconData fallbackIcon,
     required List<UserAccount> accounts,
     required String? activeUsername,
     required ValueChanged<UserAccount> onSwitch,
@@ -467,7 +468,28 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 17, color: theme.colorScheme.primary),
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.surface.withValues(alpha: 0.92),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ClipOval(
+                  child: Image.asset(
+                    assetPath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        fallbackIcon,
+                        size: 12,
+                        color: theme.colorScheme.primary,
+                      );
+                    },
+                  ),
+                ),
+              ),
               const SizedBox(width: 6),
               Text(
                 title,
@@ -709,7 +731,6 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
   Widget _buildBottomAction({
     required IconData icon,
     required String title,
-    required String subtitle,
     required VoidCallback? onTap,
     required bool enabled,
   }) {
@@ -742,26 +763,14 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: enabled
-                            ? null
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: enabled
+                        ? null
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               Icon(

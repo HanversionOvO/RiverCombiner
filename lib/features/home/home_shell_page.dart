@@ -17,7 +17,14 @@ import 'package:river/features/posts/posts_page.dart';
 import 'package:river/features/search/search_page.dart';
 import 'package:soft_edge_blur/soft_edge_blur.dart';
 
-enum HomeQuickAction { compose, search, latestCreated, latestReplied, hot }
+enum HomeQuickAction {
+  compose,
+  search,
+  latestCreated,
+  latestReplied,
+  hot,
+  notifications,
+}
 
 class HomeShellController {
   _HomeShellPageState? _state;
@@ -82,6 +89,14 @@ class _HomeShellPageState extends State<HomeShellPage> {
   void initState() {
     super.initState();
     widget.controller?._attach(this);
+    widget.dependencies.riverSideRealtimeInboxService.addListener(
+      _onRiverRealtimeInboxChanged,
+    );
+    widget.dependencies.riverSideRealtimeInboxService.updateForumProvider(
+      _notificationsForumProvider,
+    );
+    _notificationsUnreadCount =
+        widget.dependencies.riverSideRealtimeInboxService.totalUnreadCount;
   }
 
   @override
@@ -95,6 +110,9 @@ class _HomeShellPageState extends State<HomeShellPage> {
   }
 
   void _onUnreadCountChanged(int value) {
+    if (_notificationsForumProvider == AccountProvider.riverSide) {
+      return;
+    }
     if (!mounted || value == _notificationsUnreadCount) {
       return;
     }
@@ -109,6 +127,28 @@ class _HomeShellPageState extends State<HomeShellPage> {
     }
     setState(() {
       _notificationsForumProvider = provider;
+      if (provider == AccountProvider.riverSide) {
+        _notificationsUnreadCount =
+            widget.dependencies.riverSideRealtimeInboxService.totalUnreadCount;
+      } else {
+        _notificationsUnreadCount = 0;
+      }
+    });
+    widget.dependencies.riverSideRealtimeInboxService.updateForumProvider(
+      provider,
+    );
+  }
+
+  void _onRiverRealtimeInboxChanged() {
+    if (!mounted || _notificationsForumProvider != AccountProvider.riverSide) {
+      return;
+    }
+    final next = widget.dependencies.riverSideRealtimeInboxService.totalUnreadCount;
+    if (next == _notificationsUnreadCount) {
+      return;
+    }
+    setState(() {
+      _notificationsUnreadCount = next;
     });
   }
 
@@ -353,24 +393,24 @@ class _HomeShellPageState extends State<HomeShellPage> {
       const AdaptiveNavigationDestination(
         icon: 'bubble.left.and.bubble.right',
         selectedIcon: 'bubble.left.and.bubble.right.fill',
-        label: '\u5e16\u5b50',
+        label: '帖子',
       ),
       if (hasSearchDestination)
         const AdaptiveNavigationDestination(
           icon: 'magnifyingglass',
           selectedIcon: 'magnifyingglass',
-          label: '\u641c\u7d22',
+          label: '搜索',
           isSearch: true,
         ),
       const AdaptiveNavigationDestination(
         icon: 'square.and.pencil',
         selectedIcon: 'square.and.pencil',
-        label: '\u53d1\u5e16',
+        label: '发帖',
       ),
       AdaptiveNavigationDestination(
         icon: 'bell',
         selectedIcon: 'bell.fill',
-        label: '\u901a\u77e5',
+        label: '通知',
         badgeCount: _notificationsUnreadCount > 99
             ? 99
             : _notificationsUnreadCount,
@@ -378,7 +418,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
       const AdaptiveNavigationDestination(
         icon: 'person',
         selectedIcon: 'person.fill',
-        label: '\u6211\u7684',
+        label: '我的',
       ),
     ];
   }
@@ -441,7 +481,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
             filledIcon: Icons.forum,
             motionStyle: _NavIconMotionStyle.posts,
           ),
-          label: '\u5e16\u5b50',
+          label: '帖子',
         ),
         NavigationDestination(
           icon: _AnimatedBottomNavIcon(
@@ -450,7 +490,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
             filledIcon: Icons.edit_note,
             motionStyle: _NavIconMotionStyle.compose,
           ),
-          label: '\u53d1\u5e16',
+          label: '发帖',
         ),
         NavigationDestination(
           icon: _AnimatedBottomNavIcon(
@@ -460,7 +500,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
             badgeCount: _notificationsUnreadCount,
             motionStyle: _NavIconMotionStyle.notifications,
           ),
-          label: '\u901a\u77e5',
+          label: '通知',
         ),
         NavigationDestination(
           icon: _AnimatedBottomNavIcon(
@@ -469,7 +509,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
             filledIcon: Icons.person,
             motionStyle: _NavIconMotionStyle.mine,
           ),
-          label: '\u6211\u7684',
+          label: '我的',
         ),
       ],
     );
@@ -526,12 +566,6 @@ class _HomeShellPageState extends State<HomeShellPage> {
     );
   }
 
-  @override
-  void dispose() {
-    widget.controller?._detach(this);
-    super.dispose();
-  }
-
   Future<void> _performQuickAction(HomeQuickAction action) async {
     switch (action) {
       case HomeQuickAction.compose:
@@ -553,7 +587,19 @@ class _HomeShellPageState extends State<HomeShellPage> {
         _handleDestinationSelected(0, triggerHaptic: false);
         await _postsPageController.openFeed(RiverSideTopicFeed.hot);
         return;
+      case HomeQuickAction.notifications:
+        _handleDestinationSelected(2, triggerHaptic: false);
+        return;
     }
+  }
+
+  @override
+  void dispose() {
+    widget.dependencies.riverSideRealtimeInboxService.removeListener(
+      _onRiverRealtimeInboxChanged,
+    );
+    widget.controller?._detach(this);
+    super.dispose();
   }
 }
 

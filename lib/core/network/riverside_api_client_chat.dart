@@ -138,13 +138,17 @@ extension RiverSideApiClientChatMethods on RiverSideApiClient {
     );
 
     if (response.statusCode == 403) {
-      throw const RiverSideApiException(
-        'Login session expired. Please sign in again.',
+      final message = _extractErrorMessageFromResponse(response).trim();
+      throw RiverSideApiException(
+        message.isEmpty ? 'Login session expired. Please sign in again.' : message,
       );
     }
     if (response.statusCode != 200) {
+      final message = _extractErrorMessageFromResponse(response).trim();
       throw RiverSideApiException(
-        'Failed to load chat channels, HTTP ${response.statusCode}',
+        message.isEmpty
+            ? 'Failed to load chat channels, HTTP ${response.statusCode}'
+            : message,
       );
     }
 

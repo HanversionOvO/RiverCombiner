@@ -143,8 +143,8 @@ class _QuotePreviewCard extends StatelessWidget {
                   children: [
                     Text(
                       hasFloorRef
-                          ? '\u56de\u590d @${_normalizeMentionUsernameToken(quote.ref.username)} \u7684 #${quote.ref.postNumber}'
-                          : '\u5f15\u7528\u5185\u5bb9',
+                          ? '回复 @${_normalizeMentionUsernameToken(quote.ref.username)} 的 #${quote.ref.postNumber}'
+                          : '引用内容',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -156,8 +156,8 @@ class _QuotePreviewCard extends StatelessWidget {
                       Text(
                         preview.isEmpty
                             ? (hasFloorRef
-                                  ? '\u67e5\u770b\u88ab\u56de\u590d\u5185\u5bb9'
-                                  : '\u67e5\u770b\u5f15\u7528\u5185\u5bb9')
+                                  ? '查看被回复内容'
+                                  : '查看引用内容')
                             : preview,
                         maxLines: 4,
                         overflow: TextOverflow.ellipsis,

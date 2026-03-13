@@ -6,11 +6,11 @@ extension RiverSideTopicFeedExtension on RiverSideTopicFeed {
   String get label {
     switch (this) {
       case RiverSideTopicFeed.latestCreated:
-        return '\u6700\u65b0\u53d1\u8868';
+        return '最新发表';
       case RiverSideTopicFeed.latestReplied:
-        return '\u6700\u65b0\u56de\u590d';
+        return '最新回复';
       case RiverSideTopicFeed.hot:
-        return '\u70ed\u95e8';
+        return '热门';
     }
   }
 

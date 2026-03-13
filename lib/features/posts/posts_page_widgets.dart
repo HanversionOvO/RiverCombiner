@@ -276,7 +276,7 @@ class _TopicListTabState extends State<_TopicListTab>
         _isLoading = false;
         _error = e is RiverSideApiException
             ? e.message
-            : '\u52a0\u8f7d\u5931\u8d25';
+            : '加载失败';
       });
     }
   }
@@ -626,7 +626,7 @@ class _TopicListTabState extends State<_TopicListTab>
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: _loadFirstPage,
-              child: const Text('\u91cd\u8bd5'),
+              child: const Text('重试'),
             ),
           ],
         ),
@@ -644,12 +644,12 @@ class _TopicListTabState extends State<_TopicListTab>
             ),
             const SizedBox(height: 16),
             const Text(
-              '\u6682\u65e0\u5e16\u5b50',
+              '暂无帖子',
               style: TextStyle(color: Colors.grey),
             ),
             TextButton(
               onPressed: _loadFirstPage,
-              child: const Text('\u5237\u65b0'),
+              child: const Text('刷新'),
             ),
           ],
         ),
@@ -740,7 +740,7 @@ class _TopicListTabState extends State<_TopicListTab>
                             ),
                           )
                         : Text(
-                            '\u6ca1\u6709\u66f4\u591a\u4e86',
+                            '没有更多了',
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.outline,
                             ),
@@ -1167,10 +1167,10 @@ class _TopicCard extends StatelessWidget {
     if (time == null) return '';
     final now = DateTime.now();
     final diff = now.difference(time);
-    if (diff.inMinutes < 1) return '\u521a\u521a';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}\u5206\u949f\u524d';
-    if (diff.inHours < 24) return '${diff.inHours}\u5c0f\u65f6\u524d';
-    if (diff.inDays < 7) return '${diff.inDays}\u5929\u524d';
+    if (diff.inMinutes < 1) return '刚刚';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
+    if (diff.inHours < 24) return '${diff.inHours}小时前';
+    if (diff.inDays < 7) return '${diff.inDays}天前';
     return '${time.month}/${time.day}';
   }
 }

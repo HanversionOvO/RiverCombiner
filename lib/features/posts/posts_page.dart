@@ -3209,12 +3209,12 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       return Future<List<RiverSideTopicSummary>?>.value(null);
     }
     if (_forumProvider == _PostsForumProvider.riverSide) {
-      return widget.dependencies.postsStartupPreloadStore
-          .takeRiverTopicsFirstPage(feed: feed, waitForRunningTask: true);
+      return widget.dependencies.postsStartupPreloadStore.takeRiverTopicsFirstPage(
+        feed: feed,
+      );
     }
     return widget.dependencies.postsStartupPreloadStore.takeQingTopicsFirstPage(
       feed: feed,
-      waitForRunningTask: true,
     );
   }
 
@@ -3233,7 +3233,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
         final startupCategories = await widget
             .dependencies
             .postsStartupPreloadStore
-            .takeRiverCategories(waitForRunningTask: true);
+            .takeRiverCategories();
         if (startupCategories != null && startupCategories.isNotEmpty) {
           categories = startupCategories;
         }
@@ -3337,7 +3337,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
         final startupCategories = await widget
             .dependencies
             .postsStartupPreloadStore
-            .takeQingCategories(waitForRunningTask: true);
+            .takeQingCategories();
         if (startupCategories != null && startupCategories.isNotEmpty) {
           if (mounted) {
             setState(() {
@@ -5636,7 +5636,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
 
   Widget _buildBoardFilterButton(ThemeData theme) {
     final hasSelection = _selectedBoardId != null;
-    final label = _selectedBoardName ?? '\u5168\u90e8\u677f\u5757';
+    final label = _selectedBoardName ?? '全部板块';
 
     return Hero(
       tag: 'board_picker_hero',

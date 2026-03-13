@@ -73,7 +73,7 @@ extension _CommentDetailPageUi on _CommentDetailPageState {
               const SizedBox(height: 10),
               _SectionHeader(
                 title: _CommentDetailPageState._labelReplies,
-                trailing: Text('\u5171 ${_replies.length} \u6761'),
+                trailing: Text('共 ${_replies.length} 条'),
               ),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),

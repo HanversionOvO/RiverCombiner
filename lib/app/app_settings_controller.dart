@@ -43,6 +43,7 @@ class AppSettingsController extends ChangeNotifier {
       'app.posts_realtime_refresh_banner';
   static const String _notificationsRealtimeRefreshBannerKey =
       'app.notifications_realtime_refresh_banner';
+  static const String _inAppMessagesKey = 'app.in_app_messages';
   static const String _topicCommentsRealtimeRefreshBannerKey =
       'app.topic_comments_realtime_refresh_banner';
   static const String _postsSecondFloorGuideKey =
@@ -97,6 +98,7 @@ class AppSettingsController extends ChangeNotifier {
   bool _reduceMotion = false;
   bool _showPostsRealtimeRefreshBanner = true;
   bool _showNotificationsRealtimeRefreshBanner = true;
+  bool _showInAppMessages = true;
   bool _showTopicCommentsRealtimeRefreshBanner = true;
   bool _showPostsSecondFloorGuide = true;
   String _riverSideBaseUrl = RiverServerConfig.defaultBaseUrl;
@@ -138,6 +140,7 @@ class AppSettingsController extends ChangeNotifier {
   bool get showPostsRealtimeRefreshBanner => _showPostsRealtimeRefreshBanner;
   bool get showNotificationsRealtimeRefreshBanner =>
       _showNotificationsRealtimeRefreshBanner;
+  bool get showInAppMessages => _showInAppMessages;
   bool get showTopicCommentsRealtimeRefreshBanner =>
       _showTopicCommentsRealtimeRefreshBanner;
   bool get showPostsSecondFloorGuide => _showPostsSecondFloorGuide;
@@ -171,8 +174,10 @@ class AppSettingsController extends ChangeNotifier {
       _aiModel.trim().isNotEmpty &&
       _aiApiKey.trim().isNotEmpty;
 
-  Future<void> initialize() async {
-    _prefs ??= await SharedPreferences.getInstance();
+  Future<void> initialize({
+    Future<SharedPreferences>? sharedPreferencesFuture,
+  }) async {
+    _prefs ??= await (sharedPreferencesFuture ?? SharedPreferences.getInstance());
 
     final themeModeRaw = _prefs?.getString(_themeModeKey);
     if (themeModeRaw != null) {
@@ -247,6 +252,10 @@ class AppSettingsController extends ChangeNotifier {
         _prefs?.getBool(_postsRealtimeRefreshBannerKey) ?? true;
     _showNotificationsRealtimeRefreshBanner =
         _prefs?.getBool(_notificationsRealtimeRefreshBannerKey) ?? true;
+    _showInAppMessages =
+        _prefs?.getBool(_inAppMessagesKey) ??
+        _prefs?.getBool(_notificationsRealtimeRefreshBannerKey) ??
+        true;
     _showTopicCommentsRealtimeRefreshBanner =
         _prefs?.getBool(_topicCommentsRealtimeRefreshBannerKey) ?? true;
     _showPostsSecondFloorGuide =
@@ -507,6 +516,15 @@ class AppSettingsController extends ChangeNotifier {
     _showNotificationsRealtimeRefreshBanner = value;
     notifyListeners();
     unawaited(_saveShowNotificationsRealtimeRefreshBanner());
+  }
+
+  void updateShowInAppMessages(bool value) {
+    if (_showInAppMessages == value) {
+      return;
+    }
+    _showInAppMessages = value;
+    notifyListeners();
+    unawaited(_saveShowInAppMessages());
   }
 
   void updateShowTopicCommentsRealtimeRefreshBanner(bool value) {
@@ -917,6 +935,11 @@ class AppSettingsController extends ChangeNotifier {
       _notificationsRealtimeRefreshBannerKey,
       _showNotificationsRealtimeRefreshBanner,
     );
+  }
+
+  Future<void> _saveShowInAppMessages() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(_inAppMessagesKey, _showInAppMessages);
   }
 
   Future<void> _saveShowTopicCommentsRealtimeRefreshBanner() async {

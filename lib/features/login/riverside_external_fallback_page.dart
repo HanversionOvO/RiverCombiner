@@ -3,6 +3,7 @@ import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/features/login/riverside_password_login_service.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+
 Future<UserAccount?> showRiverSideCredentialLoginSheet({
   required BuildContext context,
   required AppDependencies dependencies,
@@ -226,7 +227,7 @@ class _RiverSideCredentialLoginSheetBodyState
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '用于 WebView 不可用或异常场景',
+                        '当不支持WebView登录异常时使用',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -357,6 +358,3 @@ class _RiverSideCredentialLoginSheetBodyState
     );
   }
 }
-
-
-

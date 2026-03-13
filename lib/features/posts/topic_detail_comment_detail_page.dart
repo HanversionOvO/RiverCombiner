@@ -21,16 +21,16 @@ class CommentDetailPage extends StatefulWidget {
 }
 
 class _CommentDetailPageState extends State<CommentDetailPage> {
-  static const String _labelTitle = '\u8bc4\u8bba\u8be6\u60c5';
-  static const String _labelRootComment = '\u8be5\u8bc4\u8bba';
-  static const String _labelReplies = '\u56de\u590d\u8be5\u8bc4\u8bba';
-  static const String _labelEmptyReplies = '\u6682\u65e0\u56de\u590d';
-  static const String _labelQuoteTitle = '\u88ab\u56de\u590d\u5185\u5bb9';
-  static const String _labelReload = '\u91cd\u8bd5';
+  static const String _labelTitle = '评论详情';
+  static const String _labelRootComment = '该评论';
+  static const String _labelReplies = '回复该评论';
+  static const String _labelEmptyReplies = '暂无回复';
+  static const String _labelQuoteTitle = '被回复内容';
+  static const String _labelReload = '重试';
   static const String _labelReplyNeedLogin =
-      '\u8bf7\u5148\u767b\u5f55 RiverSide \u8d26\u53f7';
+      '请先登录 RiverSide 账号';
   static const String _labelReplySuccess =
-      '\u56de\u590d\u53d1\u5e03\u6210\u529f';
+      '回复发布成功';
   static const String _labelEditCommentTitle =
       _TopicDetailPageState._labelEditCommentTitle;
   static const String _labelEditCommentSuccess =
@@ -139,7 +139,7 @@ class _CommentDetailPageState extends State<CommentDetailPage> {
       }
       setState(() {
         _loading = false;
-        _error = '\u8bc4\u8bba\u8be6\u60c5\u52a0\u8f7d\u5931\u8d25';
+        _error = '评论详情加载失败';
       });
     }
   }

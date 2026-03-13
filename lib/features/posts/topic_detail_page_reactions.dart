@@ -275,7 +275,7 @@ extension _TopicDetailPageReactions on _TopicDetailPageState {
       });
       ScaffoldMessenger.of(
         context,
-      ).showRiverSnackBar('\u70b9\u8d5e\u64cd\u4f5c\u5931\u8d25');
+      ).showRiverSnackBar('点赞操作失败');
     } finally {
       _mutateState(() {
         _reactingPostIds.remove(post.id);
@@ -367,7 +367,7 @@ extension _TopicDetailPageReactions on _TopicDetailPageState {
       }
       ScaffoldMessenger.of(
         context,
-      ).showRiverSnackBar('\u52a0\u8f7d\u70b9\u8d5e\u7528\u6237\u5931\u8d25');
+      ).showRiverSnackBar('加载点赞用户失败');
     }
   }
 
@@ -639,7 +639,7 @@ class _ReactionPickerSheetState extends State<_ReactionPickerSheet>
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '\u9009\u62e9\u53cd\u5e94',
+                        '选择反应',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -648,14 +648,14 @@ class _ReactionPickerSheetState extends State<_ReactionPickerSheet>
                       IconButton(
                         visualDensity: VisualDensity.compact,
                         splashRadius: 18,
-                        tooltip: '\u5173\u95ed',
+                        tooltip: '关闭',
                         onPressed: () => Navigator.of(context).maybePop(),
                         icon: const Icon(Icons.close_rounded),
                       ),
                     ],
                   ),
                   Text(
-                    '\u70b9\u51fb\u4e00\u4e2a\u8868\u60c5\u53d1\u9001\u70b9\u8d5e\u72b6\u6001',
+                    '点击一个表情发送点赞状态',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),

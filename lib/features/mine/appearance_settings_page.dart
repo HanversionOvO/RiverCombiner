@@ -170,7 +170,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '使用系统调色盘，实时预览主题主色',
+                      '自定义您喜欢的APP颜色',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -323,7 +323,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
   Widget build(BuildContext context) {
     return MineSettingsPageScaffold(
       title: '个性化',
-      subtitle: '主题、字体与首页默认论坛设置',
+      subtitle: '主题、色彩、界面等个性化设置',
       icon: Icons.palette_outlined,
       heroTagPrefix: 'mine_settings_appearance',
       body: AnimatedBuilder(
@@ -341,7 +341,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
             children: [
               _SettingsSection(
                 title: '主题模式',
-                subtitle: '选择浅色、深色或跟随系统',
+                subtitle: '全局主题样式设置',
                 child: _PillWrap<ThemeMode>(
                   selected: settings.themeMode,
                   options: const [
@@ -367,7 +367,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
               const SizedBox(height: 14),
               _SettingsSection(
                 title: '强调色',
-                subtitle: '预设色板 + 自定义调色盘',
+                subtitle: '更改应用主题颜色',
                 child: Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -411,8 +411,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                     _LabelRow(
                       icon: Icons.line_weight_rounded,
                       title: '字体粗细',
-                      trailing:
-                          '${(settings.fontWeightScale * 100).round()}%',
+                      trailing: '${(settings.fontWeightScale * 100).round()}%',
                     ),
                     Slider(
                       value: settings.fontWeightScale,
@@ -425,23 +424,32 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                       children: [
                         Text(
                           '偏细',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                         const Spacer(),
                         Text(
                           '标准',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                         const Spacer(),
                         Text(
                           '偏粗',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
@@ -526,8 +534,8 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
               ),
               const SizedBox(height: 14),
               _SettingsSection(
-                title: '首页默认论坛',
-                subtitle: '打开 App 时优先加载哪个论坛的帖子数据',
+                title: '默认论坛',
+                subtitle: '初始化加载的论坛数据',
                 child: _PillWrap<AppHomeForumPreference>(
                   selected: settings.homeForumPreference,
                   options: const [
@@ -548,7 +556,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
               const SizedBox(height: 14),
               _SettingsSection(
                 title: '桌面小组件',
-                subtitle: '设置小组件展示的数据源（小/中/大尺寸一致）',
+                subtitle: '设置小组件展示的数据源',
                 child: _PillWrap<AppHomeWidgetFeedPreference>(
                   selected: settings.homeWidgetFeedPreference,
                   options: const [
@@ -599,5 +607,3 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     );
   }
 }
-
-

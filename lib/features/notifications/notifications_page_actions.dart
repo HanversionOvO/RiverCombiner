@@ -1,14 +1,9 @@
 part of 'notifications_page.dart';
 
 extension _NotificationsPageActions on _NotificationsPageState {
-  bool get _showNotificationsRealtimeRefreshBanner {
-    return widget
-        .dependencies
-        .settingsController
-        .showNotificationsRealtimeRefreshBanner;
-  }
-
   bool get _isQingForum => _forumProvider == AccountProvider.qingShuiHePan;
+  RiverSideRealtimeInboxService get _riverRealtimeInbox =>
+      widget.dependencies.riverSideRealtimeInboxService;
 
   List<RiverSideNotificationItem> get _displayNotifications {
     if (!_isQingForum ||
@@ -45,35 +40,14 @@ extension _NotificationsPageActions on _NotificationsPageState {
     });
   }
 
-  void _onRefreshBannerSettingsChanged() {
-    if (!mounted) {
-      return;
-    }
-    if (!_showNotificationsRealtimeRefreshBanner && _hasRealtimeNotifications) {
-      _setState(() {
-        _hasRealtimeNotifications = false;
-      });
-      return;
-    }
-    _setState(() {});
-  }
-
   int get _totalUnreadCount {
+    if (!_isQingForum) {
+      return _riverRealtimeInbox.totalUnreadCount;
+    }
     final unreadNotifications = _notifications
         .where((item) => !item.read)
         .length;
-    if (_isQingForum) {
-      return unreadNotifications;
-    }
-    final unreadChannels = _channelMessages.fold<int>(
-      0,
-      (sum, item) => sum + item.unreadCount,
-    );
-    final unreadDirectMessages = _directMessages.fold<int>(
-      0,
-      (sum, item) => sum + item.unreadCount,
-    );
-    return unreadNotifications + unreadChannels + unreadDirectMessages;
+    return unreadNotifications;
   }
 
   void _notifyUnreadCountChanged() {
@@ -91,14 +65,12 @@ extension _NotificationsPageActions on _NotificationsPageState {
     }
     _lastActiveRiverUsername = currentRiver;
     _lastActiveQingUsername = currentQing;
-    _messageBusPoller?.stop();
-    _messageBusPoller = null;
 
     if (mounted) {
       _setState(() {
         _loading = true;
-        _error = null;
-        _hasRealtimeNotifications = false;
+        _notificationsError = null;
+        _chatError = null;
         _nextNotificationsPath = '';
         _notifications = const [];
         _qingNotificationRecords = const [];
@@ -115,6 +87,56 @@ extension _NotificationsPageActions on _NotificationsPageState {
       });
     }
     _loadAll(clearExisting: true);
+  }
+
+  void _onRiverRealtimeInboxChanged() {
+    if (!mounted || _isQingForum) {
+      return;
+    }
+    _applyRiverRealtimeSnapshot(preserveExtraNotifications: true);
+  }
+
+  void _applyRiverRealtimeSnapshot({
+    required bool preserveExtraNotifications,
+  }) {
+    final latestNotifications = _riverRealtimeInbox.notifications;
+    final mergedNotifications = preserveExtraNotifications
+        ? _mergeRiverNotifications(
+            latestNotifications: latestNotifications,
+            existingNotifications: _notifications,
+          )
+        : latestNotifications;
+    _setState(() {
+      _loading = _riverRealtimeInbox.loading &&
+          mergedNotifications.isEmpty &&
+          _channelMessages.isEmpty &&
+          _directMessages.isEmpty;
+      _notifications = mergedNotifications;
+      _notificationsError = _riverRealtimeInbox.notificationsError;
+      _chatError = _riverRealtimeInbox.chatError;
+      _channelMessages = _riverRealtimeInbox.channelMessages;
+      _directMessages = _riverRealtimeInbox.directMessages;
+      _deletingDirectMessageIds.removeWhere(
+        (id) => !_directMessages.any((item) => item.id == id),
+      );
+      _nextNotificationsPath = _riverRealtimeInbox.nextNotificationsPath;
+    });
+    _notifyUnreadCountChanged();
+  }
+
+  List<RiverSideNotificationItem> _mergeRiverNotifications({
+    required List<RiverSideNotificationItem> latestNotifications,
+    required List<RiverSideNotificationItem> existingNotifications,
+  }) {
+    if (existingNotifications.length <= latestNotifications.length) {
+      return latestNotifications;
+    }
+    final seenIds = latestNotifications.map((item) => item.id).toSet();
+    final merged = <RiverSideNotificationItem>[
+      ...latestNotifications,
+      ...existingNotifications.where((item) => !seenIds.contains(item.id)),
+    ];
+    return List<RiverSideNotificationItem>.unmodifiable(merged);
   }
 
   void _onNotificationsScroll() {
@@ -249,78 +271,28 @@ extension _NotificationsPageActions on _NotificationsPageState {
     required bool clearExisting,
   }) async {
     final serial = ++_requestSerial;
-    final cookieHeader = _activeCookieHeader();
-    if (cookieHeader == null || cookieHeader.trim().isEmpty) {
-      if (!mounted || serial != _requestSerial) {
-        return;
-      }
+    if (showLoading || clearExisting) {
       _setState(() {
-        _loading = false;
-        _error = _NotificationsPageState._labelNeedLogin;
+        _loading = showLoading;
+        _notificationsError = null;
+        _chatError = null;
         if (clearExisting) {
           _notifications = const [];
           _channelMessages = const [];
           _directMessages = const [];
-          _deletingDirectMessageIds.clear();
         }
       });
-      _notifyUnreadCountChanged();
+    }
+    await _riverRealtimeInbox.refresh(
+      showLoading: showLoading,
+      allowBanner: false,
+    );
+    if (!mounted || serial != _requestSerial) {
       return;
     }
-
-    if (showLoading) {
-      _setState(() {
-        _loading = true;
-        _error = null;
-        if (clearExisting) {
-          _notifications = const [];
-          _channelMessages = const [];
-          _directMessages = const [];
-        }
-      });
-    }
-
-    try {
-      final api = widget.dependencies.accountStore.riverSideApiClient;
-      final results = await Future.wait([
-        api.fetchNotificationsPage(cookieHeader: cookieHeader),
-        api.fetchMyChatChannels(cookieHeader: cookieHeader),
-      ]);
-      if (!mounted || serial != _requestSerial) {
-        return;
-      }
-      final notificationPage = results[0] as RiverSideNotificationPage;
-      final channels = results[1] as List<RiverSideChatChannelItem>;
-      _setState(() {
-        _loading = false;
-        _error = null;
-        _hasRealtimeNotifications = false;
-        _notifications = notificationPage.items;
-        _nextNotificationsPath = notificationPage.loadMorePath;
-        _channelMessages = channels
-            .where((item) => !item.isDirectMessage)
-            .toList(growable: false);
-        _directMessages = channels
-            .where((item) => item.isDirectMessage)
-            .toList(growable: false);
-        _deletingDirectMessageIds.removeWhere(
-          (id) => !_directMessages.any((item) => item.id == id),
-        );
-      });
-      _notifyUnreadCountChanged();
-      _restartRealtimePolling();
-    } catch (e) {
-      if (!mounted || serial != _requestSerial) {
-        return;
-      }
-      _setState(() {
-        _loading = false;
-        _error =
-            e is RiverSideApiException && e.message.contains('session expired')
-            ? _NotificationsPageState._labelSessionExpired
-            : _NotificationsPageState._labelLoadFailed;
-      });
-    }
+    _applyRiverRealtimeSnapshot(
+      preserveExtraNotifications: !clearExisting,
+    );
   }
 
   Future<void> _loadAllQing({
@@ -335,7 +307,8 @@ extension _NotificationsPageActions on _NotificationsPageState {
       }
       _setState(() {
         _loading = false;
-        _error = _NotificationsPageState._labelNeedQingLogin;
+        _notificationsError = _NotificationsPageState._labelNeedQingLogin;
+        _chatError = null;
         if (clearExisting) {
           _notifications = const [];
           _qingNotificationRecords = const [];
@@ -352,7 +325,8 @@ extension _NotificationsPageActions on _NotificationsPageState {
     if (showLoading) {
       _setState(() {
         _loading = true;
-        _error = null;
+        _notificationsError = null;
+        _chatError = null;
         if (clearExisting) {
           _notifications = const [];
           _qingNotificationRecords = const [];
@@ -406,8 +380,8 @@ extension _NotificationsPageActions on _NotificationsPageState {
 
       _setState(() {
         _loading = false;
-        _error = null;
-        _hasRealtimeNotifications = false;
+        _notificationsError = null;
+        _chatError = null;
         _nextNotificationsPath = '';
         _qingNotificationFilter = _QingNotificationFilter.all;
         _channelMessages = const [];
@@ -436,9 +410,10 @@ extension _NotificationsPageActions on _NotificationsPageState {
       }
       _setState(() {
         _loading = false;
-        _error = error.message.isEmpty
+        _notificationsError = error.message.isEmpty
             ? _NotificationsPageState._labelLoadFailed
             : error.message;
+        _chatError = null;
       });
     } catch (_) {
       if (!mounted || serial != _requestSerial) {
@@ -446,7 +421,8 @@ extension _NotificationsPageActions on _NotificationsPageState {
       }
       _setState(() {
         _loading = false;
-        _error = _NotificationsPageState._labelLoadFailed;
+        _notificationsError = _NotificationsPageState._labelLoadFailed;
+        _chatError = null;
       });
     }
   }
@@ -697,6 +673,9 @@ extension _NotificationsPageActions on _NotificationsPageState {
             .toList(growable: false);
         _deletingDirectMessageIds.remove(item.id);
       });
+      unawaited(
+        _riverRealtimeInbox.refresh(showLoading: false, allowBanner: false),
+      );
       _notifyUnreadCountChanged();
       ScaffoldMessenger.of(context).showRiverSnackBar('私信已删除');
       return true;
@@ -716,18 +695,6 @@ extension _NotificationsPageActions on _NotificationsPageState {
           _deletingDirectMessageIds.remove(item.id);
         });
       }
-    }
-  }
-
-  Future<void> _consumeRealtimeNotifications() async {
-    _setState(() => _hasRealtimeNotifications = false);
-    await _loadAll(showLoading: false);
-    if (_notificationsScrollController.hasClients) {
-      _notificationsScrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutQuart,
-      );
     }
   }
 
@@ -788,6 +755,9 @@ extension _NotificationsPageActions on _NotificationsPageState {
     try {
       await widget.dependencies.accountStore.riverSideApiClient
           .markNotificationsAsRead(cookieHeader: cookie);
+      unawaited(
+        _riverRealtimeInbox.refresh(showLoading: false, allowBanner: false),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showRiverSnackBar('已清除通知未读');
       }
@@ -804,66 +774,6 @@ extension _NotificationsPageActions on _NotificationsPageState {
           : '清除未读失败，请稍后重试';
       ScaffoldMessenger.of(context).showRiverSnackBar(message);
     }
-  }
-
-  Future<void> _restartRealtimePolling() async {
-    _messageBusPoller?.stop();
-    _messageBusPoller = null;
-    if (_isQingForum) {
-      return;
-    }
-    final cookie = _activeCookieHeader();
-    if (cookie == null) {
-      return;
-    }
-    final userId = await _resolvePollingUserId(cookie: cookie);
-    if (!mounted || userId == null) {
-      return;
-    }
-    final channel = '/notification/$userId';
-    _messageBusPoller = RiverSideMessageBusPoller(
-      apiClient: widget.dependencies.accountStore.riverSideApiClient,
-      cookieHeader: cookie,
-      channelLastIds: RiverSideMessageBusPoller.buildInitialChannels([channel]),
-      onEvents: (events) {
-        if (!mounted) {
-          return;
-        }
-        if (events.any((e) => e.channel == channel)) {
-          if (!_showNotificationsRealtimeRefreshBanner) {
-            return;
-          }
-          _setState(() => _hasRealtimeNotifications = true);
-        }
-      },
-    );
-    _messageBusPoller?.start();
-  }
-
-  Future<int?> _resolvePollingUserId({required String cookie}) async {
-    final account = widget.dependencies.accountStore.activeRiverSideAccount;
-    final currentId = account?.userId;
-    if (currentId != null && currentId > 0) {
-      return currentId;
-    }
-    final activeUsername =
-        widget.dependencies.accountStore.activeRiverSideUsername;
-    if (activeUsername == null || activeUsername.isEmpty) {
-      return null;
-    }
-    try {
-      final profile = await widget.dependencies.accountStore.riverSideApiClient
-          .fetchCurrentUserByCookie(
-            cookieHeader: cookie,
-            fallbackLogin: activeUsername,
-          );
-      await widget.dependencies.accountStore.upsertRiverSideAccount(profile);
-      final refreshedId = profile.userId;
-      if (refreshedId != null && refreshedId > 0) {
-        return refreshedId;
-      }
-    } catch (_) {}
-    return null;
   }
 
   void _applyQingRecords(List<_QingNotificationRecord> records) {

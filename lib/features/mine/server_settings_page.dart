@@ -271,7 +271,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
         children: [
           _SettingsSection(
             title: 'RiverSide 主域名',
-            subtitle: '保存前会请求 /about.json 校验站点可用性',
+            subtitle: '设置并修改 RiverSide 的主域名',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -314,7 +314,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
           const SizedBox(height: 14),
           _SettingsSection(
             title: '清水河畔主域名',
-            subtitle: '保存前会请求 /mobcent/app/web/index.php 校验接口可达性',
+            subtitle: '设置并修改 清水河畔 的主域名',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -361,7 +361,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
           const SizedBox(height: 14),
           _SettingsSection(
             title: '版本更新链接',
-            subtitle: '保存前会校验 updater.json 是否可用',
+            subtitle: '设置并修改 版本更新检测 的链接',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -408,8 +408,8 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
           ),
           const SizedBox(height: 14),
           _SettingsSection(
-            title: '小程序目录链接',
-            subtitle: '支持 legacy 清单与平台 catalog 接口',
+            title: '小程序服务器',
+            subtitle: '设置并修改 小程序服务器 地址',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -420,7 +420,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
                   maxLines: 2,
                   minLines: 1,
                   decoration: const InputDecoration(
-                    labelText: '清单链接',
+                    labelText: '服务器地址',
                     hintText:
                         'https://miniapp.hanversion.cn/api/public/catalog',
                     prefixIcon: Icon(Icons.widgets_outlined),

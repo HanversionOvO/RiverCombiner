@@ -216,7 +216,7 @@ class _LoginPageState extends State<LoginPage>
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        '欢迎来到 River',
+                        '聚河畔',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.headlineSmall?.copyWith(
                           color: _riverSideColor,
@@ -225,7 +225,7 @@ class _LoginPageState extends State<LoginPage>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '连接 RiverSide 与清水河畔',
+                        '好的河畔，没有围栏',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,

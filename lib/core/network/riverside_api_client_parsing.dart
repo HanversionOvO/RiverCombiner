@@ -26,7 +26,7 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
         ? displayUsername
         : (name.isNotEmpty
               ? name
-              : (username.isEmpty ? '\u672a\u77e5\u7528\u6237' : username));
+              : (username.isEmpty ? '未知用户' : username));
     final avatarTemplate = (post['avatar_template'] ?? '').toString();
     final authorTitle = (post['user_title'] ?? post['primary_group_name'] ?? '')
         .toString()
@@ -262,7 +262,7 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
         final poster = _toStringMap(rawPoster);
         final description = (poster['description'] ?? '').toString();
         if (description.contains('Original Poster') ||
-            description.contains('\u539f\u59cb')) {
+            description.contains('原始')) {
           return _asInt(poster['user_id']);
         }
       }

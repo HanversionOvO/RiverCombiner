@@ -1,17 +1,16 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/core/constants.dart';
 import 'package:river/core/navigation/river_page_route.dart';
+import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:river/features/home/home_shell_page.dart';
 import 'package:river/features/login/riverside_external_fallback_page.dart';
 import 'package:river/features/login/riverside_login_flow_mode.dart';
 import 'package:river/features/login/riverside_session_reader.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:river/core/widgets/river_snack_bar.dart';
 
 class RiverSideLoginWebViewPage extends StatefulWidget {
   const RiverSideLoginWebViewPage({
@@ -29,15 +28,21 @@ class RiverSideLoginWebViewPage extends StatefulWidget {
 }
 
 class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
+  static const List<String> _unsupportedBrowserSignals = <String>[
+    'unsupported browser detected',
+    'uncaught unsupported browser detected',
+    'relativecolor is not supported',
+  ];
+
   late final WebViewController _controller;
 
   bool _isLoading = true;
   bool _completedFlow = false;
   bool _syncingAccount = false;
   bool _openingExternalFallback = false;
+  bool _unsupportedFallbackTriggered = false;
   bool _canGoBack = false;
   bool _canGoForward = false;
-  String _currentHost = riverSideHost;
 
   @override
   void initState() {
@@ -52,17 +57,11 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
             }
             setState(() {
               _isLoading = true;
-              _currentHost = _parseHost(url);
             });
             unawaited(_updateNavigationState());
           },
           onPageFinished: _onPageFinished,
           onNavigationRequest: (request) {
-            if (mounted) {
-              setState(() {
-                _currentHost = _parseHost(request.url);
-              });
-            }
             unawaited(_updateNavigationState());
             return NavigationDecision.navigate;
           },
@@ -82,6 +81,7 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
   }
 
   Future<void> _prepareAndLoad() async {
+    await _configureConsoleMonitoring();
     if (widget.flowMode == RiverSideLoginFlowMode.addAccount) {
       await widget.dependencies.accountStore
           .captureAndPersistActiveRiverSideCookies();
@@ -92,6 +92,19 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
       return;
     }
     await _controller.loadRequest(Uri.parse(riverSideLoginUrl));
+  }
+
+  Future<void> _configureConsoleMonitoring() async {
+    try {
+      await _controller.setOnConsoleMessage((JavaScriptConsoleMessage message) {
+        final text = message.message.trim();
+        if (_matchesUnsupportedBrowserSignal(text)) {
+          unawaited(_handleUnsupportedBrowserDetected(details: text));
+        }
+      });
+    } catch (_) {
+      // Console callbacks may be unavailable on some platform implementations.
+    }
   }
 
   Future<void> _updateNavigationState() async {
@@ -106,12 +119,61 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
     });
   }
 
-  String _parseHost(String url) {
-    final uri = Uri.tryParse(url);
-    if (uri == null || uri.host.isEmpty) {
-      return riverSideHost;
+  bool _matchesUnsupportedBrowserSignal(String text) {
+    final lowered = text.trim().toLowerCase();
+    if (lowered.isEmpty) {
+      return false;
     }
-    return uri.host;
+    for (final signal in _unsupportedBrowserSignals) {
+      if (lowered.contains(signal)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> _handleUnsupportedBrowserDetected({String? details}) async {
+    if (!mounted ||
+        _openingExternalFallback ||
+        _completedFlow ||
+        _unsupportedFallbackTriggered) {
+      return;
+    }
+    final detailText = details?.trim() ?? '';
+    if (detailText.isNotEmpty && !_matchesUnsupportedBrowserSignal(detailText)) {
+      return;
+    }
+    _unsupportedFallbackTriggered = true;
+    ScaffoldMessenger.of(context).showRiverSnackBar(
+      '检测到当前 WebView 不兼容，已切换为账号密码登录',
+    );
+    await _switchToCredentialLogin();
+  }
+
+  Future<void> _inspectPageForUnsupportedBrowser() async {
+    if (_openingExternalFallback ||
+        _completedFlow ||
+        _unsupportedFallbackTriggered) {
+      return;
+    }
+    try {
+      final snapshot = await _controller.runJavaScriptReturningResult('''
+(() => {
+  const chunks = [
+    document.title || '',
+    document.body ? document.body.innerText || '' : '',
+    document.documentElement ? document.documentElement.textContent || '' : ''
+  ];
+  return chunks.join('\\n');
+})();
+''');
+      final text = '$snapshot';
+      if (_matchesUnsupportedBrowserSignal(text)) {
+        await _handleUnsupportedBrowserDetected(details: text);
+      }
+    } catch (_) {
+      // Ignore inspection failures and keep normal WebView login flow.
+    }
   }
 
   Future<void> _switchToCredentialLogin() async {
@@ -153,9 +215,9 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
 
     setState(() {
       _isLoading = false;
-      _currentHost = _parseHost(url);
     });
     await _updateNavigationState();
+    await _inspectPageForUnsupportedBrowser();
     await _checkLoginSuccess(url);
   }
 
@@ -198,7 +260,9 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
 
     if (widget.flowMode == RiverSideLoginFlowMode.addAccount) {
       if (profile == null) {
-        ScaffoldMessenger.of(context).showRiverSnackBar('已检测登录，但未解析到账号信息，请重试。');
+        ScaffoldMessenger.of(context).showRiverSnackBar(
+          '已检测登录，但未解析到账号信息，请重试。',
+        );
         return;
       }
       _completedFlow = true;
@@ -257,159 +321,151 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isInitial = widget.flowMode == RiverSideLoginFlowMode.initialLogin;
     final theme = Theme.of(context);
-    final topInset = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        titleSpacing: 8,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isInitial ? '登录 RiverSide' : '添加 RiverSide 账号',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-            Text(
-              _currentHost,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        actions: <Widget>[
-          Container(
-            margin: const EdgeInsets.only(right: 6),
-            child: IconButton.filledTonal(
-              tooltip: '账号密码登录',
-              onPressed: _switchToCredentialLogin,
-              icon: const Icon(Icons.password_rounded),
-            ),
-          ),
-        ],
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primaryContainer.withValues(alpha: 0.55),
-                theme.colorScheme.surface.withValues(alpha: 0.72),
-              ],
-            ),
-          ),
-        ),
-      ),
+      backgroundColor: theme.colorScheme.surface,
       body: Stack(
         children: [
           Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.colorScheme.surfaceContainerLowest,
-                    theme.colorScheme.surface,
-                  ],
-                ),
-              ),
-            ),
+            child: WebViewWidget(controller: _controller),
           ),
-          Positioned.fill(
-            top: topInset + kToolbarHeight + 10,
-            bottom: 84,
-            left: 10,
-            right: 10,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+          if (_isLoading)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(minHeight: 2.2),
+            ),
+          if (_isLoading)
+            Positioned.fill(
               child: ColoredBox(
-                color: theme.colorScheme.surface,
-                child: Stack(
-                  children: [
-                    WebViewWidget(controller: _controller),
-                    if (_isLoading)
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: LinearProgressIndicator(minHeight: 2),
+                color: theme.colorScheme.surface.withValues(alpha: 0.90),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
-                  ],
+                      const SizedBox(height: 12),
+                      Text(
+                        '正在打开登录页',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            left: 14,
-            right: 14,
-            bottom: 18,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(alpha: 0.82),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.34,
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      _buildFloatingIconButton(
+                        tooltip: '返回',
+                        icon: Icons.arrow_back_rounded,
+                        onPressed: () => Navigator.of(context).maybePop(),
+                      ),
+                      const Spacer(),
+                      _buildFloatingIconButton(
+                        tooltip: '密码登录',
+                        icon: Icons.password_rounded,
+                        onPressed: _switchToCredentialLogin,
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.20,
+                          ),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.shadow.withValues(
+                              alpha: 0.08,
+                            ),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildFloatingIconButton(
+                            tooltip: '后退',
+                            icon: Icons.arrow_back_rounded,
+                            onPressed: _canGoBack
+                                ? () async {
+                                    await _controller.goBack();
+                                    await _updateNavigationState();
+                                  }
+                                : null,
+                          ),
+                          _buildFloatingIconButton(
+                            tooltip: '前进',
+                            icon: Icons.arrow_forward_rounded,
+                            onPressed: _canGoForward
+                                ? () async {
+                                    await _controller.goForward();
+                                    await _updateNavigationState();
+                                  }
+                                : null,
+                          ),
+                          _buildFloatingIconButton(
+                            tooltip: '刷新',
+                            icon: Icons.refresh_rounded,
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    await _controller.reload();
+                                  },
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          tooltip: '后退',
-                          onPressed: _canGoBack
-                              ? () async {
-                                  await _controller.goBack();
-                                  await _updateNavigationState();
-                                }
-                              : null,
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                        ),
-                        IconButton(
-                          tooltip: '前进',
-                          onPressed: _canGoForward
-                              ? () async {
-                                  await _controller.goForward();
-                                  await _updateNavigationState();
-                                }
-                              : null,
-                          icon: const Icon(Icons.arrow_forward_ios_rounded),
-                        ),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: _isLoading
-                              ? null
-                              : () async {
-                                  await _controller.reload();
-                                },
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text('刷新'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingIconButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton.filledTonal(
+        onPressed: onPressed,
+        icon: Icon(icon),
       ),
     );
   }

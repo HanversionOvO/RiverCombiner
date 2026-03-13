@@ -444,6 +444,35 @@ class _MinePageState extends State<MinePage> {
     });
   }
 
+  Widget _buildPlatformButtonIcon({
+    required String assetPath,
+    required IconData fallbackIcon,
+  }) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 22,
+      height: 22,
+      child: ClipOval(
+        child: Image.asset(
+          assetPath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return ColoredBox(
+              color: theme.colorScheme.surfaceContainerHighest,
+              child: Center(
+                child: Icon(
+                  fallbackIcon,
+                  size: 13,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _onEditAvatarPressed() async {
     if (_isBusy) {
       return;
@@ -1110,7 +1139,7 @@ class _MinePageState extends State<MinePage> {
                               _SettingsTile(
                                 icon: Icons.palette_outlined,
                                 title: '个性化',
-                                subtitle: '主题、字体与首页默认论坛设置',
+                                subtitle: '主题、色彩、界面等个性化设置',
                                 heroTagPrefix: 'mine_settings_appearance',
                                 onTap: _openAppearanceSettings,
                               ),
@@ -1126,7 +1155,7 @@ class _MinePageState extends State<MinePage> {
                               _SettingsTile(
                                 icon: Icons.photo_library_outlined,
                                 title: '图床设置',
-                                subtitle: 'PicUI 上传、文件预览与管理',
+                                subtitle: '图床登录、上传与管理',
                                 heroTagPrefix: 'mine_settings_image_host',
                                 onTap: _openImageHostSettings,
                               ),
@@ -1290,7 +1319,7 @@ class _MinePageState extends State<MinePage> {
     final subtitleVisibility = (1.0 - collapse).clamp(0.0, 1.0);
     final borderAlpha = lerpDouble(0.18, 0.26, collapse)!;
     final subtitle = switch ((account, qingAccount)) {
-      (UserAccount _, UserAccount _) => '双账号已登录',
+      (UserAccount _, UserAccount _) => '已登录双平台',
       (UserAccount accountValue, null) => '@${accountValue.username}',
       (null, UserAccount qingValue) => '@${qingValue.username}',
       _ => '未登录',
@@ -1470,14 +1499,14 @@ class _MinePageState extends State<MinePage> {
             ),
             const SizedBox(height: 16),
             Text(
-              '欢迎来到 River',
+              '欢迎来到聚河畔',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '登录以查看您的个人信息',
+              '登录后可以使用更多功能哦',
               style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
             ),
             const SizedBox(height: 24),
@@ -1487,7 +1516,10 @@ class _MinePageState extends State<MinePage> {
                 children: [
                   FilledButton.icon(
                     onPressed: _onAddAccountPressed,
-                    icon: const Icon(Icons.login_rounded),
+                    icon: _buildPlatformButtonIcon(
+                      assetPath: 'assets/images/rs.png',
+                      fallbackIcon: Icons.water_rounded,
+                    ),
                     label: const Text('登录 RiverSide'),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(double.infinity, 46),
@@ -1496,7 +1528,10 @@ class _MinePageState extends State<MinePage> {
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
                     onPressed: _onAddQingShuiAccountPressed,
-                    icon: const Icon(Icons.school_rounded),
+                    icon: _buildPlatformButtonIcon(
+                      assetPath: 'assets/images/hp.png',
+                      fallbackIcon: Icons.school_rounded,
+                    ),
                     label: const Text('登录清水河畔'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 46),
@@ -1775,7 +1810,7 @@ class _MinePageState extends State<MinePage> {
           Row(
             children: [
               Text(
-                '双平台账号',
+                '已聚合账号',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.1,
@@ -1920,8 +1955,7 @@ class _MinePageState extends State<MinePage> {
                     color: theme.colorScheme.surface.withValues(alpha: 0.92),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: const EdgeInsets.all(3),
+                  child: ClipOval(
                     child: Image.asset(
                       assetPath,
                       fit: BoxFit.cover,

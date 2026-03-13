@@ -130,17 +130,17 @@ class _MainPostCardState extends State<_MainPostCard>
             ),
             _MetaItem(
               icon: Icons.edit_note,
-              text: '\u7f16\u8f91 ${post.editCount}',
+              text: '编辑 ${post.editCount}',
               color: subtitleColor,
             ),
             _MetaItem(
               icon: Icons.visibility_outlined,
-              text: '\u6d4f\u89c8 ${widget.detail.viewCount}',
+              text: '浏览 ${widget.detail.viewCount}',
               color: subtitleColor,
             ),
             _MetaItem(
               icon: Icons.thumb_up_alt_outlined,
-              text: '\u70b9\u8d5e ${post.likeCount}',
+              text: '点赞 ${post.likeCount}',
               color: subtitleColor,
             ),
           ],
@@ -976,7 +976,7 @@ class _CommentCardState extends State<_CommentCard>
                         ),
                         _MetaItem(
                           icon: Icons.thumb_up_alt_outlined,
-                          text: '\u70b9\u8d5e ${widget.post.likeCount}',
+                          text: '点赞 ${widget.post.likeCount}',
                           color: subtitleColor,
                         ),
                       ],
@@ -1330,7 +1330,7 @@ class _CommentDetailPostCard extends StatelessWidget {
                   ),
                   _MetaItem(
                     icon: Icons.thumb_up_alt_outlined,
-                    text: '\u70b9\u8d5e ${post.likeCount}',
+                    text: '点赞 ${post.likeCount}',
                     color: subtitleColor,
                   ),
                 ],

@@ -648,21 +648,21 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
     final theme = Theme.of(context);
     return MineSettingsPageScaffold(
       title: '图床设置',
-      subtitle: 'PicUI 登录、上传与管理',
+      subtitle: '图床登录、上传与管理',
       icon: Icons.photo_library_outlined,
       heroTagPrefix: 'mine_settings_image_host',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [
           _ImageHostSectionCard(
-            title: '启用与登录',
-            subtitle: '使用 WebView 注册/登录 PicUI，并自动获取 API Token',
+            title: '登录图床',
+            subtitle: '登录至 PicUI 图床',
             child: Column(
               children: [
                 _ImageHostSwitchTile(
                   icon: Icons.cloud_upload_rounded,
                   title: '启用 PicUI 图床',
-                  subtitle: '启用后编辑器上传默认走 PicUI',
+                  subtitle: '默认使用 PicUI 图片内容',
                   value: _enabled,
                   onChanged: (value) {
                     setState(() => _enabled = value);
@@ -1353,7 +1353,6 @@ class _PicUiAuthWebViewDialogPageState
   bool _autoCreateAttempted = false;
   bool _submittedToken = false;
   DateTime? _lastTokensRedirectAt;
-  String _currentUrl = '';
   String? _foundToken;
 
   Uri get _baseUri => Uri.parse(widget.baseUrl);
@@ -1371,7 +1370,6 @@ class _PicUiAuthWebViewDialogPageState
             }
             setState(() {
               _loading = true;
-              _currentUrl = url;
             });
           },
           onPageFinished: (url) async {
@@ -1380,16 +1378,11 @@ class _PicUiAuthWebViewDialogPageState
             }
             setState(() {
               _loading = false;
-              _currentUrl = url;
             });
             await _handlePostLoginFlow(url);
             await _tryProbeApiToken();
           },
           onNavigationRequest: (request) {
-            if (!mounted) {
-              return NavigationDecision.navigate;
-            }
-            setState(() => _currentUrl = request.url);
             return NavigationDecision.navigate;
           },
         ),
@@ -1548,166 +1541,39 @@ class _PicUiAuthWebViewDialogPageState
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: '关闭',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'PicUI Web 登录',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          '注册/登录后自动检测 Token',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: WebViewWidget(controller: _controller),
+          ),
+          if (_loading)
+            const Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: LinearProgressIndicator(minHeight: 2.2),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.28,
-                    ),
-                  ),
-                ),
-                child: Text(
-                  '建议流程：先登录或注册，成功后会自动跳转到 Token 页面并尝试自动创建 Token。',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 42,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                scrollDirection: Axis.horizontal,
-                children: [
-                  FilledButton.tonal(
-                    onPressed: () => _openPath('/login'),
-                    child: const Text('登录页'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.tonal(
-                    onPressed: () => _openPath('/register'),
-                    child: const Text('注册页'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.34,
-                        ),
-                      ),
-                    ),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        WebViewWidget(controller: _controller),
-                        if (_loading)
-                          const Positioned(
-                            left: 0,
-                            right: 0,
-                            top: 0,
-                            child: LinearProgressIndicator(minHeight: 2),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.28,
-                      ),
-                    ),
-                  ),
-                  child: Row(
+          if (_loading)
+            Positioned.fill(
+              child: ColoredBox(
+                color: theme.colorScheme.surface.withValues(alpha: 0.90),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _foundToken == null
-                                  ? (_autoCreatingToken
-                                        ? '正在自动创建并提取 Token...'
-                                        : (_probing
-                                              ? '正在检测 Token...'
-                                              : '等待自动提取 Token...'))
-                                  : '检测到 Token，正在自动应用...',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: _foundToken == null
-                                    ? theme.colorScheme.onSurfaceVariant
-                                    : theme.colorScheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _currentUrl,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '正在打开登录页',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -1715,8 +1581,131 @@ class _PicUiAuthWebViewDialogPageState
                 ),
               ),
             ),
-          ],
-        ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      _buildFloatingWebAction(
+                        tooltip: '关闭',
+                        icon: Icons.close_rounded,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const Spacer(),
+                      _buildFloatingWebAction(
+                        tooltip: 'Token 页面',
+                        icon: Icons.key_rounded,
+                        onPressed: () => _openPath('/user/tokens'),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  if (_foundToken == null || _autoCreatingToken || _probing)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface.withValues(
+                            alpha: 0.92,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.20,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          _foundToken == null
+                              ? (_autoCreatingToken
+                                    ? '正在自动创建并提取 Token...'
+                                    : (_probing
+                                          ? '正在检测 Token...'
+                                          : '等待自动提取 Token...'))
+                              : '检测到 Token，正在自动应用...',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.20,
+                          ),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.shadow.withValues(
+                              alpha: 0.08,
+                            ),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildFloatingWebAction(
+                            tooltip: '登录页',
+                            icon: Icons.login_rounded,
+                            onPressed: () => _openPath('/login'),
+                          ),
+                          _buildFloatingWebAction(
+                            tooltip: '注册页',
+                            icon: Icons.person_add_alt_1_rounded,
+                            onPressed: () => _openPath('/register'),
+                          ),
+                          _buildFloatingWebAction(
+                            tooltip: '刷新',
+                            icon: Icons.refresh_rounded,
+                            onPressed: _loading
+                                ? null
+                                : () => _controller.reload(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingWebAction({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton.filledTonal(
+        onPressed: onPressed,
+        icon: Icon(icon),
       ),
     );
   }

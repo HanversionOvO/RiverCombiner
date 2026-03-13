@@ -487,7 +487,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       _mutateState(() {
         _loadingInitial = false;
         _error =
-            '\u5e16\u5b50\u8be6\u60c5\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5';
+            '帖子详情加载失败，请稍后重试';
       });
       _contentRevealController.value = 1;
     }
@@ -1038,7 +1038,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       });
       ScaffoldMessenger.of(
         context,
-      ).showRiverSnackBar('\u8bc4\u8bba\u52a0\u8f7d\u5931\u8d25');
+      ).showRiverSnackBar('评论加载失败');
     }
   }
 

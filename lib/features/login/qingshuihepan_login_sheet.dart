@@ -3,6 +3,7 @@ import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/features/login/qingshuihepan_login_service.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
+
 Future<UserAccount?> showQingShuiHePanCredentialLoginSheet({
   required BuildContext context,
   required AppDependencies dependencies,
@@ -195,7 +196,7 @@ class _QingShuiHePanCredentialLoginSheetBodyState
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '登录后将保存认证信息到本地账号',
+                        '使用账号密码登录到清水河畔',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -295,6 +296,3 @@ class _QingShuiHePanCredentialLoginSheetBodyState
     );
   }
 }
-
-
-
