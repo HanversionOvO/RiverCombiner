@@ -10,6 +10,7 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
+          flutter config --enable-swift-package-manager
           flutter pub get
       - name: Build iOS app without signing
         script: |
@@ -99,6 +100,7 @@ workflows:
           xcode-project use-profiles
       - name: Install dependencies
         script: |
+          flutter config --enable-swift-package-manager
           flutter pub get
       - name: Build IPA
         script: |
