@@ -15,33 +15,14 @@ workflows:
       - name: Build iOS app without signing
         script: |
           BUILD_NUMBER=$(date +%Y%m%d%H%M)
-          flutter build ios --release --config-only --build-number=$BUILD_NUMBER
-          cd ios
-          pod install
-          xcodebuild \
-            -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination generic/platform=iOS \
-            -archivePath ../build/ios/unsigned/Runner.xcarchive \
-            archive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM="" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            VALIDATE_PRODUCT=NO \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO
-          cd ..
+          flutter build ios --release --no-codesign --build-number=$BUILD_NUMBER
       - name: Pack unsigned IPA
         script: |
           APP_PATH=""
           for candidate in \
-            build/ios/unsigned/Runner.xcarchive/Products/Applications/*.app \
             build/ios/iphoneos/*.app \
-            build/ios/Release-iphoneos/*.app; do
+            build/ios/Release-iphoneos/*.app \
+            ios/build/Release-iphoneos/*.app; do
             if [ -d "$candidate" ]; then
               APP_PATH="$candidate"
               break
@@ -56,6 +37,7 @@ workflows:
             echo "No .app bundle found under build/."
             echo "Debug list:"
             find build -maxdepth 6 -type d | sort || true
+            find ios -maxdepth 6 -type d | sort || true
             exit 1
           fi
 
