@@ -129,6 +129,18 @@ class _ParsedQuoteContent {
   final _QuoteInlineStyle? inlineStyle;
 }
 
+class _QingStructuredQuote {
+  const _QingStructuredQuote({
+    required this.username,
+    required this.bodyMarkdown,
+    required this.blockMarkdown,
+  });
+
+  final String username;
+  final String bodyMarkdown;
+  final String blockMarkdown;
+}
+
 _ParsedQuoteContent _parseQuoteContent(String source) {
   final raw = source.trim();
   if (raw.isEmpty) {
@@ -329,11 +341,14 @@ class _EmojiInlineSyntax extends md.InlineSyntax {
 }
 
 class _MentionInlineSyntax extends md.InlineSyntax {
-  _MentionInlineSyntax() : super(r'(?<![\w/`])@([a-zA-Z0-9_\-\.]{2,32})');
+  _MentionInlineSyntax()
+    : super(r'(?<![\w/`])@([^\s@`<>()\[\]{}]{1,32})');
 
   @override
   bool onMatch(md.InlineParser parser, Match match) {
-    final username = (match.group(1) ?? '').trim();
+    final username = _trimTrailingMentionPunctuation(
+      (match.group(1) ?? '').trim(),
+    );
     if (username.isEmpty) {
       return false;
     }
@@ -342,6 +357,15 @@ class _MentionInlineSyntax extends md.InlineSyntax {
     parser.addNode(element);
     return true;
   }
+}
+
+String _trimTrailingMentionPunctuation(String source) {
+  var value = source.trim();
+  while (value.isNotEmpty &&
+      RegExp(r'[!?,.;:)\]}>，。！？；：、]+$').hasMatch(value)) {
+    value = value.substring(0, value.length - 1).trimRight();
+  }
+  return value;
 }
 
 class _MentionBuilder extends MarkdownElementBuilder {
@@ -1066,38 +1090,44 @@ class _EmojiBuilder extends MarkdownElementBuilder {
   final Map<String, String>? headers;
 
   @override
-  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
     final url = (element.attributes['data-url'] ?? '').trim();
     if (url.isEmpty) {
       return Text(':${element.textContent}:', style: preferredStyle);
     }
-    if (_isAssetEmojiUrl(url)) {
-      final assetPath = _assetPathFromEmojiUrl(url);
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 1),
-        child: Image.asset(
-          assetPath,
-          width: 20,
-          height: 20,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) =>
-              Text(':${element.textContent}:', style: preferredStyle),
-        ),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: CachedNetworkImage(
-        imageUrl: _resolveForumUrl(url),
-        httpHeaders: headers,
-        width: 20,
-        height: 20,
-        fit: BoxFit.contain,
-        fadeInDuration: Duration.zero,
-        fadeOutDuration: Duration.zero,
-        errorWidget: (context, imageUrl, error) =>
-            Text(':${element.textContent}:', style: preferredStyle),
-      ),
+    final fallback = Text(':${element.textContent}:', style: preferredStyle);
+    final child = _isAssetEmojiUrl(url)
+        ? Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1),
+            child: Image.asset(
+              _assetPathFromEmojiUrl(url),
+              width: 20,
+              height: 20,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => fallback,
+            ),
+          )
+        : Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1),
+            child: CachedNetworkImage(
+              imageUrl: _resolveForumUrl(url),
+              httpHeaders: headers,
+              width: 20,
+              height: 20,
+              fit: BoxFit.contain,
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
+              errorWidget: (context, imageUrl, error) => fallback,
+            ),
+          );
+    return Text.rich(
+      WidgetSpan(alignment: PlaceholderAlignment.middle, child: child),
+      style: parentStyle ?? preferredStyle,
     );
   }
 }

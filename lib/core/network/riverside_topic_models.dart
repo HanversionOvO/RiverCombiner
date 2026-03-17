@@ -111,6 +111,7 @@ class RiverSideTopicPostDetail {
     required this.authorTitle,
     required this.isOnline,
     required this.contentMarkdown,
+    this.contentCookedHtml = '',
     required this.createdAt,
     required this.editCount,
     required this.likeCount,
@@ -136,6 +137,7 @@ class RiverSideTopicPostDetail {
   final String authorTitle;
   final bool? isOnline;
   final String contentMarkdown;
+  final String contentCookedHtml;
   final DateTime? createdAt;
   final int editCount;
   final int likeCount;
@@ -164,6 +166,7 @@ class RiverSideTopicPostDetail {
     String? authorTitle,
     bool? isOnline,
     String? contentMarkdown,
+    String? contentCookedHtml,
     DateTime? createdAt,
     int? editCount,
     int? likeCount,
@@ -192,6 +195,7 @@ class RiverSideTopicPostDetail {
       authorTitle: authorTitle ?? this.authorTitle,
       isOnline: isOnline ?? this.isOnline,
       contentMarkdown: contentMarkdown ?? this.contentMarkdown,
+      contentCookedHtml: contentCookedHtml ?? this.contentCookedHtml,
       createdAt: createdAt ?? this.createdAt,
       editCount: editCount ?? this.editCount,
       likeCount: likeCount ?? this.likeCount,
@@ -330,7 +334,7 @@ class RiverSideTopicDetail {
     required this.comments,
     required this.streamPostIds,
     required this.loadedPostIds,
-    this.validReactions = const <String>{},
+    this.validReactions = const <String>[],
     this.isBookmarked = false,
   });
 
@@ -344,7 +348,7 @@ class RiverSideTopicDetail {
   final List<RiverSideTopicPostDetail> comments;
   final List<int> streamPostIds;
   final Set<int> loadedPostIds;
-  final Set<String> validReactions;
+  final List<String> validReactions;
   final bool isBookmarked;
 
   RiverSideTopicDetail copyWith({
@@ -358,7 +362,7 @@ class RiverSideTopicDetail {
     List<RiverSideTopicPostDetail>? comments,
     List<int>? streamPostIds,
     Set<int>? loadedPostIds,
-    Set<String>? validReactions,
+    List<String>? validReactions,
     bool? isBookmarked,
   }) {
     return RiverSideTopicDetail(

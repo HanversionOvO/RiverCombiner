@@ -171,7 +171,13 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
       (decoded['created_at'] ?? '').toString(),
     );
     final isBookmarked = _asBool(decoded['bookmarked']);
-    final validReactions = _asStringSet(decoded['valid_reactions']);
+    final validReactionsRaw = decoded['valid_reactions'];
+    final validReactions = validReactionsRaw is List
+        ? validReactionsRaw
+              .map((item) => '$item'.trim())
+              .where((item) => item.isNotEmpty)
+              .toList(growable: false)
+        : const <String>[];
 
     final postStream = _toStringMap(decoded['post_stream']);
     final postsRaw = postStream['posts'];

@@ -148,6 +148,7 @@ class _MainPostCardState extends State<_MainPostCard>
         const SizedBox(height: 12),
         _PostContent(
           markdown: post.contentMarkdown,
+          cookedHtml: post.contentCookedHtml,
           topicId: post.topicId,
           cookieHeader: widget.cookieHeader,
           emojiUrls: widget.emojiUrls,
@@ -984,6 +985,7 @@ class _CommentCardState extends State<_CommentCard>
                     const SizedBox(height: 10),
                     _PostContent(
                       markdown: widget.post.contentMarkdown,
+                      cookedHtml: widget.post.contentCookedHtml,
                       topicId: widget.post.topicId,
                       cookieHeader: widget.cookieHeader,
                       emojiUrls: widget.emojiUrls,
@@ -1338,6 +1340,7 @@ class _CommentDetailPostCard extends StatelessWidget {
               const SizedBox(height: 10),
               _PostContent(
                 markdown: post.contentMarkdown,
+                cookedHtml: post.contentCookedHtml,
                 topicId: post.topicId,
                 cookieHeader: cookieHeader,
                 emojiUrls: emojiUrls,

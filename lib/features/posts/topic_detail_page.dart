@@ -60,32 +60,65 @@ part 'topic_detail_page_loading.dart';
 // -----------------------------------------------------------------------------
 
 class _ReactionOption {
-  const _ReactionOption({required this.id, required this.emoji});
+  const _ReactionOption({
+    required this.id,
+    required this.emoji,
+    this.label = '',
+  });
 
   final String id;
   final String emoji;
+  final String label;
 }
 
 const List<_ReactionOption> _defaultReactionOptions = <_ReactionOption>[
-  _ReactionOption(id: '+1', emoji: '\u{1F44D}'),
-  _ReactionOption(id: 'laughing', emoji: '\u{1F606}'),
-  _ReactionOption(id: 'heart', emoji: '❤️'),
-  _ReactionOption(id: 'open_mouth', emoji: '\u{1F62E}'),
-  _ReactionOption(id: 'thinking', emoji: '\u{1F914}'),
-  _ReactionOption(id: 'anxious_face_with_sweat', emoji: '\u{1F605}'),
-  _ReactionOption(id: 'distorted_face', emoji: '\u{1F635}'),
-  _ReactionOption(id: 'saluting_face', emoji: '\u{1FAE1}'),
-  _ReactionOption(id: 'sob', emoji: '\u{1F62D}'),
-  _ReactionOption(id: '-1', emoji: '\u{1F44E}'),
+  _ReactionOption(id: '+1', emoji: '\u{1F44D}', label: '+1'),
+  _ReactionOption(id: 'laughing', emoji: '\u{1F606}', label: 'laughing'),
+  _ReactionOption(id: 'heart', emoji: '❤️', label: 'heart'),
+  _ReactionOption(id: 'open_mouth', emoji: '\u{1F62E}', label: 'open_mouth'),
+  _ReactionOption(id: 'thinking', emoji: '\u{1F914}', label: 'thinking'),
+  _ReactionOption(
+    id: 'anxious_face_with_sweat',
+    emoji: '\u{1F605}',
+    label: 'anxious_face_with_sweat',
+  ),
+  _ReactionOption(
+    id: 'distorted_face',
+    emoji: '\u{1F635}',
+    label: 'distorted_face',
+  ),
+  _ReactionOption(
+    id: 'saluting_face',
+    emoji: '\u{1FAE1}',
+    label: 'saluting_face',
+  ),
+  _ReactionOption(id: 'sob', emoji: '\u{1F62D}', label: 'sob'),
+  _ReactionOption(id: '-1', emoji: '\u{1F44E}', label: '-1'),
 ];
 
-String _reactionEmoji(String reactionId) {
-  for (final option in _defaultReactionOptions) {
-    if (option.id == reactionId) {
-      return option.emoji;
+final Map<String, _ReactionOption> _reactionOptionById =
+    <String, _ReactionOption>{
+      for (final option in _defaultReactionOptions) option.id: option,
+    };
+
+List<_ReactionOption> _reactionOptionsFromIds(Iterable<String> reactionIds) {
+  final result = <_ReactionOption>[];
+  final seen = <String>{};
+  for (final rawId in reactionIds) {
+    final id = rawId.trim();
+    if (id.isEmpty || !seen.add(id)) {
+      continue;
     }
+    result.add(
+      _reactionOptionById[id] ??
+          _ReactionOption(id: id, emoji: '❓', label: id),
+    );
   }
-  return '❓';
+  return result.isEmpty ? _defaultReactionOptions : result;
+}
+
+String _reactionEmoji(String reactionId) {
+  return _reactionOptionById[reactionId]?.emoji ?? '❓';
 }
 
 String _commentHeroTag(int postId) => 'comment-card-$postId';
@@ -1496,6 +1529,63 @@ class _TopicDetailPageState extends State<TopicDetailPage>
     return lines.join('\n\n').trim();
   }
 
+  _QingStructuredQuote _buildQingStructuredQuote({
+    required dynamic rawQuote,
+    required int topicId,
+    required int? replyToPostNumber,
+    String fallbackUsername = '',
+  }) {
+    final fallbackToken = _normalizeMentionUsernameToken(fallbackUsername);
+    final markdown = _qingContentToMarkdown(rawQuote).trim();
+    if (markdown.isEmpty) {
+      return _QingStructuredQuote(
+        username: fallbackToken,
+        bodyMarkdown: '',
+        blockMarkdown: '',
+      );
+    }
+
+    var username = fallbackToken;
+    var bodyMarkdown = markdown;
+    final lines = markdown.split('\n');
+    if (lines.isNotEmpty) {
+      final firstLine = lines.first.trim();
+      final headerMatch = RegExp(
+        r'^(.+?)\s+发表于\s+.+$',
+      ).firstMatch(firstLine);
+      if (headerMatch != null) {
+        final parsedUsername = _normalizeMentionUsernameToken(
+          (headerMatch.group(1) ?? '').trim(),
+        );
+        if (parsedUsername.isNotEmpty) {
+          username = parsedUsername;
+        }
+        bodyMarkdown = lines.skip(1).join('\n').trim();
+      }
+    }
+
+    if (bodyMarkdown.isEmpty) {
+      return _QingStructuredQuote(
+        username: username,
+        bodyMarkdown: '',
+        blockMarkdown: '',
+      );
+    }
+
+    final headerParts = <String>[
+      if (username.isNotEmpty) username.replaceAll('"', ''),
+      if ((replyToPostNumber ?? 0) > 0) 'post: $replyToPostNumber',
+      'topic: $topicId',
+    ];
+    final blockMarkdown =
+        '[quote="${headerParts.join(', ')}"]$bodyMarkdown[/quote]';
+    return _QingStructuredQuote(
+      username: username,
+      bodyMarkdown: bodyMarkdown,
+      blockMarkdown: blockMarkdown,
+    );
+  }
+
   List<RiverSidePostReaction> _buildQingReactionList({
     required int likeCount,
     required int dislikeCount,
@@ -2265,6 +2355,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
           dependencies: widget.dependencies,
           rootPost: post,
           heroTag: _commentHeroTag(post.id),
+          initialValidReactions: _detail?.validReactions ?? const <String>[],
           initialEmojiUrls: _emojiUrls,
           initialEmojiGroups: _emojiGroups,
         ),

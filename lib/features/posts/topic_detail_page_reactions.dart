@@ -2,14 +2,11 @@ part of 'topic_detail_page.dart';
 
 extension _TopicDetailPageReactions on _TopicDetailPageState {
   List<_ReactionOption> _availableReactionOptions() {
-    final valid = _detail?.validReactions ?? const <String>{};
+    final valid = _detail?.validReactions ?? const <String>[];
     if (valid.isEmpty) {
       return _defaultReactionOptions;
     }
-    final filtered = _defaultReactionOptions
-        .where((option) => valid.contains(option.id))
-        .toList(growable: false);
-    return filtered.isEmpty ? _defaultReactionOptions : filtered;
+    return _reactionOptionsFromIds(valid);
   }
 
   Future<void> _onReactPressed(RiverSideTopicPostDetail post) async {

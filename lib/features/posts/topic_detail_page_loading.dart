@@ -675,6 +675,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         }
         return currentDetail?.mainPost.contentMarkdown ?? '';
       }(),
+      contentCookedHtml: currentDetail?.mainPost.contentCookedHtml ?? '',
       createdAt: _epochToDate(
         _pickInt(topicSource, const <String>[
               'create_date',
@@ -772,8 +773,16 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
                 (quoteReplyId > 0 && quoteReplyId < 10000
                     ? quoteReplyId
                     : null));
-      final quoteText = _qingContentToMarkdown(
-        raw['quote_content'] ?? raw['quote'],
+      final fallbackReplyToUsername = _pickString(raw, const <String>[
+        'quote_user_name',
+        'quote_name',
+        'reply_to_username',
+      ]);
+      final structuredQuote = _buildQingStructuredQuote(
+        rawQuote: raw['quote_content'] ?? raw['quote'],
+        topicId: topicId,
+        replyToPostNumber: replyToPostNumber,
+        fallbackUsername: fallbackReplyToUsername,
       );
       final content = _qingContentToMarkdown(
         quoteMeta['contentOverride'] ??
@@ -781,9 +790,11 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
             raw['content'] ??
             raw['subject'],
       );
-      final mergedContent = replyToPostNumber != null
-          ? (quoteText.isEmpty ? content : '$quoteText\n\n$content')
-          : content;
+      final mergedContent = structuredQuote.blockMarkdown.isEmpty
+          ? content
+          : (content.isEmpty
+                ? structuredQuote.blockMarkdown
+                : '${structuredQuote.blockMarkdown}\n\n$content');
 
       final parsed = RiverSideTopicPostDetail(
         id: replyId,
@@ -832,6 +843,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         authorTitle: _pickString(raw, const <String>['title', 'userTitle']),
         isOnline: null,
         contentMarkdown: mergedContent,
+        contentCookedHtml: existing?.contentCookedHtml ?? '',
         createdAt: _epochToDate(
           _pickInt(raw, const <String>[
             'posts_date',
@@ -849,11 +861,9 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         currentUserReaction: currentReaction,
         reactionUsersCount: like + dislike,
         replyToPostNumber: replyToPostNumber,
-        replyToUsername: _pickString(raw, const <String>[
-          'quote_user_name',
-          'quote_name',
-          'reply_to_username',
-        ]),
+        replyToUsername: fallbackReplyToUsername.trim().isNotEmpty
+            ? fallbackReplyToUsername
+            : structuredQuote.username,
       );
 
       if (existing != null) {
@@ -899,7 +909,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       comments: nextComments,
       streamPostIds: streamPostIds,
       loadedPostIds: streamPostIds.toSet(),
-      validReactions: const <String>{'+1', '-1'},
+      validReactions: const <String>['+1', '-1'],
       isBookmarked: isBookmarked,
     );
 

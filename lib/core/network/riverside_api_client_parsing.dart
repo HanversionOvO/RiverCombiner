@@ -95,6 +95,7 @@ extension RiverSideApiClientParsingMethods on RiverSideApiClient {
       authorTitle: authorTitle,
       isOnline: isOnline,
       contentMarkdown: normalizedMarkdown,
+      contentCookedHtml: cooked.trim(),
       createdAt: createdAt,
       editCount: editCount,
       likeCount: _extractLikeCount(post['actions_summary']),

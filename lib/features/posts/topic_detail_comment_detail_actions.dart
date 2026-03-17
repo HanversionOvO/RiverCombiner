@@ -118,22 +118,10 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
   }
 
   List<_ReactionOption> _availableReactionOptionsForComment() {
-    final reactionIds = <String>{};
-    reactionIds.addAll(
-      _rootPost.reactions.map((item) => item.id).where((id) => id.isNotEmpty),
-    );
-    for (final post in _replies) {
-      reactionIds.addAll(
-        post.reactions.map((item) => item.id).where((id) => id.isNotEmpty),
-      );
-    }
-    if (reactionIds.isEmpty) {
+    if (_validReactions.isEmpty) {
       return _defaultReactionOptions;
     }
-    final filtered = _defaultReactionOptions
-        .where((option) => reactionIds.contains(option.id))
-        .toList(growable: false);
-    return filtered.isEmpty ? _defaultReactionOptions : filtered;
+    return _reactionOptionsFromIds(_validReactions);
   }
 
   Future<void> _onReactPressed(RiverSideTopicPostDetail post) async {
@@ -618,7 +606,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
           aiScene: RiverMarkdownAiScene.topicReply,
           aiReplyReferenceText: quoteContent,
           onAiGenerateStream: _generateAiContentStreamForEditor,
-          maxHeight: MediaQuery.sizeOf(context).height * 0.74,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
           onUploadImage: _uploadReplyImage,
           onLoadCurrentDraft: loadCurrentDraft,
           onSaveDraft: saveDraft,
@@ -810,7 +798,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
           onSearchMentionUsers: _searchMentionUsersForEditor,
           aiScene: RiverMarkdownAiScene.editComment,
           onAiGenerateStream: _generateAiContentStreamForEditor,
-          maxHeight: MediaQuery.sizeOf(context).height * 0.74,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
           onUploadImage: _uploadReplyImage,
           onLoadCurrentDraft: loadCurrentDraft,
           onSaveDraft: saveDraft,

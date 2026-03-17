@@ -6,6 +6,7 @@ class CommentDetailPage extends StatefulWidget {
     required this.dependencies,
     required this.rootPost,
     required this.heroTag,
+    this.initialValidReactions = const <String>[],
     this.initialEmojiUrls = const <String, String>{},
     this.initialEmojiGroups = const <String, List<String>>{},
   });
@@ -13,6 +14,7 @@ class CommentDetailPage extends StatefulWidget {
   final AppDependencies dependencies;
   final RiverSideTopicPostDetail rootPost;
   final String heroTag;
+  final List<String> initialValidReactions;
   final Map<String, String> initialEmojiUrls;
   final Map<String, List<String>> initialEmojiGroups;
 
@@ -53,6 +55,7 @@ class _CommentDetailPageState extends State<CommentDetailPage> {
 
   late RiverSideTopicPostDetail _rootPost;
   List<RiverSideTopicPostDetail> _replies = const <RiverSideTopicPostDetail>[];
+  List<String> _validReactions = const <String>[];
   Map<String, String> _emojiUrls = const <String, String>{};
   Map<String, List<String>> _emojiGroups = const <String, List<String>>{};
   final Set<int> _reactingPostIds = <int>{};
@@ -66,6 +69,7 @@ class _CommentDetailPageState extends State<CommentDetailPage> {
   void initState() {
     super.initState();
     _rootPost = widget.rootPost;
+    _validReactions = widget.initialValidReactions;
     _emojiUrls = widget.initialEmojiUrls;
     _emojiGroups = widget.initialEmojiGroups;
     _loadData();

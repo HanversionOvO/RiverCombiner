@@ -2314,7 +2314,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
                 ? aiReferenceText
                 : quoteContent,
             onAiGenerateStream: _generateAiContentStreamForEditor,
-            maxHeight: MediaQuery.sizeOf(context).height * 0.74,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.92,
             onUploadImage: _uploadQingReplyImage,
             onSubmit: (markdown) {
               return _submitQingReply(
@@ -2400,7 +2400,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
               ? aiReferenceText
               : quoteContent,
           onAiGenerateStream: _generateAiContentStreamForEditor,
-          maxHeight: MediaQuery.sizeOf(context).height * 0.74,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
           onUploadImage: _uploadReplyImage,
           onLoadCurrentDraft: loadCurrentDraft,
           onSaveDraft: saveDraft,
@@ -2629,7 +2629,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
           onSearchMentionUsers: _searchMentionUsersForEditor,
           aiScene: RiverMarkdownAiScene.editComment,
           onAiGenerateStream: _generateAiContentStreamForEditor,
-          maxHeight: MediaQuery.sizeOf(context).height * 0.74,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
           onUploadImage: _uploadReplyImage,
           onLoadCurrentDraft: loadCurrentDraft,
           onSaveDraft: saveDraft,

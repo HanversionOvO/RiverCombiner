@@ -3,6 +3,7 @@ part of 'topic_detail_page.dart';
 class _PostContent extends StatelessWidget {
   const _PostContent({
     required this.markdown,
+    this.cookedHtml = '',
     required this.topicId,
     required this.cookieHeader,
     required this.emojiUrls,
@@ -16,6 +17,7 @@ class _PostContent extends StatelessWidget {
   });
 
   final String markdown;
+  final String cookedHtml;
   final int topicId;
   final String? cookieHeader;
   final Map<String, String> emojiUrls;
@@ -29,6 +31,25 @@ class _PostContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final trimmedCookedHtml = cookedHtml.trim();
+    if (_shouldPreferCookedHtmlRendering(
+      markdown: markdown,
+      cookedHtml: trimmedCookedHtml,
+      replyToPostNumber: replyToPostNumber,
+    )) {
+      return _MarkdownContent(
+        markdown: markdown,
+        cookedHtmlOverride: trimmedCookedHtml,
+        preferCookedHtml: true,
+        cookieHeader: cookieHeader,
+        emojiUrls: emojiUrls,
+        onMentionTap: onMentionTap,
+        onTopicLinkTap: onTopicLinkTap,
+        enableImageHero: enableImageHero,
+        enableTextSelection: enableTextSelection,
+      );
+    }
+
     final blocks = _parsePostContentBlocks(markdown, topicId);
     final hasQuoteBlock = blocks.any((block) => block is _QuoteBlock);
     final replyPostNumber = replyToPostNumber ?? 0;
@@ -178,6 +199,8 @@ class _QuotePreviewCard extends StatelessWidget {
 class _MarkdownContent extends StatelessWidget {
   const _MarkdownContent({
     required this.markdown,
+    this.cookedHtmlOverride = '',
+    this.preferCookedHtml = false,
     this.cookieHeader,
     this.emojiUrls = const <String, String>{},
     this.onMentionTap,
@@ -187,6 +210,8 @@ class _MarkdownContent extends StatelessWidget {
   });
 
   final String markdown;
+  final String cookedHtmlOverride;
+  final bool preferCookedHtml;
   final String? cookieHeader;
   final Map<String, String> emojiUrls;
   final ValueChanged<String>? onMentionTap;
@@ -196,6 +221,18 @@ class _MarkdownContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseStyle = Theme.of(context).textTheme.bodyMedium;
+    if (preferCookedHtml && cookedHtmlOverride.trim().isNotEmpty) {
+      final content = _buildCookedHtmlBody(
+        context,
+        cookedHtmlOverride.trim(),
+        baseStyle,
+      );
+      if (!enableTextSelection) {
+        return content;
+      }
+      return _CustomMarkdownSelectionArea(child: content);
+    }
     final data = markdown.trim().isEmpty
         ? _TopicDetailPageState._labelEmpty
         : markdown;
@@ -276,6 +313,7 @@ class _MarkdownContent extends StatelessWidget {
     return MarkdownBody(
       data: data,
       selectable: false,
+      extensionSet: md.ExtensionSet.gitHubFlavored,
       inlineSyntaxes: inlineSyntaxes,
       builders: builders,
       imageBuilder: (uri, title, alt) {
@@ -344,6 +382,20 @@ class _MarkdownContent extends StatelessWidget {
     String data,
     TextStyle? baseStyle,
   ) {
+    final rawHtml = md.markdownToHtml(
+      data,
+      extensionSet: md.ExtensionSet.gitHubFlavored,
+      encodeHtml: false,
+    );
+    final html = _normalizeMentionAnchorsInHtml(rawHtml);
+    return _buildCookedHtmlBody(context, html, baseStyle);
+  }
+
+  Widget _buildCookedHtmlBody(
+    BuildContext context,
+    String html,
+    TextStyle? baseStyle,
+  ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final quoteBg = Color.alphaBlend(
@@ -353,13 +405,15 @@ class _MarkdownContent extends StatelessWidget {
     final quoteBorder = theme.colorScheme.primary.withValues(
       alpha: isDark ? 0.62 : 0.44,
     );
-    final headers = _buildImageHeaders(cookieHeader);
-    final rawHtml = md.markdownToHtml(
-      data,
-      extensionSet: md.ExtensionSet.gitHubFlavored,
-      encodeHtml: false,
+    final tableBorder = theme.colorScheme.outlineVariant.withValues(
+      alpha: isDark ? 0.65 : 0.88,
     );
-    final html = _normalizeMentionAnchorsInHtml(rawHtml);
+    final tableBg = theme.colorScheme.surfaceContainerLow;
+    final detailsBg = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(alpha: isDark ? 0.10 : 0.06),
+      theme.colorScheme.surfaceContainerLow,
+    );
+    final headers = _buildImageHeaders(cookieHeader);
     return HtmlWidget(
       html,
       baseUrl: Uri.tryParse(riverSideBaseUrl),
@@ -395,13 +449,58 @@ class _MarkdownContent extends StatelessWidget {
         );
       },
       customStylesBuilder: (element) {
-        if (element.localName == 'blockquote') {
+        final tag = (element.localName ?? '').toLowerCase();
+        if (tag == 'blockquote') {
           return <String, String>{
             'margin': '0',
             'padding': '10px 12px',
             'border-left': '3px solid ${_toCssColor(quoteBorder)}',
             'background-color': _toCssColor(quoteBg),
             'border-radius': '12px',
+          };
+        }
+        if (tag == 'table') {
+          return <String, String>{
+            'width': '100%',
+            'border-collapse': 'collapse',
+            'background-color': _toCssColor(tableBg),
+            'border': '1px solid ${_toCssColor(tableBorder)}',
+            'border-radius': '12px',
+            'overflow': 'hidden',
+            'margin': '0',
+          };
+        }
+        if (tag == 'th') {
+          return <String, String>{
+            'padding': '10px 12px',
+            'font-weight': '700',
+            'text-align': 'left',
+            'background-color': _toCssColor(
+              theme.colorScheme.surfaceContainerHighest,
+            ),
+            'border': '1px solid ${_toCssColor(tableBorder)}',
+          };
+        }
+        if (tag == 'td') {
+          return <String, String>{
+            'padding': '10px 12px',
+            'border': '1px solid ${_toCssColor(tableBorder)}',
+          };
+        }
+        if (tag == 'details') {
+          return <String, String>{
+            'display': 'block',
+            'margin': '0',
+            'padding': '10px 12px',
+            'background-color': _toCssColor(detailsBg),
+            'border': '1px solid ${_toCssColor(tableBorder)}',
+            'border-radius': '12px',
+          };
+        }
+        if (tag == 'summary') {
+          return <String, String>{
+            'font-weight': '700',
+            'margin': '0 0 8px 0',
           };
         }
         return null;
@@ -440,7 +539,7 @@ class _MarkdownContent extends StatelessWidget {
               url: resolved,
               headers: effectiveHeaders,
               heroTag:
-                  'topic_html_image_${data.hashCode}_${sourceIndex}_${resolved.hashCode}',
+                  'topic_html_image_${html.hashCode}_${sourceIndex}_${resolved.hashCode}',
               imageProvider: CachedNetworkImageProvider(
                 resolved,
                 headers: effectiveHeaders,
@@ -541,6 +640,32 @@ class _MarkdownContent extends StatelessWidget {
     }
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
+
+}
+
+bool _shouldPreferCookedHtmlRendering({
+  required String markdown,
+  required String cookedHtml,
+  required int? replyToPostNumber,
+}) {
+  if (cookedHtml.trim().isEmpty) {
+    return false;
+  }
+  if ((replyToPostNumber ?? 0) > 0) {
+    return false;
+  }
+  if (RegExp(
+    r'\[quote(?:="[^"]*")?\][\s\S]*?\[/quote\]',
+    caseSensitive: false,
+  ).hasMatch(markdown)) {
+    return false;
+  }
+  final lower = cookedHtml.toLowerCase();
+  return lower.contains('<table') ||
+      lower.contains('class="md-table"') ||
+      lower.contains('<details') ||
+      lower.contains('<summary') ||
+      lower.contains('class="onebox"');
 }
 
 class _CustomMarkdownSelectionArea extends StatelessWidget {
