@@ -945,9 +945,11 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
 
   Widget _buildComposerDock(BuildContext context) {
     final theme = Theme.of(context);
+    final emojiPanelVisible = _composerEmojiPanelVisible;
     final keyboardVisible =
-        MediaQuery.viewInsetsOf(context).bottom > 0 ||
-        _composerFocusNode.hasFocus;
+        !emojiPanelVisible &&
+        (MediaQuery.viewInsetsOf(context).bottom > 0 ||
+            _composerFocusNode.hasFocus);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final render = _composerDockKey.currentContext?.findRenderObject();
       if (render is RenderBox) {
@@ -1024,7 +1026,21 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                       tooltip: '选择表情',
                       visualDensity: VisualDensity.compact,
                       onPressed: _sending ? null : _showComposerEmojiPicker,
-                      icon: const Icon(Icons.sentiment_satisfied_alt_rounded),
+                      style: IconButton.styleFrom(
+                        backgroundColor: emojiPanelVisible
+                            ? theme.colorScheme.primaryContainer.withValues(
+                                alpha: 0.82,
+                              )
+                            : Colors.transparent,
+                        foregroundColor: emojiPanelVisible
+                            ? theme.colorScheme.onPrimaryContainer
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      icon: Icon(
+                        emojiPanelVisible
+                            ? Icons.keyboard_rounded
+                            : Icons.sentiment_satisfied_alt_rounded,
+                      ),
                     ),
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 180),
@@ -1173,6 +1189,32 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                     ),
                   ],
                 ),
+              ),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: emojiPanelVisible
+                    ? SizedBox(
+                        key: const ValueKey<String>(
+                          'chat_composer_emoji_panel_visible',
+                        ),
+                        height: _ChatDetailPageState._composerEmojiPanelHeight,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
+                          child: RiverEmojiPicker(
+                            emojiUrls: _emojiUrls,
+                            emojiGroups: _emojiGroups,
+                            embedded: true,
+                            resolveUrl: _resolveForumUrl,
+                            headersForUrl: _headersForUrl,
+                            onSelected: (key) {
+                              _insertComposerText(':$key:');
+                            },
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
               ),
             ],
           ),

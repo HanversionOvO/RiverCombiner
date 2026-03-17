@@ -47,11 +47,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         physics: const BouncingScrollPhysics(),
                         children: [
-                          const SizedBox(height: 10),
-
-                          _buildTargetPanel(theme),
-
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 18),
 
                           TextField(
                             controller: _titleController,
@@ -88,7 +84,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
 
                           SizedBox(
                             height:
-                                MediaQuery.viewInsetsOf(context).bottom + 80,
+                                MediaQuery.viewInsetsOf(context).bottom + 208,
                           ),
                         ],
                       ),
@@ -104,7 +100,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
             left: 0,
             right: 0,
             bottom: 0,
-            child: _buildBottomToolbar(context),
+            child: _buildBottomComposeDock(context),
           ),
         ],
       ),
@@ -173,7 +169,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                               child: Opacity(
                                 opacity: subtitleVisibility,
                                 child: Text(
-                                  '编辑标题与正文',
+                                  '分享此时此刻',
                                   style: theme.textTheme.labelMedium?.copyWith(
                                     color: colorScheme.onSurfaceVariant,
                                   ),
@@ -316,48 +312,45 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
     );
   }
 
-  Widget _buildTargetPanel(ThemeData theme) {
+  Widget _buildComposeTargetChip({
+    required ThemeData theme,
+    required String label,
+    required bool selected,
+    required bool enabled,
+    required VoidCallback onTap,
+    required ImageProvider icon,
+  }) {
     final colorScheme = theme.colorScheme;
-    final riverSelected = _enableRiverCompose;
-    final qingSelected = _enableQingCompose;
-    final canUseRiver = _activeRiverCookieHeader()?.trim().isNotEmpty == true;
-    final canUseQing = _activeQingAuth() != null;
-
-    Widget buildTargetChip({
-      required String label,
-      required bool selected,
-      required bool enabled,
-      required VoidCallback onTap,
-      required ImageProvider icon,
-    }) {
-      return Opacity(
-        opacity: enabled ? 1 : 0.52,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
+    return Opacity(
+      opacity: enabled ? 1 : 0.52,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primaryContainer
+              : colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
             color: selected
-                ? colorScheme.primaryContainer
-                : colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected
-                  ? colorScheme.primary.withValues(alpha: 0.28)
-                  : colorScheme.outlineVariant.withValues(alpha: 0.35),
-            ),
+                ? colorScheme.primary.withValues(alpha: 0.28)
+                : colorScheme.outlineVariant.withValues(alpha: 0.35),
           ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: enabled ? onTap : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(backgroundImage: icon, radius: 9),
-                  const SizedBox(width: 8),
-                  Text(
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: enabled ? onTap : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                CircleAvatar(backgroundImage: icon, radius: 10),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
                     label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: selected
@@ -365,99 +358,21 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                           : colorScheme.onSurface,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    selected
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    size: 16,
-                    color: selected
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.28),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.travel_explore_rounded,
-                size: 18,
-                color: colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '发帖论坛',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              buildTargetChip(
-                label: 'RiverSide',
-                selected: riverSelected,
-                enabled: canUseRiver,
-                onTap: () {
-                  _mutateState(() {
-                    _enableRiverCompose = !_enableRiverCompose;
-                  });
-                },
-                icon: const AssetImage('assets/images/rs.png'),
-              ),
-              buildTargetChip(
-                label: '清水河畔',
-                selected: qingSelected,
-                enabled: canUseQing,
-                onTap: () {
-                  _mutateState(() {
-                    _enableQingCompose = !_enableQingCompose;
-                  });
-                },
-                icon: const AssetImage('assets/images/hp.png'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (_enableRiverCompose)
-            _buildCategoryCapsuleForProvider(
-              theme: theme,
-              provider: AccountProvider.riverSide,
-              label: 'RiverSide 板块',
-              loading: _loadingRiverMeta,
+                const SizedBox(width: 6),
+                Icon(
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  size: 16,
+                  color: selected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ],
             ),
-          if (_enableRiverCompose && _enableQingCompose)
-            const SizedBox(height: 8),
-          if (_enableQingCompose)
-            _buildCategoryCapsuleForProvider(
-              theme: theme,
-              provider: AccountProvider.qingShuiHePan,
-              label: '清水河畔板块',
-              loading: _loadingQingMeta,
-            ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -467,27 +382,47 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
     required AccountProvider provider,
     required String label,
     required bool loading,
+    bool compact = false,
   }) {
     final selected = _selectedCategory(provider);
     final hasSelection = selected != null;
     final colorScheme = theme.colorScheme;
-    final categoryText = hasSelection
+    var categoryCaption = label;
+    var categoryText = hasSelection
         ? _displayCategoryName(selected, provider)
         : '选择板块';
+    if (provider == AccountProvider.qingShuiHePan && selected != null) {
+      final explicit = selected.displayName.trim();
+      final parts = explicit
+          .split(' · ')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+      if (parts.length > 1) {
+        categoryCaption =
+            '$label · ${parts.sublist(0, parts.length - 1).join(' · ')}';
+        categoryText = parts.last;
+      }
+    }
     return Align(
       alignment: Alignment.centerLeft,
       child: InkWell(
         onTap: _loadingMeta ? null : () => _openCategoryPicker(provider),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(compact ? 16 : 14),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 13 : 12,
+            compact ? 11 : 10,
+            compact ? 11 : 10,
+            compact ? 11 : 10,
+          ),
           decoration: BoxDecoration(
             color: hasSelection
                 ? colorScheme.primaryContainer
                 : colorScheme.surfaceContainerHigh.withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(compact ? 16 : 14),
             border: Border.all(
               color: hasSelection
                   ? colorScheme.primary.withValues(alpha: 0.22)
@@ -500,8 +435,8 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: SizedBox(
-                    width: 12,
-                    height: 12,
+                    width: compact ? 14 : 12,
+                    height: compact ? 14 : 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: colorScheme.primary,
@@ -513,7 +448,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                   hasSelection
                       ? Icons.dashboard_rounded
                       : Icons.dashboard_customize_outlined,
-                  size: 16,
+                  size: compact ? 17 : 16,
                   color: hasSelection
                       ? colorScheme.onPrimaryContainer
                       : colorScheme.onSurfaceVariant,
@@ -525,7 +460,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      label,
+                      categoryCaption,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
@@ -547,7 +482,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                             ? colorScheme.onPrimaryContainer
                             : colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                        fontSize: compact ? 14.5 : 14,
                       ),
                     ),
                   ],
@@ -556,10 +491,172 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
               const SizedBox(width: 4),
               Icon(
                 Icons.keyboard_arrow_down_rounded,
-                size: 18,
+                size: compact ? 20 : 18,
                 color: hasSelection
                     ? colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
                     : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomComposeDock(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final extraInset = bottomInset > 0 ? 0.0 : widget.bottomToolbarExtraInset;
+    final canUseRiver = _activeRiverCookieHeader()?.trim().isNotEmpty == true;
+    final canUseQing = _activeQingAuth() != null;
+    final selectedTargets =
+        (_enableRiverCompose ? 1 : 0) + (_enableQingCompose ? 1 : 0);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      margin: EdgeInsets.only(bottom: bottomInset),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            colorScheme.surface.withValues(alpha: 0.96),
+            colorScheme.surfaceContainerLowest.withValues(alpha: 0.98),
+          ],
+        ),
+        border: Border(
+          top: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.22),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        minimum: EdgeInsets.only(bottom: extraInset),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.travel_explore_rounded,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '发帖论坛',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selectedTargets > 0
+                          ? colorScheme.primaryContainer.withValues(alpha: 0.7)
+                          : colorScheme.surfaceContainerHigh.withValues(
+                              alpha: 0.8,
+                            ),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      selectedTargets > 0 ? '已选 $selectedTargets 个目标' : '请选择论坛',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: selectedTargets > 0
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildComposeTargetChip(
+                      theme: theme,
+                      label: 'RiverSide',
+                      selected: _enableRiverCompose,
+                      enabled: canUseRiver,
+                      onTap: () {
+                        _mutateState(() {
+                          _enableRiverCompose = !_enableRiverCompose;
+                        });
+                      },
+                      icon: const AssetImage('assets/images/rs.png'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildComposeTargetChip(
+                      theme: theme,
+                      label: '清水河畔',
+                      selected: _enableQingCompose,
+                      enabled: canUseQing,
+                      onTap: () {
+                        _mutateState(() {
+                          _enableQingCompose = !_enableQingCompose;
+                        });
+                      },
+                      icon: const AssetImage('assets/images/hp.png'),
+                    ),
+                  ),
+                ],
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: (_enableRiverCompose || _enableQingCompose) ? 10 : 0,
+                  ),
+                  child: selectedTargets == 0
+                      ? const SizedBox.shrink()
+                      : Column(
+                          children: [
+                            if (_enableRiverCompose)
+                              _buildCategoryCapsuleForProvider(
+                                theme: theme,
+                                provider: AccountProvider.riverSide,
+                                label: 'RiverSide',
+                                loading: _loadingRiverMeta,
+                                compact: true,
+                              ),
+                            if (_enableRiverCompose && _enableQingCompose)
+                              const SizedBox(height: 8),
+                            if (_enableQingCompose)
+                              _buildCategoryCapsuleForProvider(
+                                theme: theme,
+                                provider: AccountProvider.qingShuiHePan,
+                                label: '清水河畔',
+                                loading: _loadingQingMeta,
+                                compact: true,
+                              ),
+                          ],
+                        ),
+                ),
               ),
             ],
           ),
@@ -603,92 +700,6 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
               ),
       ),
     );
-  }
-
-  Widget _buildBottomToolbar(BuildContext context) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final keyboardVisible = bottomInset > 0 || _titleFocusNode.hasFocus;
-    final extraInset = bottomInset > 0 ? 0.0 : widget.bottomToolbarExtraInset;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      margin: EdgeInsets.only(bottom: bottomInset),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: SafeArea(
-        top: false,
-        minimum: EdgeInsets.only(bottom: extraInset),
-        child: Row(
-          children: [
-            _ToolButton(
-              icon: Icons.image_outlined,
-              label: '图片',
-              onTap: () {
-                _openEditor();
-              },
-            ),
-            const SizedBox(width: 16),
-            _ToolButton(
-              icon: Icons.sentiment_satisfied_rounded,
-              label: '表情',
-              onTap: _openEditor,
-            ),
-            const SizedBox(width: 16),
-            _ToolButton(
-              icon: Icons.format_quote_rounded,
-              label: '引用',
-              onTap: _openEditor,
-            ),
-            if (keyboardVisible) ...[
-              const SizedBox(width: 8),
-              _ToolButton(
-                icon: Icons.keyboard_hide_rounded,
-                label: '收起键盘',
-                onTap: _dismissComposeKeyboard,
-              ),
-            ],
-            const Spacer(),
-            TextButton.icon(
-              onPressed: _openEditor,
-              style: TextButton.styleFrom(
-                foregroundColor: colorScheme.primary,
-                backgroundColor: colorScheme.primaryContainer.withValues(
-                  alpha: 0.3,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-              ),
-              icon: const Icon(Icons.fullscreen, size: 18),
-              label: const Text('全屏编辑'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _dismissComposeKeyboard() {
-    HapticFeedback.lightImpact();
-    FocusManager.instance.primaryFocus?.unfocus();
-    _titleFocusNode.unfocus();
-    SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
   }
 }
 
@@ -739,36 +750,3 @@ class _AnimatedScaleButtonState extends State<_AnimatedScaleButton>
     );
   }
 }
-
-class _ToolButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _ToolButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Icon(
-          icon,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          size: 24,
-        ),
-      ),
-    );
-  }
-}
-
-

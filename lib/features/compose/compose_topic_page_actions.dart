@@ -186,6 +186,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
         forceRefresh: true,
       );
     }
+    categories = filterRiverSidePublishableCategories(categories);
     final emojiUrls = await api
         .fetchEmojiUrlMap(cookieHeader: cookie)
         .catchError((_) {
@@ -207,7 +208,10 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
     required bool forceRefresh,
   }) async {
     final auth = _activeQingAuth();
-    if (auth == null) return const <RiverSideCategoryOption>[];
+    if (auth == null) {
+      _qingCategoryRoots = const <_QingComposeForumNode>[];
+      return const <RiverSideCategoryOption>[];
+    }
     if (!forceRefresh && _qingCategories.isNotEmpty) return _qingCategories;
     final endpoint =
         '${RiverServerConfig.instance.qingShuiHePanBaseUrl}/_/forum/list';
@@ -232,8 +236,9 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
     final decoded = jsonDecode(utf8.decode(response.bodyBytes));
     if (decoded is! Map) {
       final legacy = await _loadQingCategoriesLegacyMobcent(auth);
-      if (legacy.isNotEmpty) {
-        return legacy;
+      if (legacy.categories.isNotEmpty) {
+        _qingCategoryRoots = legacy.roots;
+        return _injectQingDeveloperCategoryIfNeeded(legacy.categories);
       }
       throw const RiverSideApiException('清水河畔板块接口返回异常');
     }
@@ -242,21 +247,25 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
       final code = _parseInt(map['code']) ?? -1;
       if (code != 0) {
         final legacy = await _loadQingCategoriesLegacyMobcent(auth);
-        if (legacy.isNotEmpty) {
-          return _injectQingDeveloperCategoryIfNeeded(legacy);
+        if (legacy.categories.isNotEmpty) {
+          _qingCategoryRoots = legacy.roots;
+          return _injectQingDeveloperCategoryIfNeeded(legacy.categories);
         }
         final message = '${map['message'] ?? '清水河畔板块加载失败'}'.trim();
         throw RiverSideApiException(message.isEmpty ? '清水河畔板块加载失败' : message);
       }
       final parsed = _parseQingForumTreeCategories(map['data']);
-      if (parsed.isNotEmpty) {
-        return _injectQingDeveloperCategoryIfNeeded(parsed);
+      if (parsed.categories.isNotEmpty) {
+        _qingCategoryRoots = parsed.roots;
+        return _injectQingDeveloperCategoryIfNeeded(parsed.categories);
       }
       final legacy = await _loadQingCategoriesLegacyMobcent(auth);
-      if (legacy.isNotEmpty) {
-        return _injectQingDeveloperCategoryIfNeeded(legacy);
+      if (legacy.categories.isNotEmpty) {
+        _qingCategoryRoots = legacy.roots;
+        return _injectQingDeveloperCategoryIfNeeded(legacy.categories);
       }
-      return _injectQingDeveloperCategoryIfNeeded(parsed);
+      _qingCategoryRoots = parsed.roots;
+      return _injectQingDeveloperCategoryIfNeeded(parsed.categories);
     }
     if ('${map['rs']}' == '0') {
       final head = map['head'] is Map
@@ -266,9 +275,9 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
           .trim();
       throw RiverSideApiException(message.isEmpty ? '清水河畔板块加载失败' : message);
     }
-    return _injectQingDeveloperCategoryIfNeeded(
-      _parseQingForumCategories(map['list']),
-    );
+    final parsed = _parseQingForumCategories(map['list']);
+    _qingCategoryRoots = parsed.roots;
+    return _injectQingDeveloperCategoryIfNeeded(parsed.categories);
   }
 
   List<RiverSideCategoryOption> _injectQingDeveloperCategoryIfNeeded(
@@ -291,12 +300,13 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
         position: next.length + 1,
         parentCategoryId: null,
         description: '',
+        displayName: '开发者专区',
       ),
     );
     return next;
   }
 
-  Future<List<RiverSideCategoryOption>> _loadQingCategoriesLegacyMobcent(
+  Future<_QingComposeCategoryLoadResult> _loadQingCategoriesLegacyMobcent(
     QingShuiHePanAuth auth,
   ) async {
     final endpoint =
@@ -319,23 +329,36 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
         .timeout(const Duration(seconds: 16));
     final decoded = jsonDecode(utf8.decode(response.bodyBytes));
     if (decoded is! Map) {
-      return const <RiverSideCategoryOption>[];
+      return const _QingComposeCategoryLoadResult(
+        categories: <RiverSideCategoryOption>[],
+        roots: <_QingComposeForumNode>[],
+      );
     }
     final map = decoded.map((key, value) => MapEntry('$key', value));
     if ('${map['rs']}' == '0') {
-      return const <RiverSideCategoryOption>[];
+      return const _QingComposeCategoryLoadResult(
+        categories: <RiverSideCategoryOption>[],
+        roots: <_QingComposeForumNode>[],
+      );
     }
     return _parseQingForumCategories(map['list']);
   }
 
-  List<RiverSideCategoryOption> _parseQingForumTreeCategories(dynamic dataRaw) {
+  _QingComposeCategoryLoadResult _parseQingForumTreeCategories(
+    dynamic dataRaw,
+  ) {
     if (dataRaw is! List) {
-      return const <RiverSideCategoryOption>[];
+      return const _QingComposeCategoryLoadResult(
+        categories: <RiverSideCategoryOption>[],
+        roots: <_QingComposeForumNode>[],
+      );
     }
     final categories = <RiverSideCategoryOption>[];
+    final roots = <_QingComposeForumNode>[];
     final seenIds = <int>{};
     var position = 0;
     var syntheticParentSeed = 1;
+    int nextSyntheticId() => -(900000 + syntheticParentSeed++);
 
     bool canPostThread(Map<String, dynamic> node) {
       final raw = node['can_post_thread'];
@@ -345,91 +368,89 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
       return text == '1' || text == 'true';
     }
 
-    void addTopLevel({required int id, required String name}) {
-      categories.add(
-        RiverSideCategoryOption(
-          id: id,
-          name: name,
-          position: position++,
-          parentCategoryId: null,
-          description: '',
-        ),
-      );
-      seenIds.add(id);
-    }
-
-    void walkChildren(
-      List<dynamic> children, {
-      required int parentId,
+    _QingComposeForumNode? buildNode(
+      Map<String, dynamic> node, {
       required List<String> path,
     }) {
-      for (final rawChild in children) {
-        final node = _toStringDynamicMap(rawChild);
-        if (node.isEmpty) continue;
-        final fid = _parseInt(node['fid']);
-        final name = _pickStringFromMap(node, const <String>['name']);
-        if (name.isEmpty) continue;
-
-        final nextPath = <String>[...path, name];
-        if (fid != null &&
-            fid > 0 &&
-            canPostThread(node) &&
-            !seenIds.contains(fid)) {
-          final label = nextPath.length <= 1
-              ? name
-              : nextPath.sublist(1).join(' / ');
-          categories.add(
-            RiverSideCategoryOption(
-              id: fid,
-              name: label,
-              position: position++,
-              parentCategoryId: parentId,
-              description: '',
-            ),
+      if (node.isEmpty) {
+        return null;
+      }
+      final name = _pickStringFromMap(node, const <String>['name']);
+      if (name.isEmpty) {
+        return null;
+      }
+      final fid = _parseInt(node['fid']);
+      final canCreate = fid != null && fid > 0 && canPostThread(node);
+      final currentPath = <String>[...path, name];
+      final children = <_QingComposeForumNode>[];
+      final nestedChildren = node['children'];
+      if (nestedChildren is List) {
+        for (final rawChild in nestedChildren) {
+          final parsed = buildNode(
+            _toStringDynamicMap(rawChild),
+            path: currentPath,
           );
-          seenIds.add(fid);
-        }
-
-        final nestedChildren = node['children'];
-        if (nestedChildren is List && nestedChildren.isNotEmpty) {
-          walkChildren(nestedChildren, parentId: parentId, path: nextPath);
+          if (parsed != null) {
+            children.add(parsed);
+          }
         }
       }
+      if (!canCreate && children.isEmpty) {
+        return null;
+      }
+      final displayName = currentPath.join(' · ');
+      final includeAsBoard = canCreate && currentPath.length > 1;
+      if (includeAsBoard && seenIds.add(fid)) {
+        categories.add(
+          RiverSideCategoryOption(
+            id: fid,
+            name: name,
+            position: position++,
+            parentCategoryId: null,
+            description: '',
+            displayName: displayName,
+          ),
+        );
+      }
+      return _QingComposeForumNode(
+        id: includeAsBoard ? fid : nextSyntheticId(),
+        boardId: includeAsBoard ? fid : null,
+        name: name,
+        displayName: displayName,
+        canCreateTopic: includeAsBoard,
+        children: List<_QingComposeForumNode>.unmodifiable(children),
+      );
     }
 
     for (final rawRoot in dataRaw) {
-      final root = _toStringDynamicMap(rawRoot);
-      if (root.isEmpty) continue;
-      final rootName = _pickStringFromMap(root, const <String>['name']);
-      if (rootName.isEmpty) continue;
-      final rootFid = _parseInt(root['fid']);
-
-      final canUseRootAsParent =
-          rootFid != null && rootFid > 0 && canPostThread(root);
-      final parentId = canUseRootAsParent
-          ? rootFid
-          : -(900000 + syntheticParentSeed++);
-      if (!seenIds.contains(parentId)) {
-        addTopLevel(id: parentId, name: rootName);
-      }
-
-      final children = root['children'];
-      if (children is List && children.isNotEmpty) {
-        walkChildren(children, parentId: parentId, path: <String>[rootName]);
+      final root = buildNode(
+        _toStringDynamicMap(rawRoot),
+        path: const <String>[],
+      );
+      if (root != null) {
+        roots.add(root);
       }
     }
 
-    return categories;
+    return _QingComposeCategoryLoadResult(
+      categories: List<RiverSideCategoryOption>.unmodifiable(categories),
+      roots: List<_QingComposeForumNode>.unmodifiable(roots),
+    );
   }
 
-  List<RiverSideCategoryOption> _parseQingForumCategories(dynamic listRaw) {
+  _QingComposeCategoryLoadResult _parseQingForumCategories(dynamic listRaw) {
     if (listRaw is! List) {
-      return const <RiverSideCategoryOption>[];
+      return const _QingComposeCategoryLoadResult(
+        categories: <RiverSideCategoryOption>[],
+        roots: <_QingComposeForumNode>[],
+      );
     }
     final categories = <RiverSideCategoryOption>[];
+    final roots = <_QingComposeForumNode>[];
     final seenBoardIds = <int>{};
     var position = 0;
-    var syntheticParentSeed = 1;
+    var syntheticSeed = 1;
+    int nextSyntheticId() => -(100000 + syntheticSeed++);
 
     for (final rawGroup in listRaw) {
       final group = _toStringDynamicMap(rawGroup);
@@ -439,54 +460,69 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
         'category_name',
         'name',
       ]);
-      final groupIdRaw = _parseInt(group['board_category_id']);
-      int? parentId;
-      if (groupName.isNotEmpty) {
-        final safeGroupId =
-            groupIdRaw != null &&
-                groupIdRaw > 0 &&
-                !seenBoardIds.contains(groupIdRaw)
-            ? groupIdRaw
-            : -(100000 + syntheticParentSeed++);
-        parentId = safeGroupId;
-        categories.add(
-          RiverSideCategoryOption(
-            id: safeGroupId,
-            name: groupName,
-            position: position++,
-            parentCategoryId: null,
-            description: '',
-          ),
-        );
-      }
+      final groupId = _parseInt(group['board_category_id']);
       final boardList = group['board_list'];
-      if (boardList is! List) continue;
-      for (final rawBoard in boardList) {
-        final board = _toStringDynamicMap(rawBoard);
-        if (board.isEmpty) continue;
-        final boardId = _parseInt(board['board_id']);
-        if (boardId == null || boardId <= 0 || seenBoardIds.contains(boardId)) {
-          continue;
+      final children = <_QingComposeForumNode>[];
+      if (boardList is List) {
+        for (final rawBoard in boardList) {
+          final board = _toStringDynamicMap(rawBoard);
+          if (board.isEmpty) continue;
+          final boardId = _parseInt(board['board_id']);
+          if (boardId == null ||
+              boardId <= 0 ||
+              seenBoardIds.contains(boardId)) {
+            continue;
+          }
+          final boardName = _pickStringFromMap(board, const <String>[
+            'board_name',
+            'forum_name',
+            'name',
+          ]);
+          if (boardName.isEmpty) continue;
+          seenBoardIds.add(boardId);
+          final displayName = groupName.isEmpty
+              ? boardName
+              : '$groupName · $boardName';
+          categories.add(
+            RiverSideCategoryOption(
+              id: boardId,
+              name: boardName,
+              position: position++,
+              parentCategoryId: null,
+              description: '',
+              displayName: displayName,
+            ),
+          );
+          children.add(
+            _QingComposeForumNode(
+              id: boardId,
+              boardId: boardId,
+              name: boardName,
+              displayName: displayName,
+              canCreateTopic: true,
+            ),
+          );
         }
-        final boardName = _pickStringFromMap(board, const <String>[
-          'board_name',
-          'forum_name',
-          'name',
-        ]);
-        if (boardName.isEmpty) continue;
-        seenBoardIds.add(boardId);
-        categories.add(
-          RiverSideCategoryOption(
-            id: boardId,
-            name: boardName,
-            position: position++,
-            parentCategoryId: parentId,
-            description: '',
-          ),
-        );
       }
+      if (groupName.isEmpty) {
+        roots.addAll(children);
+        continue;
+      }
+      if (children.isEmpty) continue;
+      roots.add(
+        _QingComposeForumNode(
+          id: groupId != null && groupId > 0 ? groupId : nextSyntheticId(),
+          name: groupName,
+          displayName: groupName,
+          canCreateTopic: false,
+          children: List<_QingComposeForumNode>.unmodifiable(children),
+        ),
+      );
     }
-    return categories;
+    return _QingComposeCategoryLoadResult(
+      categories: List<RiverSideCategoryOption>.unmodifiable(categories),
+      roots: List<_QingComposeForumNode>.unmodifiable(roots),
+    );
   }
 
   Future<String?> _uploadComposeImage(String fileName, List<int> bytes) async {
@@ -1060,42 +1096,51 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (sheetContext) {
-        return RiverSideCategoryPickerSheet(
-          initialCategories: source,
+        final payload = provider == AccountProvider.riverSide
+            ? _buildRiverPublishPickerPayload(source)
+            : _buildQingPublishPickerPayload(_qingCategoryRoots, source);
+        return RiverPublishCategoryPickerSheet(
+          title: provider == AccountProvider.riverSide
+              ? 'RiverSide 板块'
+              : '清水河畔板块',
+          subtitle: '选择需要发帖的板块',
+          icon: provider == AccountProvider.riverSide
+              ? Icons.dashboard_rounded
+              : Icons.account_tree_rounded,
+          payload: payload,
           selectedCategoryId: selectedId,
-          allowSelectAll: false,
-          onRefreshCategories: ({bool forceRefresh = false}) async {
+          onRefresh: () async {
             if (provider == AccountProvider.riverSide) {
               final cookie = _activeRiverCookieHeader();
-              final categories = await RiverSideCategoryStore.instance.load(
-                apiClient: widget.dependencies.accountStore.riverSideApiClient,
-                username:
-                    widget.dependencies.accountStore.activeRiverSideUsername,
-                cookieHeader: cookie,
-                forceRefresh: forceRefresh,
+              final categories = filterRiverSidePublishableCategories(
+                await RiverSideCategoryStore.instance.load(
+                  apiClient:
+                      widget.dependencies.accountStore.riverSideApiClient,
+                  username:
+                      widget.dependencies.accountStore.activeRiverSideUsername,
+                  cookieHeader: cookie,
+                  forceRefresh: true,
+                ),
               );
               if (mounted) {
                 _mutateState(() {
                   _riverCategories = categories;
                 });
               }
-              return categories;
+              return _buildRiverPublishPickerPayload(categories);
             }
-            final categories = await _loadQingCategories(
-              forceRefresh: forceRefresh,
-            );
+            final categories = await _loadQingCategories(forceRefresh: true);
             if (mounted) {
               _mutateState(() {
                 _qingCategories = categories;
               });
             }
-            return categories;
+            return _buildQingPublishPickerPayload(
+              _qingCategoryRoots,
+              categories,
+            );
           },
-          onSelected: (category) {
-            if (category != null) {
-              Navigator.of(sheetContext).pop(category);
-            }
-          },
+          onSelected: (category) => Navigator.of(sheetContext).pop(category),
         );
       },
     );
@@ -1129,6 +1174,113 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
       allCategories: provider == AccountProvider.riverSide
           ? _riverCategories
           : _qingCategories,
+    );
+  }
+
+  RiverPublishCategoryPickerPayload _buildRiverPublishPickerPayload(
+    List<RiverSideCategoryOption> categories,
+  ) {
+    final groups = buildRiverSideCategoryGroups(categories);
+    final tabs = <RiverPublishCategoryPickerTab>[];
+    final sectionsByTab = <int, List<RiverPublishCategoryPickerSection>>{};
+
+    for (final group in groups) {
+      final tabId = group.parent.id;
+      tabs.add(
+        RiverPublishCategoryPickerTab(id: tabId, label: group.parent.name),
+      );
+      final sections = <RiverPublishCategoryPickerSection>[];
+      if (group.parent.canCreateTopic) {
+        sections.add(
+          RiverPublishCategoryPickerSection(
+            title: '可发帖板块',
+            categories: <RiverSideCategoryOption>[group.parent],
+          ),
+        );
+      }
+      if (group.children.isNotEmpty) {
+        sections.add(
+          RiverPublishCategoryPickerSection(
+            title: '板块',
+            categories: group.children,
+          ),
+        );
+      }
+      sectionsByTab[tabId] = sections;
+    }
+
+    return RiverPublishCategoryPickerPayload(
+      tabs: tabs,
+      sectionsByTab: sectionsByTab,
+    );
+  }
+
+  RiverPublishCategoryPickerPayload _buildQingPublishPickerPayload(
+    List<_QingComposeForumNode> roots,
+    List<RiverSideCategoryOption> categories,
+  ) {
+    final categoryById = <int, RiverSideCategoryOption>{
+      for (final item in categories) item.id: item,
+    };
+    final tabs = <RiverPublishCategoryPickerTab>[];
+    final sectionsByTab = <int, List<RiverPublishCategoryPickerSection>>{};
+
+    for (final root in roots) {
+      final sections = <RiverPublishCategoryPickerSection>[];
+      final quickBoards = <RiverSideCategoryOption>[];
+      for (final child in root.children) {
+        if (child.children.isEmpty) {
+          final boardId = child.boardId;
+          final category = boardId == null ? null : categoryById[boardId];
+          if (category != null && child.canCreateTopic) {
+            quickBoards.add(category);
+          }
+          continue;
+        }
+        final boards = <RiverSideCategoryOption>[];
+        if (child.canCreateTopic && child.boardId != null) {
+          final direct = categoryById[child.boardId!];
+          if (direct != null) {
+            boards.add(direct);
+          }
+        }
+        for (final node in child.collectPostableDescendants()) {
+          final boardId = node.boardId;
+          if (boardId == null) {
+            continue;
+          }
+          final category = categoryById[boardId];
+          if (category != null &&
+              !boards.any((item) => item.id == category.id)) {
+            boards.add(category);
+          }
+        }
+        if (boards.isEmpty) {
+          continue;
+        }
+        sections.add(
+          RiverPublishCategoryPickerSection(
+            title: child.name,
+            categories: boards,
+          ),
+        );
+      }
+      if (quickBoards.isNotEmpty) {
+        sections.insert(
+          0,
+          RiverPublishCategoryPickerSection(
+            title: '快捷板块',
+            categories: quickBoards,
+          ),
+        );
+      }
+      tabs.add(RiverPublishCategoryPickerTab(id: root.id, label: root.name));
+      sectionsByTab[root.id] = sections;
+    }
+
+    return RiverPublishCategoryPickerPayload(
+      tabs: tabs,
+      sectionsByTab: sectionsByTab,
     );
   }
 
@@ -1896,6 +2048,8 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
 
     final title = _titleController.text.trim();
     final sourceMarkdown = _contentMarkdown.trim();
+    final publishToRiver = _enableRiverCompose;
+    final publishToQing = _enableQingCompose;
     final dualCompose = _enableRiverCompose && _enableQingCompose;
     final riverMarkdown = dualCompose
         ? QingEmojiCatalog.stripQingOnlyEmojiTokensForRiver(sourceMarkdown)
@@ -1903,61 +2057,58 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
     final qingMarkdown = dualCompose
         ? QingEmojiCatalog.convertRiverEmojiTokensToQingCommon(sourceMarkdown)
         : sourceMarkdown;
+    final riverCategoryId = _selectedRiverCategoryId;
+    final qingBoardId = _selectedQingBoardId;
+    final riverCookie = _activeRiverCookieHeader();
+    final qingAuth = _activeQingAuth();
     _mutateState(() => _publishing = true);
 
-    final success = <_ComposePublishResult>[];
-    String? riverFailure;
-    String? qingFailure;
-
     try {
-      if (_enableRiverCompose) {
-        try {
-          final result = await widget
-              .dependencies
-              .accountStore
-              .riverSideApiClient
-              .createTopic(
-                title: title,
-                raw: riverMarkdown,
-                categoryId: _selectedRiverCategoryId!,
-                cookieHeader: _activeRiverCookieHeader()!,
-              );
-          success.add(
-            _ComposePublishResult(
-              provider: AccountProvider.riverSide,
-              topicId: result.topicId,
-            ),
-          );
-        } on RiverSideApiException catch (error) {
-          final message = error.message.trim();
-          riverFailure = message.isEmpty ? '发布失败' : message;
-        } catch (_) {
-          riverFailure = '发布失败';
-        }
+      final tasks = <Future<_ComposePublishAttemptResult>>[];
+      if (publishToRiver && riverCategoryId != null && riverCookie != null) {
+        tasks.add(
+          _publishRiverTopic(
+            title: title,
+            markdown: riverMarkdown,
+            categoryId: riverCategoryId,
+            cookieHeader: riverCookie,
+          ),
+        );
       }
-
-      if (_enableQingCompose) {
-        try {
-          final topicId = await _publishQingTopic(
-            auth: _activeQingAuth()!,
-            boardId: _selectedQingBoardId!,
+      if (publishToQing && qingBoardId != null && qingAuth != null) {
+        tasks.add(
+          _publishQingTopicAttempt(
+            auth: qingAuth,
+            boardId: qingBoardId,
             title: title,
             markdown: qingMarkdown,
-          );
-          success.add(
-            _ComposePublishResult(
-              provider: AccountProvider.qingShuiHePan,
-              topicId: topicId,
-              boardId: _selectedQingBoardId,
-            ),
-          );
-        } on RiverSideApiException catch (error) {
-          final message = error.message.trim();
-          qingFailure = message.isEmpty ? '发布失败' : message;
-        } catch (_) {
-          qingFailure = '发布失败';
-        }
+          ),
+        );
       }
+
+      final results = tasks.isEmpty
+          ? const <_ComposePublishAttemptResult>[]
+          : await Future.wait(tasks);
+      final success = results
+          .where((item) => item.success)
+          .map(
+            (item) => _ComposePublishResult(
+              provider: item.provider,
+              topicId: item.topicId,
+              boardId: item.boardId,
+            ),
+          )
+          .toList(growable: false);
+      final riverFailure = results
+          .where((item) => item.provider == AccountProvider.riverSide)
+          .map((item) => item.failureMessage)
+          .whereType<String>()
+          .firstOrNull;
+      final qingFailure = results
+          .where((item) => item.provider == AccountProvider.qingShuiHePan)
+          .map((item) => item.failureMessage)
+          .whereType<String>()
+          .firstOrNull;
 
       if (!mounted) return;
       if (success.isEmpty) {
@@ -2030,6 +2181,70 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
       if (mounted) {
         _mutateState(() => _publishing = false);
       }
+    }
+  }
+
+  Future<_ComposePublishAttemptResult> _publishRiverTopic({
+    required String title,
+    required String markdown,
+    required int categoryId,
+    required String cookieHeader,
+  }) async {
+    try {
+      final result = await widget.dependencies.accountStore.riverSideApiClient
+          .createTopic(
+            title: title,
+            raw: markdown,
+            categoryId: categoryId,
+            cookieHeader: cookieHeader,
+          );
+      return _ComposePublishAttemptResult.success(
+        provider: AccountProvider.riverSide,
+        topicId: result.topicId,
+      );
+    } on RiverSideApiException catch (error) {
+      final message = error.message.trim();
+      return _ComposePublishAttemptResult.failure(
+        provider: AccountProvider.riverSide,
+        failureMessage: message.isEmpty ? '发布失败' : message,
+      );
+    } catch (_) {
+      return const _ComposePublishAttemptResult.failure(
+        provider: AccountProvider.riverSide,
+        failureMessage: '发布失败',
+      );
+    }
+  }
+
+  Future<_ComposePublishAttemptResult> _publishQingTopicAttempt({
+    required QingShuiHePanAuth auth,
+    required int boardId,
+    required String title,
+    required String markdown,
+  }) async {
+    try {
+      final topicId = await _publishQingTopic(
+        auth: auth,
+        boardId: boardId,
+        title: title,
+        markdown: markdown,
+      );
+      return _ComposePublishAttemptResult.success(
+        provider: AccountProvider.qingShuiHePan,
+        topicId: topicId,
+        boardId: boardId,
+      );
+    } on RiverSideApiException catch (error) {
+      final message = error.message.trim();
+      return _ComposePublishAttemptResult.failure(
+        provider: AccountProvider.qingShuiHePan,
+        failureMessage: message.isEmpty ? '发布失败' : message,
+      );
+    } catch (_) {
+      return const _ComposePublishAttemptResult.failure(
+        provider: AccountProvider.qingShuiHePan,
+        failureMessage: '发布失败',
+      );
     }
   }
 
@@ -2277,6 +2492,67 @@ class _QingComposeTopicPayload {
   final List<String> aids;
 }
 
+class _QingComposeCategoryLoadResult {
+  const _QingComposeCategoryLoadResult({
+    required this.categories,
+    required this.roots,
+  });
+
+  final List<RiverSideCategoryOption> categories;
+  final List<_QingComposeForumNode> roots;
+}
+
+class _QingComposeForumNode {
+  const _QingComposeForumNode({
+    required this.id,
+    this.boardId,
+    required this.name,
+    required this.displayName,
+    required this.canCreateTopic,
+    this.children = const <_QingComposeForumNode>[],
+  });
+
+  final int id;
+  final int? boardId;
+  final String name;
+  final String displayName;
+  final bool canCreateTopic;
+  final List<_QingComposeForumNode> children;
+
+  bool containsBoard(int targetBoardId) {
+    if (boardId == targetBoardId) {
+      return true;
+    }
+    for (final child in children) {
+      if (child.containsBoard(targetBoardId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<_QingComposeForumNode> collectPostableDescendants({
+    bool includeSelf = false,
+  }) {
+    final result = <_QingComposeForumNode>[];
+    final seen = <int>{};
+
+    void visit(_QingComposeForumNode node, {required bool allowSelf}) {
+      if (allowSelf && node.canCreateTopic && node.boardId != null) {
+        if (seen.add(node.boardId!)) {
+          result.add(node);
+        }
+      }
+      for (final child in node.children) {
+        visit(child, allowSelf: true);
+      }
+    }
+
+    visit(this, allowSelf: includeSelf);
+    return result;
+  }
+}
+
 class _ComposePublishResult {
   const _ComposePublishResult({
     required this.provider,
@@ -2287,6 +2563,42 @@ class _ComposePublishResult {
   final AccountProvider provider;
   final int? topicId;
   final int? boardId;
+}
+
+class _ComposePublishAttemptResult {
+  const _ComposePublishAttemptResult._({
+    required this.provider,
+    required this.success,
+    this.topicId,
+    this.boardId,
+    this.failureMessage,
+  });
+
+  const _ComposePublishAttemptResult.success({
+    required AccountProvider provider,
+    int? topicId,
+    int? boardId,
+  }) : this._(
+         provider: provider,
+         success: true,
+         topicId: topicId,
+         boardId: boardId,
+       );
+
+  const _ComposePublishAttemptResult.failure({
+    required AccountProvider provider,
+    required String failureMessage,
+  }) : this._(
+         provider: provider,
+         success: false,
+         failureMessage: failureMessage,
+       );
+
+  final AccountProvider provider;
+  final bool success;
+  final int? topicId;
+  final int? boardId;
+  final String? failureMessage;
 }
 
 enum _CrossForumTransferSource { riverSide, qingShuiHePan }

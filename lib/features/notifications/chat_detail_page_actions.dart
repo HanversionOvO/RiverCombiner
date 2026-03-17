@@ -164,28 +164,13 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       text: next,
       selection: TextSelection.collapsed(offset: cursor),
     );
-    _composerFocusNode.requestFocus();
+    if (!_composerEmojiPanelVisible) {
+      _composerFocusNode.requestFocus();
+    }
   }
 
   Future<void> _showComposerEmojiPicker() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: false,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return RiverStructuredEmojiPicker(
-          emojiUrls: _emojiUrls,
-          emojiGroups: _emojiGroups,
-          onSelected: (key) {
-            _insertComposerText(':$key:');
-            Navigator.of(sheetContext).pop();
-          },
-          title: '选择表情',
-        );
-      },
-    );
+    _toggleComposerEmojiPanel();
   }
 
   Future<void> _pickAndInsertComposerImage() async {
@@ -283,7 +268,6 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
 
   Future<_ChatImagePickSource?> _showComposerImageSourceMenu() {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     return showModalBottomSheet<_ChatImagePickSource>(
       context: context,
       isScrollControlled: false,
@@ -291,43 +275,171 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
       showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Material(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
-              clipBehavior: Clip.antiAlias,
+        final colorScheme = theme.colorScheme;
+        Widget buildActionTile({
+          required IconData icon,
+          required String title,
+          required String subtitle,
+          required _ChatImagePickSource value,
+        }) {
+          return ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 2,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorScheme.primaryContainer.withValues(alpha: 0.72),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                icon,
+                color: colorScheme.onPrimaryContainer,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              title,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            subtitle: Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.35,
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right_rounded,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+            onTap: () => Navigator.of(sheetContext).pop(value),
+          );
+        }
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.84,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  colorScheme.surfaceContainerLow.withValues(alpha: 0.92),
+                  colorScheme.surface,
+                ],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(30),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-                    child: Text(
-                      '插入图片',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.camera_alt_rounded),
-                    title: const Text('拍摄照片'),
-                    subtitle: const Text('调用相机拍摄并上传'),
-                    onTap: () => Navigator.of(
-                      sheetContext,
-                    ).pop(_ChatImagePickSource.camera),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 14, 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: colorScheme.primaryContainer,
+                          ),
+                          child: Icon(
+                            Icons.add_photo_alternate_outlined,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '插入图片',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                '从图库中选择图片或拍摄照片发送',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.image_outlined),
-                    title: const Text('选择图片'),
-                    subtitle: const Text('从相册中选择（最多 3 张）'),
-                    onTap: () => Navigator.of(
-                      sheetContext,
-                    ).pop(_ChatImagePickSource.gallery),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerLow.withValues(
+                          alpha: 0.5,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 0.26,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          buildActionTile(
+                            icon: Icons.camera_alt_rounded,
+                            title: '拍摄照片',
+                            subtitle: '调用相机拍摄',
+                            value: _ChatImagePickSource.camera,
+                          ),
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            indent: 68,
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.2,
+                            ),
+                          ),
+                          buildActionTile(
+                            icon: Icons.image_outlined,
+                            title: '选择图片',
+                            subtitle: '从相册中选择',
+                            value: _ChatImagePickSource.gallery,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 4),
                 ],
               ),
             ),
@@ -768,9 +880,11 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
         showDragHandle: false,
         backgroundColor: Colors.transparent,
         builder: (sheetContext) {
-          return RiverStructuredEmojiPicker(
+          return RiverEmojiPicker(
             emojiUrls: _emojiUrls,
             emojiGroups: _emojiGroups,
+            resolveUrl: _resolveForumUrl,
+            headersForUrl: _headersForUrl,
             onSelected: (key) {
               selected = key;
               Navigator.of(sheetContext).pop();

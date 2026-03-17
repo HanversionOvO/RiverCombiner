@@ -79,6 +79,8 @@ dependencies:
   toastification: ^3.0.3
   soft_edge_blur: ^0.1.3
   motion: 2.0.1
+  emoji_picker_flutter: ^4.4.0
+  flutter_image_compress: ^2.4.0
 
 dev_dependencies:
   flutter_test:

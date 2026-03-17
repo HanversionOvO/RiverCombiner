@@ -306,15 +306,15 @@ class _RiverAppState extends State<RiverApp> {
       case RiverSideInAppMessageKind.directMessage:
         final channel = banner.channel;
         if (channel == null) {
-          _homeShellController.performQuickAction(HomeQuickAction.notifications);
+          _homeShellController.performQuickAction(
+            HomeQuickAction.notifications,
+          );
           return;
         }
         await Navigator.of(context).push(
           riverPageRoute<void>(
-            builder: (_) => ChatDetailPage(
-              dependencies: _dependencies,
-              channel: channel,
-            ),
+            builder: (_) =>
+                ChatDetailPage(dependencies: _dependencies, channel: channel),
           ),
         );
         return;
@@ -856,26 +856,21 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInCubic,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 0.96,
-      end: 1,
-    ).animate(
+    _scaleAnimation = Tween<double>(begin: 0.96, end: 1).animate(
       CurvedAnimation(
         parent: _visibilityController,
         curve: Curves.easeOutBack,
         reverseCurve: Curves.easeInOutCubic,
       ),
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -0.16),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _visibilityController,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -0.16), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _visibilityController,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          ),
+        );
     _subscription = widget.service.bannerStream.listen(_showBanner);
   }
 
@@ -995,7 +990,10 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
       RiverSideInAppMessageKind.channelMessage => '频道消息',
       RiverSideInAppMessageKind.directMessage => '私信消息',
     };
-    final dragProgress = (-_dragOffsetY / _dismissDragThreshold).clamp(0.0, 1.0);
+    final dragProgress = (-_dragOffsetY / _dismissDragThreshold).clamp(
+      0.0,
+      1.0,
+    );
     return Positioned(
       top: topInset + 8,
       left: 12,
@@ -1003,7 +1001,8 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
       child: SafeArea(
         bottom: false,
         child: IgnorePointer(
-          ignoring: _currentBanner == null ||
+          ignoring:
+              _currentBanner == null ||
               _visibilityController.status == AnimationStatus.dismissed,
           child: FadeTransition(
             opacity: _opacityAnimation,
@@ -1086,7 +1085,9 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
                                               shape: BoxShape.circle,
                                               gradient: RadialGradient(
                                                 colors: <Color>[
-                                                  accent.withValues(alpha: 0.18),
+                                                  accent.withValues(
+                                                    alpha: 0.18,
+                                                  ),
                                                   accent.withValues(alpha: 0),
                                                 ],
                                               ),
@@ -1126,7 +1127,8 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
                                               alignment: Alignment.center,
                                               child: Icon(
                                                 icon,
-                                                color: theme.colorScheme.onPrimary,
+                                                color:
+                                                    theme.colorScheme.onPrimary,
                                                 size: 20,
                                               ),
                                             ),

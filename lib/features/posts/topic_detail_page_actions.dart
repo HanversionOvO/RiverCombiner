@@ -852,7 +852,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
           forceRefresh: true,
         );
       }
-      return categories;
+      return filterRiverSidePublishableCategories(categories);
     }
     return _loadQingCrossPostCategories();
   }
@@ -871,20 +871,30 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (sheetContext) {
-        return RiverSideCategoryPickerSheet(
-          initialCategories: categories,
+        final payload = targetProvider == AccountProvider.riverSide
+            ? _buildCrossPostRiverPublishPickerPayload(categories)
+            : _buildCrossPostQingPublishPickerPayload(categories);
+        return RiverPublishCategoryPickerSheet(
+          title: targetProvider == AccountProvider.riverSide
+              ? 'RiverSide 板块'
+              : '清水河畔板块',
+          subtitle: '选择需要发帖的板块',
+          icon: targetProvider == AccountProvider.riverSide
+              ? Icons.dashboard_rounded
+              : Icons.account_tree_rounded,
+          payload: payload,
           selectedCategoryId: selectedCategoryId,
-          allowSelectAll: false,
-          onRefreshCategories: ({bool forceRefresh = false}) async {
+          onRefresh: () async {
+            final next = targetProvider == AccountProvider.riverSide
+                ? await _loadCrossPostTargetCategories(
+                    AccountProvider.riverSide,
+                  )
+                : await _loadQingCrossPostCategories(forceRefresh: true);
             return targetProvider == AccountProvider.riverSide
-                ? _loadCrossPostTargetCategories(AccountProvider.riverSide)
-                : _loadQingCrossPostCategories(forceRefresh: forceRefresh);
+                ? _buildCrossPostRiverPublishPickerPayload(next)
+                : _buildCrossPostQingPublishPickerPayload(next);
           },
-          onSelected: (category) {
-            if (category != null) {
-              Navigator.of(sheetContext).pop(category);
-            }
-          },
+          onSelected: (category) => Navigator.of(sheetContext).pop(category),
         );
       },
     );
@@ -897,6 +907,94 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     return _CrossPostCategorySelection(
       selectedCategoryId: selected.id,
       categories: refreshed.isEmpty ? categories : refreshed,
+    );
+  }
+
+  RiverPublishCategoryPickerPayload _buildCrossPostRiverPublishPickerPayload(
+    List<RiverSideCategoryOption> categories,
+  ) {
+    final groups = buildRiverSideCategoryGroups(categories);
+    final tabs = <RiverPublishCategoryPickerTab>[];
+    final sectionsByTab = <int, List<RiverPublishCategoryPickerSection>>{};
+    for (final group in groups) {
+      final tabId = group.parent.id;
+      tabs.add(
+        RiverPublishCategoryPickerTab(id: tabId, label: group.parent.name),
+      );
+      final sections = <RiverPublishCategoryPickerSection>[];
+      if (group.parent.canCreateTopic) {
+        sections.add(
+          RiverPublishCategoryPickerSection(
+            title: '可发帖板块',
+            categories: <RiverSideCategoryOption>[group.parent],
+          ),
+        );
+      }
+      if (group.children.isNotEmpty) {
+        sections.add(
+          RiverPublishCategoryPickerSection(
+            title: '板块',
+            categories: group.children,
+          ),
+        );
+      }
+      sectionsByTab[tabId] = sections;
+    }
+    return RiverPublishCategoryPickerPayload(
+      tabs: tabs,
+      sectionsByTab: sectionsByTab,
+    );
+  }
+
+  RiverPublishCategoryPickerPayload _buildCrossPostQingPublishPickerPayload(
+    List<RiverSideCategoryOption> categories,
+  ) {
+    final tabs = <RiverPublishCategoryPickerTab>[];
+    final sectionsByTab = <int, List<RiverPublishCategoryPickerSection>>{};
+    final tabOrder = <String>[];
+    final sectionOrderByTab = <String, List<String>>{};
+    final grouped = <String, Map<String, List<RiverSideCategoryOption>>>{};
+
+    for (final category in categories) {
+      final parts = category.displayName
+          .split(' · ')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+      final root = parts.isEmpty ? category.name : parts.first;
+      final section = parts.length >= 3 ? parts[1] : '板块';
+      if (!grouped.containsKey(root)) {
+        grouped[root] = <String, List<RiverSideCategoryOption>>{};
+        tabOrder.add(root);
+      }
+      final sectionMap = grouped[root]!;
+      if (!sectionMap.containsKey(section)) {
+        sectionMap[section] = <RiverSideCategoryOption>[];
+        sectionOrderByTab.putIfAbsent(root, () => <String>[]).add(section);
+      }
+      sectionMap[section]!.add(category);
+    }
+
+    for (var index = 0; index < tabOrder.length; index++) {
+      final root = tabOrder[index];
+      final tabId = index + 1;
+      tabs.add(RiverPublishCategoryPickerTab(id: tabId, label: root));
+      final sectionMap = grouped[root]!;
+      final order = sectionOrderByTab[root] ?? const <String>[];
+      sectionsByTab[tabId] = order
+          .map(
+            (section) => RiverPublishCategoryPickerSection(
+              title: section,
+              categories:
+                  sectionMap[section] ?? const <RiverSideCategoryOption>[],
+            ),
+          )
+          .toList(growable: false);
+    }
+
+    return RiverPublishCategoryPickerPayload(
+      tabs: tabs,
+      sectionsByTab: sectionsByTab,
     );
   }
 
@@ -1084,6 +1182,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
         position: next.length + 1,
         parentCategoryId: null,
         description: '',
+        displayName: '开发者专区',
       ),
     );
     return next;
@@ -1098,7 +1197,6 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     final categories = <RiverSideCategoryOption>[];
     final seenIds = <int>{};
     var position = 0;
-    var syntheticParentSeed = 1;
 
     bool canPostThread(Map<String, dynamic> node) {
       final raw = node['can_post_thread'];
@@ -1108,78 +1206,40 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       return text == '1' || text == 'true';
     }
 
-    void addTopLevel({required int id, required String name}) {
-      categories.add(
-        RiverSideCategoryOption(
-          id: id,
-          name: name,
-          position: position++,
-          parentCategoryId: null,
-          description: '',
-        ),
-      );
-      seenIds.add(id);
-    }
-
-    void walkChildren(
-      List<dynamic> children, {
-      required int parentId,
-      required List<String> path,
-    }) {
-      for (final rawChild in children) {
-        final node = _asStringDynamicMap(rawChild);
-        if (node.isEmpty) continue;
-        final fid = _asInt(node['fid']);
-        final name = _pickString(node, const <String>['name']);
-        if (name.isEmpty) continue;
-
-        final nextPath = <String>[...path, name];
-        if (fid != null &&
-            fid > 0 &&
-            canPostThread(node) &&
-            !seenIds.contains(fid)) {
-          final label = nextPath.length <= 1
-              ? name
-              : nextPath.sublist(1).join(' / ');
-          categories.add(
-            RiverSideCategoryOption(
-              id: fid,
-              name: label,
-              position: position++,
-              parentCategoryId: parentId,
-              description: '',
-            ),
-          );
-          seenIds.add(fid);
-        }
-
-        final nestedChildren = node['children'];
-        if (nestedChildren is List && nestedChildren.isNotEmpty) {
-          walkChildren(nestedChildren, parentId: parentId, path: nextPath);
+    void walkNode(Map<String, dynamic> node, {required List<String> path}) {
+      if (node.isEmpty) {
+        return;
+      }
+      final fid = _asInt(node['fid']);
+      final name = _pickString(node, const <String>['name']);
+      if (name.isEmpty) {
+        return;
+      }
+      final nextPath = <String>[...path, name];
+      final canCreate = fid != null && fid > 0 && canPostThread(node);
+      final includeAsBoard = canCreate && nextPath.length > 1;
+      if (includeAsBoard && seenIds.add(fid)) {
+        categories.add(
+          RiverSideCategoryOption(
+            id: fid,
+            name: name,
+            position: position++,
+            parentCategoryId: null,
+            description: '',
+            displayName: nextPath.join(' · '),
+          ),
+        );
+      }
+      final nestedChildren = node['children'];
+      if (nestedChildren is List) {
+        for (final rawChild in nestedChildren) {
+          walkNode(_asStringDynamicMap(rawChild), path: nextPath);
         }
       }
     }
 
     for (final rawRoot in dataRaw) {
-      final root = _asStringDynamicMap(rawRoot);
-      if (root.isEmpty) continue;
-      final rootName = _pickString(root, const <String>['name']);
-      if (rootName.isEmpty) continue;
-      final rootFid = _asInt(root['fid']);
-
-      final canUseRootAsParent =
-          rootFid != null && rootFid > 0 && canPostThread(root);
-      final parentId = canUseRootAsParent
-          ? rootFid
-          : -(900000 + syntheticParentSeed++);
-      if (!seenIds.contains(parentId)) {
-        addTopLevel(id: parentId, name: rootName);
-      }
-
-      final children = root['children'];
-      if (children is List && children.isNotEmpty) {
-        walkChildren(children, parentId: parentId, path: <String>[rootName]);
-      }
+      walkNode(_asStringDynamicMap(rawRoot), path: const <String>[]);
     }
     return categories;
   }
@@ -1193,7 +1253,6 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     final categories = <RiverSideCategoryOption>[];
     final seenBoardIds = <int>{};
     var position = 0;
-    var syntheticParentSeed = 1;
 
     for (final rawGroup in listRaw) {
       final group = _asStringDynamicMap(rawGroup);
@@ -1203,26 +1262,6 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
         'category_name',
         'name',
       ]);
-      final groupIdRaw = _asInt(group['board_category_id']);
-      int? parentId;
-      if (groupName.isNotEmpty) {
-        final safeGroupId =
-            groupIdRaw != null &&
-                groupIdRaw > 0 &&
-                !seenBoardIds.contains(groupIdRaw)
-            ? groupIdRaw
-            : -(100000 + syntheticParentSeed++);
-        parentId = safeGroupId;
-        categories.add(
-          RiverSideCategoryOption(
-            id: safeGroupId,
-            name: groupName,
-            position: position++,
-            parentCategoryId: null,
-            description: '',
-          ),
-        );
-      }
       final boardList = group['board_list'];
       if (boardList is! List) continue;
       for (final rawBoard in boardList) {
@@ -1244,8 +1283,11 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
             id: boardId,
             name: boardName,
             position: position++,
-            parentCategoryId: parentId,
+            parentCategoryId: null,
             description: '',
+            displayName: groupName.isEmpty
+                ? boardName
+                : '$groupName · $boardName',
           ),
         );
       }
@@ -1629,9 +1671,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showRiverSnackBar('回复发送失败');
+      ScaffoldMessenger.of(context).showRiverSnackBar('回复发送失败');
       return false;
     }
   }
@@ -2422,9 +2462,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showRiverSnackBar('已复制到剪贴板');
+    ScaffoldMessenger.of(context).showRiverSnackBar('已复制到剪贴板');
   }
 
   void _replacePostInState(RiverSideTopicPostDetail updated) {
@@ -2506,9 +2544,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       if (!mounted) {
         return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showRiverSnackBar('编辑评论失败');
+      ScaffoldMessenger.of(context).showRiverSnackBar('编辑评论失败');
       return false;
     }
   }
@@ -2668,9 +2704,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showRiverSnackBar('删除评论失败');
+      ScaffoldMessenger.of(context).showRiverSnackBar('删除评论失败');
     }
   }
 
@@ -2722,9 +2756,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showRiverSnackBar('删除主贴失败');
+      ScaffoldMessenger.of(context).showRiverSnackBar('删除主贴失败');
     }
   }
 

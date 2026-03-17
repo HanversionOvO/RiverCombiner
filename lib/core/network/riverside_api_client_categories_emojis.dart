@@ -294,6 +294,7 @@ extension RiverSideApiClientCategoryEmojiMethods on RiverSideApiClient {
     if (id == null || name.isEmpty) {
       return null;
     }
+    final permission = _asInt(raw['permission']);
 
     return RiverSideCategoryOption(
       id: id,
@@ -301,6 +302,7 @@ extension RiverSideApiClientCategoryEmojiMethods on RiverSideApiClient {
       position: _asInt(raw['position']) ?? 9999,
       parentCategoryId: _asInt(raw['parent_category_id']),
       description: (raw['description_text'] ?? '').toString().trim(),
+      canCreateTopic: permission == 1,
     );
   }
 

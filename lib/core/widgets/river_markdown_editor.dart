@@ -4,10 +4,12 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:image/image.dart' as img;
+import 'package:river/core/widgets/river_structured_emoji_picker.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
@@ -101,13 +103,6 @@ class _PickedImageUploadData {
   final List<int> bytes;
 }
 
-class _PreparedUploadBytes {
-  const _PreparedUploadBytes({required this.bytes, required this.extension});
-
-  final List<int> bytes;
-  final String extension;
-}
-
 class _MentionTrigger {
   const _MentionTrigger({
     required this.start,
@@ -118,81 +113,6 @@ class _MentionTrigger {
   final int start;
   final int end;
   final String query;
-}
-
-Map<String, dynamic>? _compressImageBytesToLimitTask(
-  Map<String, dynamic> args,
-) {
-  final rawBytes = args['bytes'];
-  final maxBytes = args['maxBytes'];
-  if (rawBytes is! List || maxBytes is! int) {
-    return null;
-  }
-  final sourceBytes = rawBytes.cast<int>();
-  final decoded = img.decodeImage(Uint8List.fromList(sourceBytes));
-  if (decoded == null) {
-    return null;
-  }
-
-  List<int> bestBytes = sourceBytes;
-  var bestExtension = 'jpg';
-
-  void rememberBest(List<int> candidateBytes, String extension) {
-    if (candidateBytes.isNotEmpty && candidateBytes.length < bestBytes.length) {
-      bestBytes = candidateBytes;
-      bestExtension = extension;
-    }
-  }
-
-  if (decoded.hasAlpha) {
-    final pngBytes = img.encodePng(decoded, level: 9);
-    if (pngBytes.length <= maxBytes) {
-      return <String, dynamic>{'bytes': pngBytes, 'extension': 'png'};
-    }
-    rememberBest(pngBytes, 'png');
-  }
-
-  img.Image current = decoded.hasAlpha
-      ? _flattenImageAlphaTask(decoded)
-      : decoded;
-  const jpegQualities = <int>[88, 80, 72, 64, 56, 48, 40];
-  for (var step = 0; step < 6; step++) {
-    for (final quality in jpegQualities) {
-      final jpgBytes = img.encodeJpg(current, quality: quality);
-      if (jpgBytes.length <= maxBytes) {
-        return <String, dynamic>{'bytes': jpgBytes, 'extension': 'jpg'};
-      }
-      rememberBest(jpgBytes, 'jpg');
-    }
-
-    final nextWidth = (current.width * 0.85).round();
-    final nextHeight = (current.height * 0.85).round();
-    if (nextWidth < 320 || nextHeight < 320) {
-      break;
-    }
-    current = img.copyResize(
-      current,
-      width: nextWidth,
-      height: nextHeight,
-      interpolation: img.Interpolation.cubic,
-    );
-  }
-
-  if (bestBytes.length < sourceBytes.length) {
-    return <String, dynamic>{'bytes': bestBytes, 'extension': bestExtension};
-  }
-  return null;
-}
-
-img.Image _flattenImageAlphaTask(img.Image source) {
-  final flattened = img.Image(width: source.width, height: source.height);
-  img.fill(flattened, color: img.ColorRgb8(255, 255, 255));
-  img.compositeImage(flattened, source);
-  return flattened;
-}
-
-bool _canDecodeImageBytesTask(List<int> bytes) {
-  return img.decodeImage(Uint8List.fromList(bytes)) != null;
 }
 
 class RiverMarkdownEditor extends StatefulWidget {
@@ -250,6 +170,8 @@ class RiverMarkdownEditor extends StatefulWidget {
 }
 
 class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
+  static const double _emojiPanelHeight = 296;
+
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final GlobalKey _editStackKey = GlobalKey();
@@ -258,7 +180,6 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   Timer? _mentionDebounce;
 
   static const int _maxGalleryPickCount = 3;
-  static const int _imageUploadCompressThresholdBytes = 1024 * 1024;
   static const int _imageUploadTargetMaxBytes = 1024 * 1024;
 
   bool _submitting = false;
@@ -267,8 +188,8 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   bool _savingDraft = false;
   bool _generatingAi = false;
   bool _showAiThinkingHint = false;
+  bool _emojiPanelVisible = false;
   _EditorMode _mode = _EditorMode.edit;
-  bool _sheetExpanded = false;
   int? _draftSequence;
   String _lastDraftSavedContent = '';
   DateTime? _lastDraftSavedAt;
@@ -315,6 +236,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     if (!_focusNode.hasFocus) {
       _hideMentionPanel();
     } else {
+      _hideEmojiPicker();
       _refreshMentionSuggestions(immediate: true);
     }
     setState(() {});
@@ -455,19 +377,59 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
 
     final selected = await showModalBottomSheet<RiverMarkdownDraftEntry>(
       context: context,
-      showDragHandle: true,
       useSafeArea: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         final theme = Theme.of(sheetContext);
+        final colorScheme = theme.colorScheme;
         if (drafts.isEmpty) {
-          return const SafeArea(
-            child: SizedBox(height: 220, child: Center(child: Text('暂无草稿'))),
+          return _EditorActionSheetShell(
+            title: '草稿箱',
+            subtitle: '选择要恢复的草稿',
+            icon: Icons.inventory_2_rounded,
+            maxHeight: 280,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface.withValues(alpha: 0.78),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.28,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      '暂无草稿',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
         }
 
-        return SafeArea(
+        return _EditorActionSheetShell(
+          title: '草稿箱',
+          subtitle: '选择要恢复的草稿',
+          icon: Icons.inventory_2_rounded,
+          maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
             itemCount: drafts.length,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
@@ -481,57 +443,102 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
               final updated = draft.updatedAt;
               return Material(
                 color: Colors.transparent,
-                child: ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.35,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => Navigator.of(sheetContext).pop(draft),
+                  child: Ink(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: colorScheme.surface.withValues(alpha: 0.72),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.30,
+                        ),
                       ),
                     ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  title: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(
-                    subtitle.isEmpty ? '无内容' : subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (updated != null)
-                        Text(
-                          '${updated.month}-${updated.day} ${updated.hour.toString().padLeft(2, '0')}:${updated.minute.toString().padLeft(2, '0')}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer.withValues(
+                              alpha: 0.82,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.description_outlined,
+                            size: 18,
+                            color: colorScheme.onPrimaryContainer,
                           ),
                         ),
-                      if (widget.onDeleteDraft != null)
-                        IconButton(
-                          tooltip: '删除草稿',
-                          onPressed: () async {
-                            final ok = await widget.onDeleteDraft!(draft);
-                            if (!context.mounted) {
-                              return;
-                            }
-                            if (ok) {
-                              Navigator.of(context).pop();
-                            }
-                          },
-                          icon: const Icon(Icons.delete_outline_rounded),
-                          visualDensity: VisualDensity.compact,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                subtitle.isEmpty ? '无内容' : subtitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              if (updated != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${updated.month}-${updated.day} ${updated.hour.toString().padLeft(2, '0')}:${updated.minute.toString().padLeft(2, '0')}',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                    ],
+                        const SizedBox(width: 8),
+                        if (widget.onDeleteDraft != null)
+                          IconButton.filledTonal(
+                            tooltip: '删除草稿',
+                            onPressed: () async {
+                              final ok = await widget.onDeleteDraft!(draft);
+                              if (!context.mounted) {
+                                return;
+                              }
+                              if (ok) {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                            style: IconButton.styleFrom(
+                              foregroundColor: colorScheme.error,
+                              backgroundColor: colorScheme.errorContainer
+                                  .withValues(alpha: 0.7),
+                            ),
+                            icon: const Icon(Icons.delete_outline_rounded),
+                          )
+                        else
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 18,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                      ],
+                    ),
                   ),
-                  onTap: () => Navigator.of(sheetContext).pop(draft),
                 ),
               );
             },
@@ -624,7 +631,6 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
   Future<_ImagePickSource?> _showImageSourceMenu() {
     return showModalBottomSheet<_ImagePickSource>(
       context: context,
-      isScrollControlled: false,
       useSafeArea: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
@@ -688,11 +694,10 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     final title = (entity.title ?? '').trim();
     final bytes = await entity.originBytes;
     if (bytes != null && bytes.isNotEmpty) {
-      final raw = _PickedImageUploadData(
+      return _PickedImageUploadData(
         fileName: title.isEmpty ? '$fallbackPrefix.jpg' : title,
         bytes: bytes,
       );
-      return _normalizePickedImageForUpload(raw, entity: entity);
     }
     final file = await entity.file;
     if (file == null) {
@@ -710,180 +715,73 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
         : (fileNameFromPath.isNotEmpty
               ? fileNameFromPath
               : '$fallbackPrefix.jpg');
-    final raw = _PickedImageUploadData(
-      fileName: resolvedName,
-      bytes: fileBytes,
-    );
-    return _normalizePickedImageForUpload(raw, entity: entity);
-  }
-
-  Future<_PickedImageUploadData> _normalizePickedImageForUpload(
-    _PickedImageUploadData source, {
-    required AssetEntity entity,
-  }) async {
-    if (source.bytes.length <= _imageUploadCompressThresholdBytes) {
-      return source;
-    }
-    final shouldTranscode = await _shouldTranscodeAssetBeforeCompress(source);
-    if (!shouldTranscode) {
-      return source;
-    }
-    final jpegBytes = await _buildJpegFallbackBytes(entity);
-    if (jpegBytes == null || jpegBytes.isEmpty) {
-      return source;
-    }
-    return _PickedImageUploadData(
-      fileName: _replaceFileExtension(source.fileName, 'jpg'),
-      bytes: jpegBytes,
-    );
-  }
-
-  Future<bool> _shouldTranscodeAssetBeforeCompress(
-    _PickedImageUploadData source,
-  ) async {
-    final ext = _fileExtensionFromName(source.fileName);
-    const unsupportedForImagePkg = <String>{'heic', 'heif'};
-    if (unsupportedForImagePkg.contains(ext)) {
-      return true;
-    }
-    try {
-      final canDecode = await compute(_canDecodeImageBytesTask, source.bytes);
-      return !canDecode;
-    } catch (_) {
-      return img.decodeImage(Uint8List.fromList(source.bytes)) == null;
-    }
-  }
-
-  Future<List<int>?> _buildJpegFallbackBytes(AssetEntity entity) async {
-    const dimensions = <int>[2400, 2000, 1600, 1280, 1024];
-    List<int>? smallestSuccess;
-    for (final d in dimensions) {
-      final data = await entity.thumbnailDataWithSize(
-        ThumbnailSize(d, d),
-        format: ThumbnailFormat.jpeg,
-        quality: 96,
-      );
-      if (data == null || data.isEmpty) {
-        continue;
-      }
-      smallestSuccess = data;
-      if (data.length <= _imageUploadTargetMaxBytes) {
-        return data;
-      }
-    }
-    return smallestSuccess;
+    return _PickedImageUploadData(fileName: resolvedName, bytes: fileBytes);
   }
 
   Future<_PickedImageUploadData> _prepareImageForUpload(
     _PickedImageUploadData source,
   ) async {
-    if (source.bytes.length <= _imageUploadCompressThresholdBytes) {
-      return source;
-    }
-    final compressed = await _compressImageBytesToLimitAsync(
+    final compressed = await _compressImageToTargetSize(
       source.bytes,
       maxBytes: _imageUploadTargetMaxBytes,
     );
-    if (compressed == null || compressed.bytes.isEmpty) {
+    if (compressed == null || compressed.isEmpty) {
       return source;
     }
     return _PickedImageUploadData(
-      fileName: _replaceFileExtension(source.fileName, compressed.extension),
-      bytes: compressed.bytes,
+      fileName: _replaceFileExtension(source.fileName, 'jpg'),
+      bytes: compressed,
     );
   }
 
-  Future<_PreparedUploadBytes?> _compressImageBytesToLimitAsync(
+  Future<List<int>?> _compressImageToTargetSize(
     List<int> sourceBytes, {
     required int maxBytes,
   }) async {
-    try {
-      final result = await compute(
-        _compressImageBytesToLimitTask,
-        <String, dynamic>{'bytes': sourceBytes, 'maxBytes': maxBytes},
-      );
-      if (result == null) {
-        return null;
-      }
-      final rawBytes = result['bytes'];
-      final extension = '${result['extension'] ?? ''}'.trim().toLowerCase();
-      if (rawBytes is! List || rawBytes.isEmpty) {
-        return null;
-      }
-      return _PreparedUploadBytes(
-        bytes: rawBytes.cast<int>(),
-        extension: extension.isEmpty ? 'jpg' : extension,
-      );
-    } catch (_) {
-      return _compressImageBytesToLimit(sourceBytes, maxBytes: maxBytes);
-    }
-  }
-
-  _PreparedUploadBytes? _compressImageBytesToLimit(
-    List<int> sourceBytes, {
-    required int maxBytes,
-  }) {
-    final decoded = img.decodeImage(Uint8List.fromList(sourceBytes));
+    final rawBytes = Uint8List.fromList(sourceBytes);
+    final decoded = img.decodeImage(rawBytes);
     if (decoded == null) {
       return null;
     }
 
-    List<int> bestBytes = sourceBytes;
-    var bestExtension = _fileExtensionFromName('image.jpg');
-
-    void rememberBest(List<int> candidateBytes, String extension) {
-      if (candidateBytes.isNotEmpty &&
-          candidateBytes.length < bestBytes.length) {
+    List<int>? bestBytes;
+    void rememberBest(List<int> candidateBytes) {
+      if (candidateBytes.isEmpty) {
+        return;
+      }
+      if (bestBytes == null || candidateBytes.length < bestBytes!.length) {
         bestBytes = candidateBytes;
-        bestExtension = extension;
       }
     }
 
-    if (decoded.hasAlpha) {
-      final pngBytes = img.encodePng(decoded, level: 9);
-      if (pngBytes.length <= maxBytes) {
-        return _PreparedUploadBytes(bytes: pngBytes, extension: 'png');
-      }
-      rememberBest(pngBytes, 'png');
-    }
+    const qualitySteps = <int>[96, 90, 84, 78, 72, 66, 60, 54, 48, 42, 36, 30];
+    const scaleSteps = <double>[1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.25];
 
-    img.Image current = decoded.hasAlpha
-        ? _flattenImageAlpha(decoded)
-        : decoded;
-    const jpegQualities = <int>[88, 80, 72, 64, 56, 48, 40];
-    for (var step = 0; step < 6; step++) {
-      for (final quality in jpegQualities) {
-        final jpgBytes = img.encodeJpg(current, quality: quality);
-        if (jpgBytes.length <= maxBytes) {
-          return _PreparedUploadBytes(bytes: jpgBytes, extension: 'jpg');
+    for (final scale in scaleSteps) {
+      final minWidth = math.max(320, (decoded.width * scale).round());
+      final minHeight = math.max(320, (decoded.height * scale).round());
+      for (final quality in qualitySteps) {
+        final compressed = await FlutterImageCompress.compressWithList(
+          rawBytes,
+          minWidth: minWidth,
+          minHeight: minHeight,
+          quality: quality,
+          format: CompressFormat.jpeg,
+          autoCorrectionAngle: true,
+          keepExif: false,
+        );
+        if (compressed.isEmpty) {
+          continue;
         }
-        rememberBest(jpgBytes, 'jpg');
+        final candidate = compressed.toList(growable: false);
+        rememberBest(candidate);
+        if (candidate.length <= maxBytes) {
+          return candidate;
+        }
       }
-
-      final nextWidth = (current.width * 0.85).round();
-      final nextHeight = (current.height * 0.85).round();
-      if (nextWidth < 320 || nextHeight < 320) {
-        break;
-      }
-      current = img.copyResize(
-        current,
-        width: nextWidth,
-        height: nextHeight,
-        interpolation: img.Interpolation.cubic,
-      );
     }
 
-    if (bestBytes.length < sourceBytes.length) {
-      return _PreparedUploadBytes(bytes: bestBytes, extension: bestExtension);
-    }
-    return null;
-  }
-
-  img.Image _flattenImageAlpha(img.Image source) {
-    final flattened = img.Image(width: source.width, height: source.height);
-    img.fill(flattened, color: img.ColorRgb8(255, 255, 255));
-    img.compositeImage(flattened, source);
-    return flattened;
+    return bestBytes;
   }
 
   String _replaceFileExtension(String fileName, String newExtension) {
@@ -899,34 +797,29 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     return '${normalized.substring(0, dotIndex)}.$cleanExtension';
   }
 
-  String _fileExtensionFromName(String fileName) {
-    final normalized = fileName.trim();
-    final dotIndex = normalized.lastIndexOf('.');
-    if (dotIndex <= 0 || dotIndex == normalized.length - 1) {
-      return 'jpg';
+  void _showEmojiPicker() {
+    HapticFeedback.selectionClick();
+    if (_emojiPanelVisible) {
+      _hideEmojiPicker();
+      _focusNode.requestFocus();
+      return;
     }
-    return normalized.substring(dotIndex + 1).toLowerCase();
+    _dismissKeyboard();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _emojiPanelVisible = true;
+    });
   }
 
-  void _showEmojiPicker() {
-    FocusScope.of(context).unfocus();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: false,
-      backgroundColor: Colors.transparent,
-      builder: (_) => RiverStructuredEmojiPicker(
-        emojiUrls: widget.emojiUrls,
-        emojiGroups: widget.emojiGroups,
-        onSelected: (key) {
-          final formatter = widget.emojiInsertFormatter;
-          final token = formatter == null ? ':$key:' : formatter(key);
-          _insertText(token);
-          Navigator.of(context).pop();
-        },
-      ),
-    );
+  void _hideEmojiPicker() {
+    if (!_emojiPanelVisible || !mounted) {
+      return;
+    }
+    setState(() {
+      _emojiPanelVisible = false;
+    });
   }
 
   void _dismissKeyboard() {
@@ -1182,7 +1075,9 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
       text: newText,
       selection: TextSelection.collapsed(offset: start + content.length),
     );
-    _focusNode.requestFocus();
+    if (!_emojiPanelVisible) {
+      _focusNode.requestFocus();
+    }
   }
 
   bool get _showMentionPanel =>
@@ -1512,391 +1407,511 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     );
   }
 
-  void _toggleSheetHeight([bool? expanded]) {
-    final next = expanded ?? !_sheetExpanded;
-    if (next == _sheetExpanded) {
-      return;
-    }
-    setState(() => _sheetExpanded = next);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final emojiPanelVisible = _emojiPanelVisible;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final keyboardVisible = bottomInset > 0 || _focusNode.hasFocus;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final resolvedCollapsedHeight = widget.maxHeight > 0
+    final keyboardVisible =
+        !emojiPanelVisible && (bottomInset > 0 || _focusNode.hasFocus);
+    final media = MediaQuery.of(context);
+    final screenHeight = media.size.height;
+    final maxAvailableHeight = screenHeight - media.padding.top - 8;
+    final requestedHeight = widget.maxHeight > 0
         ? widget.maxHeight
-        : screenHeight * 0.58;
-    final collapsedHeight = resolvedCollapsedHeight.clamp(
-      340.0,
-      screenHeight * 0.7,
-    );
-    final expandedHeight = (screenHeight * 0.92).clamp(420.0, screenHeight);
-    final editorHeight = _sheetExpanded ? expandedHeight : collapsedHeight;
+        : screenHeight * 0.88;
+    final editorHeight = requestedHeight.clamp(420.0, maxAvailableHeight);
+    final statusText = _loadingDraft
+        ? '正在同步草稿...'
+        : (_lastDraftSavedAt != null
+              ? '草稿更新于 ${_lastDraftSavedAt!.hour.toString().padLeft(2, '0')}:${_lastDraftSavedAt!.minute.toString().padLeft(2, '0')}'
+              : (_mode == _EditorMode.edit ? 'Markdown 编辑' : '预览内容'));
 
     return Material(
       color: Colors.transparent,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          height: editorHeight,
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.12),
-                blurRadius: 24,
-                offset: const Offset(0, -6),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      colorScheme.surfaceContainerLow,
-                      colorScheme.surface,
-                    ],
-                  ),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                    ),
-                  ),
+      child: SafeArea(
+        top: false,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            height: editorHeight,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-                  child: Column(
-                    children: [
-                      Center(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _toggleSheetHeight,
-                          onVerticalDragEnd: (details) {
-                            final velocity = details.primaryVelocity ?? 0;
-                            if (velocity < -180) {
-                              _toggleSheetHeight(true);
-                            } else if (velocity > 180) {
-                              if (_sheetExpanded) {
-                                _toggleSheetHeight(false);
-                              } else {
-                                Navigator.of(context).pop();
-                              }
-                            }
-                          },
-                          child: Container(
-                            width: 38,
-                            height: 16,
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: 38,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: colorScheme.outlineVariant.withValues(
-                                  alpha: 0.7,
-                                ),
-                                borderRadius: BorderRadius.circular(99),
-                              ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.12),
+                    blurRadius: 24,
+                    offset: const Offset(0, -6),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                child: Column(
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            colorScheme.surfaceContainerLow,
+                            colorScheme.surface,
+                          ],
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.25,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          IconButton(
-                            tooltip: '关闭',
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.close_rounded),
-                            style: IconButton.styleFrom(
-                              foregroundColor: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                widget.title ?? '发布内容',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                IconButton(
+                                  tooltip: '关闭',
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  icon: const Icon(Icons.close_rounded),
+                                  style: IconButton.styleFrom(
+                                    foregroundColor:
+                                        colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        widget.title ?? '发布内容',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        statusText,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (widget.onLoadDrafts != null)
+                                  IconButton(
+                                    tooltip: '草稿箱',
+                                    onPressed: _openDraftBox,
+                                    icon: const Icon(
+                                      Icons.inventory_2_outlined,
+                                    ),
+                                  ),
+                                if (_draftEnabled)
+                                  IconButton(
+                                    tooltip: '保存草稿',
+                                    onPressed: _savingDraft
+                                        ? null
+                                        : () => _saveDraft(showSnack: true),
+                                    icon: _savingDraft
+                                        ? SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: colorScheme.primary,
+                                            ),
+                                          )
+                                        : const Icon(Icons.save_outlined),
+                                  ),
+                                FilledButton.tonal(
+                                  onPressed: _submitting ? null : _submit,
+                                  style: FilledButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  child: _submitting
+                                      ? SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: colorScheme.primary,
+                                          ),
+                                        )
+                                      : Text(widget.submitLabel ?? '发送'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                if (widget.enablePreview)
+                                  _EditorModeSwitch(
+                                    mode: _mode,
+                                    onChanged: (next) {
+                                      if (next == _mode) return;
+                                      setState(() => _mode = next);
+                                    },
+                                  ),
+                                if (widget.enablePreview)
+                                  const SizedBox(width: 10),
+                                Expanded(
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 180),
+                                    child: _loadingDraft
+                                        ? LinearProgressIndicator(
+                                            key: const ValueKey<String>(
+                                              'draft_loading_indicator',
+                                            ),
+                                            minHeight: 3,
+                                            borderRadius: BorderRadius.circular(
+                                              99,
+                                            ),
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: 0.24,
                               ),
                             ),
                           ),
-                          if (widget.enablePreview)
-                            _EditorModeSwitch(
-                              mode: _mode,
-                              onChanged: (next) {
-                                if (next == _mode) return;
-                                setState(() => _mode = next);
-                              },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Stack(
+                              alignment: Alignment.bottomCenter,
+                              children: [
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 180),
+                                  switchInCurve: Curves.easeOutCubic,
+                                  switchOutCurve: Curves.easeInCubic,
+                                  child: _mode == _EditorMode.edit
+                                      ? KeyedSubtree(
+                                          key: const ValueKey<String>(
+                                            'editor_mode_edit',
+                                          ),
+                                          child: Stack(
+                                            key: _editStackKey,
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              TextField(
+                                                key: _editFieldKey,
+                                                controller: _controller,
+                                                focusNode: _focusNode,
+                                                autofocus: widget.autofocus,
+                                                expands: true,
+                                                textAlignVertical:
+                                                    TextAlignVertical.top,
+                                                maxLines: null,
+                                                minLines: null,
+                                                keyboardType:
+                                                    TextInputType.multiline,
+                                                style: theme.textTheme.bodyLarge
+                                                    ?.copyWith(height: 1.52),
+                                                decoration: InputDecoration(
+                                                  hintText:
+                                                      widget.hintText ??
+                                                      '分享你的想法...',
+                                                  hintStyle: theme
+                                                      .textTheme
+                                                      .bodyLarge
+                                                      ?.copyWith(
+                                                        color: colorScheme
+                                                            .onSurfaceVariant
+                                                            .withValues(
+                                                              alpha: 0.62,
+                                                            ),
+                                                      ),
+                                                  enabledBorder:
+                                                      InputBorder.none,
+                                                  focusedBorder:
+                                                      InputBorder.none,
+                                                  disabledBorder:
+                                                      InputBorder.none,
+                                                  errorBorder: InputBorder.none,
+                                                  focusedErrorBorder:
+                                                      InputBorder.none,
+                                                  border: InputBorder.none,
+                                                  contentPadding:
+                                                      const EdgeInsets.fromLTRB(
+                                                        18,
+                                                        14,
+                                                        18,
+                                                        18,
+                                                      ),
+                                                ),
+                                              ),
+                                              AnimatedOpacity(
+                                                duration: const Duration(
+                                                  milliseconds: 220,
+                                                ),
+                                                curve: Curves.easeOutCubic,
+                                                opacity: _showAiThinkingHint
+                                                    ? 1
+                                                    : 0,
+                                                child: IgnorePointer(
+                                                  ignoring: true,
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.fromLTRB(
+                                                          18,
+                                                          10,
+                                                          18,
+                                                          0,
+                                                        ),
+                                                    child: Align(
+                                                      alignment:
+                                                          Alignment.topLeft,
+                                                      child: _AiThinkingHintChip(
+                                                        visible:
+                                                            _showAiThinkingHint,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              if (_showMentionPanel)
+                                                _MentionSuggestionPanel(
+                                                  key: ValueKey<String>(
+                                                    'mention_panel_${_mentionQuery}_${_mentionUsers.length}_${_mentionLoading ? 1 : 0}',
+                                                  ),
+                                                  users: _mentionUsers,
+                                                  loading: _mentionLoading,
+                                                  query: _mentionQuery,
+                                                  anchorOffset:
+                                                      _mentionAnchorOffset ??
+                                                      const Offset(28, 28),
+                                                  onSelect: _selectMentionUser,
+                                                ),
+                                            ],
+                                          ),
+                                        )
+                                      : Container(
+                                          key: const ValueKey<String>(
+                                            'editor_mode_preview',
+                                          ),
+                                          color: colorScheme
+                                              .surfaceContainerLowest,
+                                          child: _controller.text.trim().isEmpty
+                                              ? Center(
+                                                  child: Text(
+                                                    '暂无预览内容',
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodyMedium
+                                                        ?.copyWith(
+                                                          color: colorScheme
+                                                              .onSurfaceVariant,
+                                                        ),
+                                                  ),
+                                                )
+                                              : Markdown(
+                                                  padding:
+                                                      const EdgeInsets.fromLTRB(
+                                                        16,
+                                                        12,
+                                                        16,
+                                                        24,
+                                                      ),
+                                                  data: _previewMarkdown(
+                                                    _controller.text,
+                                                  ),
+                                                  selectable: true,
+                                                  physics:
+                                                      const ClampingScrollPhysics(),
+                                                  styleSheet:
+                                                      MarkdownStyleSheet.fromTheme(
+                                                        theme,
+                                                      ).copyWith(
+                                                        p: theme
+                                                            .textTheme
+                                                            .bodyLarge
+                                                            ?.copyWith(
+                                                              height: 1.6,
+                                                            ),
+                                                      ),
+                                                  imageBuilder: (uri, title, alt) {
+                                                    final source = uri
+                                                        .toString();
+                                                    if (_isAssetEmojiUrl(
+                                                      source,
+                                                    )) {
+                                                      final assetPath =
+                                                          _assetPathFromEmojiUrl(
+                                                            source,
+                                                          );
+                                                      return ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              10,
+                                                            ),
+                                                        child: Image.asset(
+                                                          assetPath,
+                                                          fit: BoxFit.contain,
+                                                          errorBuilder:
+                                                              (
+                                                                context,
+                                                                error,
+                                                                stackTrace,
+                                                              ) => const Icon(
+                                                                Icons
+                                                                    .broken_image_outlined,
+                                                              ),
+                                                        ),
+                                                      );
+                                                    }
+                                                    return ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                      child: CachedNetworkImage(
+                                                        imageUrl: source,
+                                                        fit: BoxFit.contain,
+                                                        placeholder:
+                                                            (
+                                                              context,
+                                                              imageUrl,
+                                                            ) => const Padding(
+                                                              padding:
+                                                                  EdgeInsets.symmetric(
+                                                                    vertical:
+                                                                        20,
+                                                                  ),
+                                                              child: Center(
+                                                                child:
+                                                                    CircularProgressIndicator(
+                                                                      strokeWidth:
+                                                                          2,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                        errorWidget:
+                                                            (
+                                                              context,
+                                                              imageUrl,
+                                                              error,
+                                                            ) => const Icon(
+                                                              Icons
+                                                                  .broken_image_outlined,
+                                                            ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                        ),
+                                ),
+                              ],
                             ),
-                          if (widget.enablePreview) const SizedBox(width: 6),
-                          if (_draftEnabled)
-                            IconButton(
-                              tooltip: '保存草稿',
-                              onPressed: _savingDraft
-                                  ? null
-                                  : () => _saveDraft(showSnack: true),
-                              icon: _savingDraft
-                                  ? SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: colorScheme.primary,
-                                      ),
-                                    )
-                                  : const Icon(Icons.save_outlined),
-                            ),
-                          if (widget.onLoadDrafts != null)
-                            IconButton(
-                              tooltip: '草稿箱',
-                              onPressed: _openDraftBox,
-                              icon: const Icon(Icons.inventory_2_outlined),
-                            ),
-                          FilledButton.tonal(
-                            onPressed: _submitting ? null : _submit,
-                            style: FilledButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
-                            ),
-                            child: _submitting
+                          ),
+                        ),
+                      ),
+                    ),
+                    AnimatedPadding(
+                      duration: const Duration(milliseconds: 120),
+                      curve: Curves.easeOutCubic,
+                      padding: EdgeInsets.only(bottom: bottomInset),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 220),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            child: emojiPanelVisible
                                 ? SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: colorScheme.primary,
+                                    key: const ValueKey<String>(
+                                      'editor_emoji_panel_visible',
+                                    ),
+                                    height: _emojiPanelHeight,
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        10,
+                                        10,
+                                        10,
+                                        8,
+                                      ),
+                                      child: RiverEmojiPicker(
+                                        emojiUrls: widget.emojiUrls,
+                                        emojiGroups: widget.emojiGroups,
+                                        embedded: true,
+                                        onSelected: (key) {
+                                          final formatter =
+                                              widget.emojiInsertFormatter;
+                                          final token = formatter == null
+                                              ? ':$key:'
+                                              : formatter(key);
+                                          _insertText(token);
+                                        },
+                                      ),
                                     ),
                                   )
-                                : Text(widget.submitLabel ?? '发送'),
+                                : const SizedBox.shrink(),
+                          ),
+                          _EditorToolbar(
+                            uploadingImage: _uploadingImage,
+                            generatingAi: _generatingAi,
+                            enableAi:
+                                widget.onAiGenerateStream != null ||
+                                widget.onAiGenerate != null,
+                            showKeyboardDismiss: keyboardVisible,
+                            emojiPanelVisible: emojiPanelVisible,
+                            onImageTap: _pickAndUploadImage,
+                            onEmojiTap: _showEmojiPicker,
+                            onKeyboardDismissTap: _dismissKeyboard,
+                            onAiTap: _openAiTools,
+                            onBoldTap: () => _applyFormat('**', '**', 'bold'),
+                            onItalicTap: () => _applyFormat('*', '*', 'italic'),
+                            onQuoteTap: () => _applyFormat('> ', '', 'quote'),
+                            onCodeTap: () =>
+                                _applyFormat('```\n', '\n```', 'code'),
+                            onLinkTap: () =>
+                                _applyFormat('[', '](url)', 'link'),
                           ),
                         ],
                       ),
-                      if (_loadingDraft)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: LinearProgressIndicator(
-                            minHeight: 2,
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        )
-                      else if (_lastDraftSavedAt != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            '草稿更新于 ${_lastDraftSavedAt!.hour.toString().padLeft(2, '0')}:${_lastDraftSavedAt!.minute.toString().padLeft(2, '0')}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  child: _mode == _EditorMode.edit
-                      ? KeyedSubtree(
-                          key: const ValueKey<String>('editor_mode_edit'),
-                          child: Stack(
-                            key: _editStackKey,
-                            clipBehavior: Clip.none,
-                            children: [
-                              TextField(
-                                key: _editFieldKey,
-                                controller: _controller,
-                                focusNode: _focusNode,
-                                autofocus: widget.autofocus,
-                                expands: true,
-                                textAlignVertical: TextAlignVertical.top,
-                                maxLines: null,
-                                minLines: null,
-                                keyboardType: TextInputType.multiline,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  height: 1.52,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: widget.hintText ?? '分享你的想法...',
-                                  hintStyle: theme.textTheme.bodyLarge
-                                      ?.copyWith(
-                                        color: colorScheme.onSurfaceVariant
-                                            .withValues(alpha: 0.62),
-                                      ),
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  errorBorder: InputBorder.none,
-                                  focusedErrorBorder: InputBorder.none,
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.fromLTRB(
-                                    18,
-                                    14,
-                                    18,
-                                    18,
-                                  ),
-                                ),
-                              ),
-                              AnimatedOpacity(
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeOutCubic,
-                                opacity: _showAiThinkingHint ? 1 : 0,
-                                child: IgnorePointer(
-                                  ignoring: true,
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      18,
-                                      10,
-                                      18,
-                                      0,
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment.topLeft,
-                                      child: _AiThinkingHintChip(
-                                        visible: _showAiThinkingHint,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              if (_showMentionPanel)
-                                _MentionSuggestionPanel(
-                                  key: ValueKey<String>(
-                                    'mention_panel_${_mentionQuery}_${_mentionUsers.length}_${_mentionLoading ? 1 : 0}',
-                                  ),
-                                  users: _mentionUsers,
-                                  loading: _mentionLoading,
-                                  query: _mentionQuery,
-                                  anchorOffset:
-                                      _mentionAnchorOffset ??
-                                      const Offset(28, 28),
-                                  onSelect: _selectMentionUser,
-                                ),
-                            ],
-                          ),
-                        )
-                      : Container(
-                          key: const ValueKey<String>('editor_mode_preview'),
-                          color: colorScheme.surfaceContainerLowest,
-                          child: _controller.text.trim().isEmpty
-                              ? Center(
-                                  child: Text(
-                                    '暂无预览内容',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                )
-                              : Markdown(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    12,
-                                    16,
-                                    24,
-                                  ),
-                                  data: _previewMarkdown(_controller.text),
-                                  selectable: true,
-                                  physics: const ClampingScrollPhysics(),
-                                  styleSheet:
-                                      MarkdownStyleSheet.fromTheme(
-                                        theme,
-                                      ).copyWith(
-                                        p: theme.textTheme.bodyLarge?.copyWith(
-                                          height: 1.6,
-                                        ),
-                                      ),
-                                  imageBuilder: (uri, title, alt) {
-                                    final source = uri.toString();
-                                    if (_isAssetEmojiUrl(source)) {
-                                      final assetPath = _assetPathFromEmojiUrl(
-                                        source,
-                                      );
-                                      return ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Image.asset(
-                                          assetPath,
-                                          fit: BoxFit.contain,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  const Icon(
-                                                    Icons.broken_image_outlined,
-                                                  ),
-                                        ),
-                                      );
-                                    }
-                                    return ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: CachedNetworkImage(
-                                        imageUrl: source,
-                                        fit: BoxFit.contain,
-                                        placeholder: (context, imageUrl) =>
-                                            const Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                vertical: 20,
-                                              ),
-                                              child: Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                    ),
-                                              ),
-                                            ),
-                                        errorWidget:
-                                            (context, imageUrl, error) =>
-                                                const Icon(
-                                                  Icons.broken_image_outlined,
-                                                ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                        ),
-                ),
-              ),
-              AnimatedPadding(
-                duration: const Duration(milliseconds: 120),
-                curve: Curves.easeOutCubic,
-                padding: EdgeInsets.only(bottom: bottomInset),
-                child: _EditorToolbar(
-                  uploadingImage: _uploadingImage,
-                  generatingAi: _generatingAi,
-                  enableAi:
-                      widget.onAiGenerateStream != null ||
-                      widget.onAiGenerate != null,
-                  showKeyboardDismiss: keyboardVisible,
-                  onImageTap: _pickAndUploadImage,
-                  onEmojiTap: _showEmojiPicker,
-                  onKeyboardDismissTap: _dismissKeyboard,
-                  onAiTap: _openAiTools,
-                  onBoldTap: () => _applyFormat('**', '**', 'bold'),
-                  onItalicTap: () => _applyFormat('*', '*', 'italic'),
-                  onQuoteTap: () => _applyFormat('> ', '', 'quote'),
-                  onCodeTap: () => _applyFormat('```\n', '\n```', 'code'),
-                  onLinkTap: () => _applyFormat('[', '](url)', 'link'),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -2188,6 +2203,7 @@ class _EditorToolbar extends StatelessWidget {
     required this.generatingAi,
     required this.enableAi,
     required this.showKeyboardDismiss,
+    required this.emojiPanelVisible,
     required this.onImageTap,
     required this.onEmojiTap,
     required this.onKeyboardDismissTap,
@@ -2203,6 +2219,7 @@ class _EditorToolbar extends StatelessWidget {
   final bool generatingAi;
   final bool enableAi;
   final bool showKeyboardDismiss;
+  final bool emojiPanelVisible;
   final VoidCallback onImageTap;
   final VoidCallback onEmojiTap;
   final VoidCallback onKeyboardDismissTap;
@@ -2247,7 +2264,10 @@ class _EditorToolbar extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               _ToolbarAction(
-                icon: Icons.sentiment_satisfied_alt_outlined,
+                icon: emojiPanelVisible
+                    ? Icons.keyboard_rounded
+                    : Icons.sentiment_satisfied_alt_outlined,
+                active: emojiPanelVisible,
                 onTap: onEmojiTap,
               ),
               if (showKeyboardDismiss) ...[
@@ -2468,11 +2488,13 @@ class _ToolbarAction extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.busy = false,
+    this.active = false,
   });
 
   final IconData icon;
   final VoidCallback onTap;
   final bool busy;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -2482,10 +2504,12 @@ class _ToolbarAction extends StatelessWidget {
       iconSize: 18,
       visualDensity: VisualDensity.compact,
       style: IconButton.styleFrom(
-        backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.7,
-        ),
-        foregroundColor: colorScheme.onSurfaceVariant,
+        backgroundColor: active
+            ? colorScheme.primaryContainer.withValues(alpha: 0.92)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        foregroundColor: active
+            ? colorScheme.onPrimaryContainer
+            : colorScheme.onSurfaceVariant,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       icon: busy
@@ -2525,80 +2549,143 @@ class _AiInsertAnchor {
   int end;
 }
 
+class _EditorActionSheetShell extends StatelessWidget {
+  const _EditorActionSheetShell({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.child,
+    this.maxHeight,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Widget child;
+  final double? maxHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final resolvedMaxHeight =
+        maxHeight ?? MediaQuery.sizeOf(context).height * 0.72;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: resolvedMaxHeight),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.92),
+              theme.colorScheme.surface,
+            ],
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 14, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: theme.colorScheme.primaryContainer,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        icon,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                      style: IconButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(child: child),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ImageSourceSheet extends StatelessWidget {
   const _ImageSourceSheet();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.65),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const SizedBox(width: 38),
-                      Expanded(
-                        child: Text(
-                          '插入图片',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded),
-                        style: IconButton.styleFrom(
-                          foregroundColor: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  _ImageSourceActionTile(
-                    icon: Icons.camera_alt_rounded,
-                    title: '拍摄照片',
-                    subtitle: '调用相机拍摄后插入编辑器',
-                    onTap: () =>
-                        Navigator.of(context).pop(_ImagePickSource.camera),
-                  ),
-                  const SizedBox(height: 8),
-                  _ImageSourceActionTile(
-                    icon: Icons.image_outlined,
-                    title: '选择图片',
-                    subtitle: '从相册中选择图片并上传（最多 3 张）',
-                    onTap: () =>
-                        Navigator.of(context).pop(_ImagePickSource.gallery),
-                  ),
-                ],
-              ),
+    return _EditorActionSheetShell(
+      title: '插入图片',
+      subtitle: '选择图片来源',
+      icon: Icons.add_photo_alternate_rounded,
+      maxHeight: 280,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ImageSourceActionTile(
+              icon: Icons.camera_alt_rounded,
+              title: '拍摄照片',
+              subtitle: '调用相机拍摄后插入编辑器',
+              onTap: () => Navigator.of(context).pop(_ImagePickSource.camera),
             ),
-          ),
+            const SizedBox(height: 8),
+            _ImageSourceActionTile(
+              icon: Icons.image_outlined,
+              title: '选择图片',
+              subtitle: '从相册中选择图片并上传（最多 3 张）',
+              onTap: () => Navigator.of(context).pop(_ImagePickSource.gallery),
+            ),
+          ],
         ),
       ),
     );
@@ -2622,63 +2709,66 @@ class _ImageSourceActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Ink(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.36),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.30),
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer.withValues(alpha: 0.82),
-                borderRadius: BorderRadius.circular(10),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.82),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: colorScheme.onPrimaryContainer,
+                ),
               ),
-              alignment: Alignment.center,
-              child: Icon(
-                icon,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
                 size: 18,
-                color: colorScheme.onPrimaryContainer,
+                color: colorScheme.onSurfaceVariant,
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.1,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -2696,175 +2786,93 @@ class _AiToolsSheet extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final height = MediaQuery.sizeOf(context).height * 0.52;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
-    return Material(
-      color: Colors.transparent,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: Container(
-            height: height,
-            color: colorScheme.surface,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 38),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: colorScheme.outlineVariant.withValues(
-                                  alpha: 0.65,
-                                ),
-                                borderRadius: BorderRadius.circular(99),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.auto_awesome_rounded,
-                                  size: 16,
-                                  color: colorScheme.primary,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'AI 工具箱',
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+    return _EditorActionSheetShell(
+      title: 'AI 工具箱',
+      subtitle: '选择要执行的写作辅助操作',
+      icon: Icons.auto_awesome_rounded,
+      maxHeight: height,
+      child: ClipRect(
+        child: ScrollConfiguration(
+          behavior: const MaterialScrollBehavior().copyWith(overscroll: false),
+          child: ListView.separated(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(14, 0, 14, 16 + bottomSafe),
+            itemCount: actions.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final item = actions[index];
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => Navigator.of(context).pop(item),
+                  child: Ink(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.30,
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded),
-                        style: IconButton.styleFrom(
-                          foregroundColor: colorScheme.onSurfaceVariant,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer.withValues(
+                              alpha: 0.82,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            item.icon,
+                            size: 17,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: ClipRect(
-                    child: ScrollConfiguration(
-                      behavior: const MaterialScrollBehavior().copyWith(
-                        overscroll: false,
-                      ),
-                      child: ListView.separated(
-                        physics: const ClampingScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(
-                          14,
-                          8,
-                          14,
-                          16 + bottomSafe,
-                        ),
-                        itemCount: actions.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final item = actions[index];
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(14),
-                            onTap: () => Navigator.of(context).pop(item),
-                            child: Ink(
-                              padding: const EdgeInsets.fromLTRB(
-                                12,
-                                10,
-                                12,
-                                10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerLow
-                                    .withValues(alpha: 0.96),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: colorScheme.outlineVariant.withValues(
-                                    alpha: 0.36,
-                                  ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.1,
                                 ),
                               ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 34,
-                                    height: 34,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.primaryContainer
-                                          .withValues(alpha: 0.82),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Icon(
-                                      item.icon,
-                                      size: 17,
-                                      color: colorScheme.onPrimaryContainer,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                item.title,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: theme.textTheme.bodyLarge
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      letterSpacing: -0.1,
-                                                    ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          item.subtitle,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    size: 18,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ],
+                              const SizedBox(height: 2),
+                              Text(
+                                item.subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -2891,12 +2899,18 @@ class RiverStructuredEmojiPicker extends StatefulWidget {
     required this.emojiGroups,
     required this.onSelected,
     this.title = '选择表情',
+    this.embedded = false,
+    this.resolveUrl,
+    this.headersForUrl,
   });
 
   final Map<String, String> emojiUrls;
   final Map<String, List<String>> emojiGroups;
   final ValueChanged<String> onSelected;
   final String title;
+  final bool embedded;
+  final String Function(String raw)? resolveUrl;
+  final Map<String, String>? Function(String resolvedUrl)? headersForUrl;
 
   @override
   State<RiverStructuredEmojiPicker> createState() =>
@@ -2906,12 +2920,25 @@ class RiverStructuredEmojiPicker extends StatefulWidget {
 class _RiverStructuredEmojiPickerState
     extends State<RiverStructuredEmojiPicker> {
   late final List<_EmojiCategoryItem> _categories;
+  final List<GlobalKey> _sectionKeys = <GlobalKey>[];
+  final ScrollController _emojiScrollController = ScrollController();
+  final ScrollController _tabScrollController = ScrollController();
   int _selectedIndex = 0;
+  int _loopCount = 3;
 
   @override
   void initState() {
     super.initState();
     _categories = _buildCategories();
+    _emojiScrollController.addListener(_handleEmojiScroll);
+  }
+
+  @override
+  void dispose() {
+    _emojiScrollController.removeListener(_handleEmojiScroll);
+    _emojiScrollController.dispose();
+    _tabScrollController.dispose();
+    super.dispose();
   }
 
   List<_EmojiCategoryItem> _buildCategories() {
@@ -2919,19 +2946,195 @@ class _RiverStructuredEmojiPickerState
 
     widget.emojiGroups.forEach((name, keys) {
       final valid = keys.where(widget.emojiUrls.containsKey).toList();
-      if (valid.isEmpty) return;
+      if (valid.isEmpty) {
+        return;
+      }
       categories.add(
         _EmojiCategoryItem(name: name, keys: valid, coverKey: valid.first),
       );
     });
 
     if (categories.isEmpty && widget.emojiUrls.isNotEmpty) {
-      final allKeys = widget.emojiUrls.keys.toList()..sort();
+      final keys = widget.emojiUrls.keys.toList()..sort();
       categories.add(
-        _EmojiCategoryItem(name: '全部', keys: allKeys, coverKey: allKeys.first),
+        _EmojiCategoryItem(name: '全部', keys: keys, coverKey: keys.first),
       );
     }
     return categories;
+  }
+
+  String _resolveUrl(String raw) {
+    final resolver = widget.resolveUrl;
+    return resolver == null ? raw : resolver(raw);
+  }
+
+  List<int> get _orderedCategoryIndices => <int>[
+    for (var loop = 0; loop < _loopCount; loop++)
+      for (var index = 0; index < _categories.length; index++) index,
+  ];
+
+  GlobalKey _sectionKeyFor(int index) {
+    while (_sectionKeys.length <= index) {
+      _sectionKeys.add(GlobalKey());
+    }
+    return _sectionKeys[index];
+  }
+
+  void _handleEmojiScroll() {
+    if (!_emojiScrollController.hasClients || _categories.isEmpty) {
+      return;
+    }
+    final position = _emojiScrollController.position;
+    final preloadThreshold = math.max(220.0, position.viewportDimension * 0.75);
+    if (position.pixels >= position.maxScrollExtent - preloadThreshold &&
+        _loopCount < 12) {
+      setState(() {
+        _loopCount += 1;
+      });
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncSelectedTabFromScroll();
+    });
+  }
+
+  void _syncSelectedTabFromScroll() {
+    if (!mounted || _categories.isEmpty) {
+      return;
+    }
+    final panelBox = context.findRenderObject();
+    if (panelBox is! RenderBox) {
+      return;
+    }
+    final threshold =
+        panelBox.localToGlobal(Offset.zero).dy + (widget.embedded ? 76 : 120);
+    final ordered = _orderedCategoryIndices;
+    int? active;
+    for (var index = 0; index < ordered.length; index++) {
+      final keyContext = _sectionKeys.length > index
+          ? _sectionKeys[index].currentContext
+          : null;
+      if (keyContext == null) {
+        continue;
+      }
+      final render = keyContext.findRenderObject();
+      if (render is! RenderBox) {
+        continue;
+      }
+      final dy = render.localToGlobal(Offset.zero).dy;
+      if (dy <= threshold) {
+        active = ordered[index];
+      } else {
+        break;
+      }
+    }
+    if (active != null && active != _selectedIndex) {
+      setState(() {
+        _selectedIndex = active!;
+      });
+      _scrollTabIntoView(active);
+    }
+  }
+
+  void _scrollToCategory(int categoryIndex) {
+    if (_categories.isEmpty) {
+      return;
+    }
+    HapticFeedback.selectionClick();
+    setState(() {
+      _selectedIndex = categoryIndex;
+    });
+    _scrollTabIntoView(categoryIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final ordered = _orderedCategoryIndices;
+      final preferredSectionIndex = _preferredSectionIndexFor(categoryIndex);
+      if (preferredSectionIndex != null) {
+        final targetContext = _sectionKeyFor(
+          preferredSectionIndex,
+        ).currentContext;
+        if (targetContext != null) {
+          Scrollable.ensureVisible(
+            targetContext,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            alignment: 0.0,
+          );
+          return;
+        }
+      }
+      for (var index = 0; index < ordered.length; index++) {
+        if (ordered[index] == categoryIndex) {
+          final targetContext = _sectionKeyFor(index).currentContext;
+          if (targetContext == null) {
+            continue;
+          }
+          Scrollable.ensureVisible(
+            targetContext,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            alignment: 0.0,
+          );
+          return;
+        }
+      }
+    });
+  }
+
+  int? _preferredSectionIndexFor(int categoryIndex) {
+    if (!_emojiScrollController.hasClients || _categories.isEmpty) {
+      return null;
+    }
+    final panelBox = context.findRenderObject();
+    if (panelBox is! RenderBox) {
+      return null;
+    }
+    final anchorDy =
+        panelBox.localToGlobal(Offset.zero).dy + (widget.embedded ? 88 : 132);
+    int? nearestForward;
+    double nearestForwardDistance = double.infinity;
+    int? nearestAny;
+    double nearestAnyDistance = double.infinity;
+    for (var index = 0; index < _orderedCategoryIndices.length; index++) {
+      if (_orderedCategoryIndices[index] != categoryIndex) {
+        continue;
+      }
+      final keyContext = _sectionKeyFor(index).currentContext;
+      if (keyContext == null) {
+        continue;
+      }
+      final render = keyContext.findRenderObject();
+      if (render is! RenderBox) {
+        continue;
+      }
+      final dy = render.localToGlobal(Offset.zero).dy;
+      final distance = (dy - anchorDy).abs();
+      if (distance < nearestAnyDistance) {
+        nearestAnyDistance = distance;
+        nearestAny = index;
+      }
+      if (dy >= anchorDy - 24) {
+        final forwardDistance = dy - anchorDy;
+        if (forwardDistance < nearestForwardDistance) {
+          nearestForwardDistance = forwardDistance;
+          nearestForward = index;
+        }
+      }
+    }
+    return nearestForward ?? nearestAny;
+  }
+
+  void _scrollTabIntoView(int index) {
+    if (!_tabScrollController.hasClients) {
+      return;
+    }
+    final targetOffset = math.max(0.0, index * 52.0 - 32.0);
+    _tabScrollController.animateTo(
+      targetOffset.clamp(0.0, _tabScrollController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Widget _buildEmojiThumb({
@@ -2939,6 +3142,9 @@ class _RiverStructuredEmojiPickerState
     required double size,
     required Widget fallback,
   }) {
+    if (source.trim().isEmpty) {
+      return fallback;
+    }
     if (_isAssetEmojiUrl(source)) {
       final assetPath = _assetPathFromEmojiUrl(source);
       return Image.asset(
@@ -2949,8 +3155,10 @@ class _RiverStructuredEmojiPickerState
         errorBuilder: (context, error, stackTrace) => fallback,
       );
     }
+    final resolved = _resolveUrl(source);
     return CachedNetworkImage(
-      imageUrl: source,
+      imageUrl: resolved,
+      httpHeaders: widget.headersForUrl?.call(resolved),
       width: size,
       height: size,
       fit: BoxFit.contain,
@@ -2960,290 +3168,340 @@ class _RiverStructuredEmojiPickerState
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildCategoryStrip(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final height = MediaQuery.sizeOf(context).height * 0.52;
-
-    if (_categories.isEmpty) {
-      return Container(
-        height: 220,
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+    return Container(
+      height: 54,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.16),
         ),
-        alignment: Alignment.center,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      child: ListView.separated(
+        controller: _tabScrollController,
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: _categories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          final item = _categories[index];
+          final selected = index == _selectedIndex;
+          final source = widget.emojiUrls[item.coverKey] ?? '';
+          return Tooltip(
+            message: item.name,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => _scrollToCategory(index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: selected ? colorScheme.surface : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: selected
+                      ? <BoxShadow>[
+                          BoxShadow(
+                            color: colorScheme.shadow.withValues(alpha: 0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : const <BoxShadow>[],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildEmojiThumb(
+                      source: source,
+                      size: 22,
+                      fallback: Icon(
+                        Icons.tag_faces_rounded,
+                        size: 18,
+                        color: selected
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      width: selected ? 20 : 8,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: selected
+                              ? <Color>[
+                                  colorScheme.primary,
+                                  colorScheme.primary.withValues(alpha: 0.72),
+                                ]
+                              : <Color>[
+                                  colorScheme.outlineVariant.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                  colorScheme.outlineVariant.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmojiCell(BuildContext context, String key, double size) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final source = widget.emojiUrls[key] ?? '';
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        widget.onSelected(key);
+      },
+      child: Ink(
+        decoration: BoxDecoration(
+          color: colorScheme.surface.withValues(alpha: 0.76),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.16),
+          ),
+        ),
+        child: Center(
+          child: _buildEmojiThumb(
+            source: source,
+            size: size * 0.62,
+            fallback: Icon(
+              Icons.broken_image_rounded,
+              size: 18,
+              color: colorScheme.outline,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmojiSectionList(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (_categories.isEmpty) {
+      return Center(
         child: Text(
           '暂无表情',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
         ),
       );
     }
 
-    final selected = _categories[_selectedIndex];
-    final selectedKeys = selected.keys;
+    final ordered = _orderedCategoryIndices;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final itemSize = ((width - 7 * 8) / 8).clamp(34.0, 52.0);
+        return SingleChildScrollView(
+          controller: _emojiScrollController,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(2, 6, 2, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (
+                var sectionIndex = 0;
+                sectionIndex < ordered.length;
+                sectionIndex++
+              )
+                Container(
+                  key: _sectionKeyFor(sectionIndex),
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(2, 2, 2, 10),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              alignment: Alignment.center,
+                              child: _buildEmojiThumb(
+                                source:
+                                    widget
+                                        .emojiUrls[_categories[ordered[sectionIndex]]
+                                        .coverKey] ??
+                                    '',
+                                size: 12,
+                                fallback: Icon(
+                                  Icons.tag_faces_rounded,
+                                  size: 12,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _categories[ordered[sectionIndex]].name,
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final key
+                              in _categories[ordered[sectionIndex]].keys)
+                            SizedBox(
+                              width: itemSize,
+                              height: itemSize,
+                              child: _buildEmojiCell(context, key, itemSize),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final content = Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
+            colorScheme.surface,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(widget.embedded ? 24 : 30),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: colorScheme.shadow.withValues(
+              alpha: widget.embedded ? 0.08 : 0.12,
+            ),
+            blurRadius: widget.embedded ? 20 : 28,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          if (!widget.embedded) ...[
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          Padding(
+            padding: EdgeInsets.fromLTRB(12, widget.embedded ? 12 : 4, 12, 8),
+            child: _buildCategoryStrip(context),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerLow.withValues(
+                    alpha: 0.48,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.16),
+                  ),
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  child: _buildEmojiSectionList(context),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (widget.embedded) {
+      return content;
+    }
+
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.58;
     return Material(
       color: Colors.transparent,
       child: Align(
         alignment: Alignment.bottomCenter,
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: NotificationListener<OverscrollIndicatorNotification>(
-            onNotification: (notification) {
-              notification.disallowIndicator();
-              return true;
-            },
-            child: ScrollConfiguration(
-              behavior: ScrollConfiguration.of(
-                context,
-              ).copyWith(overscroll: false),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 8, 10, 8),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 38),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 36,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.outlineVariant.withValues(
-                                    alpha: 0.65,
-                                  ),
-                                  borderRadius: BorderRadius.circular(99),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                widget.title,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close_rounded),
-                          style: IconButton.styleFrom(
-                            foregroundColor: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: ClipRect(
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 72,
-                            child: ListView.builder(
-                              physics: const ClampingScrollPhysics(),
-                              padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
-                              itemCount: _categories.length,
-                              itemBuilder: (context, index) {
-                                final item = _categories[index];
-                                final selectedCategory =
-                                    index == _selectedIndex;
-                                final coverUrl =
-                                    widget.emojiUrls[item.coverKey] ?? '';
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 5,
-                                  ),
-                                  child: Tooltip(
-                                    message: item.name,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(14),
-                                      onTap: () {
-                                        if (_selectedIndex == index) return;
-                                        setState(() => _selectedIndex = index);
-                                        HapticFeedback.selectionClick();
-                                      },
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 200,
-                                        ),
-                                        curve: Curves.easeOutCubic,
-                                        height: 52,
-                                        decoration: BoxDecoration(
-                                          color: selectedCategory
-                                              ? colorScheme.primaryContainer
-                                              : colorScheme.surfaceContainerLow,
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                          border: Border.all(
-                                            color: selectedCategory
-                                                ? colorScheme.primary
-                                                      .withValues(alpha: 0.28)
-                                                : colorScheme.outlineVariant
-                                                      .withValues(alpha: 0.22),
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            child: _buildEmojiThumb(
-                                              source: coverUrl,
-                                              size: 28,
-                                              fallback: Container(
-                                                width: 28,
-                                                height: 28,
-                                                decoration: BoxDecoration(
-                                                  color: colorScheme
-                                                      .surfaceContainerHighest,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: Icon(
-                                                  Icons.tag_faces_rounded,
-                                                  size: 20,
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          VerticalDivider(
-                            width: 1,
-                            thickness: 1,
-                            color: colorScheme.outlineVariant.withValues(
-                              alpha: 0.2,
-                            ),
-                          ),
-                          Expanded(
-                            child: ClipRect(
-                              child: Material(
-                                color: colorScheme.surface,
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 180),
-                                  switchInCurve: Curves.easeOutCubic,
-                                  switchOutCurve: Curves.easeInCubic,
-                                  layoutBuilder:
-                                      (currentChild, previousChildren) {
-                                        return ClipRect(
-                                          child: Stack(
-                                            fit: StackFit.expand,
-                                            clipBehavior: Clip.hardEdge,
-                                            children: <Widget>[
-                                              ...previousChildren,
-                                              currentChild ??
-                                                  const SizedBox.shrink(),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                  transitionBuilder: (child, animation) {
-                                    return FadeTransition(
-                                      opacity: animation,
-                                      child: SlideTransition(
-                                        position: Tween<Offset>(
-                                          begin: const Offset(0.03, 0),
-                                          end: Offset.zero,
-                                        ).animate(animation),
-                                        child: child,
-                                      ),
-                                    );
-                                  },
-                                  child: GridView.builder(
-                                    key: ValueKey<String>(selected.name),
-                                    physics: const ClampingScrollPhysics(),
-                                    clipBehavior: Clip.hardEdge,
-                                    primary: false,
-                                    padding: const EdgeInsets.fromLTRB(
-                                      12,
-                                      8,
-                                      12,
-                                      14,
-                                    ),
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 7,
-                                          mainAxisSpacing: 10,
-                                          crossAxisSpacing: 10,
-                                          childAspectRatio: 1,
-                                        ),
-                                    itemCount: selectedKeys.length,
-                                    itemBuilder: (context, index) {
-                                      final key = selectedKeys[index];
-                                      final url = widget.emojiUrls[key] ?? '';
-                                      return InkWell(
-                                        borderRadius: BorderRadius.circular(12),
-                                        onTap: () => widget.onSelected(key),
-                                        child: Ink(
-                                          decoration: BoxDecoration(
-                                            color: colorScheme
-                                                .surfaceContainerLow
-                                                .withValues(alpha: 0.9),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                            border: Border.all(
-                                              color: colorScheme.outlineVariant
-                                                  .withValues(alpha: 0.2),
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: _buildEmojiThumb(
-                                              source: url,
-                                              size: 30,
-                                              fallback: Container(
-                                                width: 22,
-                                                height: 22,
-                                                decoration: BoxDecoration(
-                                                  color: colorScheme
-                                                      .surfaceContainerHighest,
-                                                  borderRadius:
-                                                      BorderRadius.circular(7),
-                                                ),
-                                                child: Icon(
-                                                  Icons.broken_image_rounded,
-                                                  size: 16,
-                                                  color: colorScheme.outline,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: content,
             ),
           ),
         ),

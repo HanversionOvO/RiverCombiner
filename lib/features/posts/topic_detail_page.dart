@@ -33,7 +33,7 @@ import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/core/widgets/river_ai_action_button.dart';
 import 'package:river/core/widgets/river_image_viewer.dart';
 import 'package:river/core/widgets/river_markdown_editor.dart';
-import 'package:river/core/widgets/riverside_category_picker_sheet.dart';
+import 'package:river/core/widgets/river_publish_category_picker_sheet.dart';
 import 'package:river/features/compose/compose_topic_page.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
 import 'package:river/core/navigation/river_page_route.dart';

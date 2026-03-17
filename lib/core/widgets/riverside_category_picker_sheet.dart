@@ -12,6 +12,7 @@ class RiverSideCategoryPickerSheet extends StatefulWidget {
     required this.selectedCategoryId,
     required this.onSelected,
     this.allowSelectAll = false,
+    this.respectCanCreateTopic = false,
     this.onRefreshCategories,
   });
 
@@ -19,6 +20,7 @@ class RiverSideCategoryPickerSheet extends StatefulWidget {
   final int? selectedCategoryId;
   final ValueChanged<RiverSideCategoryOption?> onSelected;
   final bool allowSelectAll;
+  final bool respectCanCreateTopic;
   final RiverSideCategoryLoader? onRefreshCategories;
 
   @override
@@ -205,6 +207,7 @@ class _RiverSideCategoryPickerSheetState
                         child: _BoardGroupCard(
                           group: group,
                           selectedId: widget.selectedCategoryId,
+                          respectCanCreateTopic: widget.respectCanCreateTopic,
                           onSelected: (category) => widget.onSelected(category),
                         ),
                       ),
@@ -223,18 +226,22 @@ class _BoardGroupCard extends StatelessWidget {
   const _BoardGroupCard({
     required this.group,
     required this.selectedId,
+    required this.respectCanCreateTopic,
     required this.onSelected,
   });
 
   final RiverSideCategoryGroup group;
   final int? selectedId;
+  final bool respectCanCreateTopic;
   final ValueChanged<RiverSideCategoryOption> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final parent = group.parent;
-    final isParentSelectable = parent.id > 0;
+    final isParentSelectable =
+        parent.id > 0 &&
+        (!respectCanCreateTopic || parent.canCreateTopic);
     final isParentSelected = selectedId == parent.id;
 
     return Column(
@@ -308,10 +315,12 @@ class _BoardGroupCard extends StatelessWidget {
               runSpacing: 8,
               children: group.children.map((child) {
                 final isSelected = selectedId == child.id;
+                final isSelectable =
+                    !respectCanCreateTopic || child.canCreateTopic;
                 return FilterChip(
                   selected: isSelected,
                   label: Text(child.name),
-                  onSelected: (_) => onSelected(child),
+                  onSelected: isSelectable ? (_) => onSelected(child) : null,
                   side: BorderSide.none,
                   showCheckmark: false,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest

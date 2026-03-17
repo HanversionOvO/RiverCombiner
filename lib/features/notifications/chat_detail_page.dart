@@ -17,7 +17,7 @@ import 'package:river/core/network/riverside_notification_models.dart';
 import 'package:river/core/realtime/riverside_message_bus_poller.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
 import 'package:river/core/widgets/river_image_viewer.dart';
-import 'package:river/core/widgets/river_markdown_editor.dart';
+import 'package:river/core/widgets/river_structured_emoji_picker.dart';
 import 'package:river/features/mine/riverside_profile_sheet.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -44,6 +44,7 @@ class ChatDetailPage extends StatefulWidget {
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
+  static const double _composerEmojiPanelHeight = 292;
   static const int _maxComposerImagePickCount = 3;
   static const String _chatGlobalRealtimeChannel = '/chat';
   static const List<String> _defaultReactionEmojiNames = <String>[
@@ -72,23 +73,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
     'sob': '\u{1F62D}',
   };
 
-  static const String _labelNeedLogin =
-      '请先登录 RiverSide 账号';
-  static const String _labelLoadFailed =
-      '消息加载失败，请稍后重试';
-  static const String _labelSendFailed =
-      '发送失败，请稍后重试';
+  static const String _labelNeedLogin = '请先登录 RiverSide 账号';
+  static const String _labelLoadFailed = '消息加载失败，请稍后重试';
+  static const String _labelSendFailed = '发送失败，请稍后重试';
   static const String _labelNoMessages = '暂无消息';
-  static const String _labelNoMore =
-      '没有更多历史消息';
+  static const String _labelNoMore = '没有更多历史消息';
   static const String _labelMessageDeleted = '消息已删除';
   static const String _labelRetry = '重试';
   static const String _labelDelete = '删除';
   static const String _labelCancel = '取消';
   static const String _labelCopied = '已复制';
   static const String _labelDeleteSuccess = '消息已删除';
-  static const String _labelDeleteConfirm =
-      '确定删除这条消息吗？';
+  static const String _labelDeleteConfirm = '确定删除这条消息吗？';
   static const String _labelReply = '回复';
   static const String _labelCopy = '复制内容';
   static const String _labelUnknownUser = '未知用户';
@@ -112,6 +108,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
   bool _realtimeSyncing = false;
   bool _realtimeSyncPending = false;
   bool _selectionMode = false;
+  bool _composerEmojiPanelVisible = false;
   bool _composerHasText = false;
   int _newMessageHintCount = 0;
   RiverSideChatMessageItem? _replyingMessage;
@@ -226,6 +223,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
     _messageBusPoller = null;
     _selectedMessageIds.clear();
     _selectionMode = false;
+    _composerEmojiPanelVisible = false;
     _loadInitial(clearExisting: true);
     _loadEmojiData();
     _restartRealtimePolling();
@@ -289,6 +287,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
     if (!_composerFocusNode.hasFocus) {
       return;
     }
+    _hideComposerEmojiPanel();
     unawaited(
       Future<void>.delayed(
         const Duration(milliseconds: 60),
@@ -342,6 +341,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
       _selectedMessageIds.add(messageId);
       _showScrollToBottom = false;
     });
+    _hideComposerEmojiPanel();
   }
 
   void _toggleSelectedMessage(int messageId) {
@@ -507,6 +507,40 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
     }
     setState(() {
       _composerDockHeight = next;
+    });
+  }
+
+  void _toggleComposerEmojiPanel() {
+    if (_sending) {
+      return;
+    }
+    HapticFeedback.selectionClick();
+    if (_composerEmojiPanelVisible) {
+      _hideComposerEmojiPanel();
+      _composerFocusNode.requestFocus();
+      return;
+    }
+    _dismissComposerKeyboard();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _composerEmojiPanelVisible = true;
+    });
+    unawaited(
+      Future<void>.delayed(
+        const Duration(milliseconds: 80),
+        _scrollToBottomAnimated,
+      ),
+    );
+  }
+
+  void _hideComposerEmojiPanel() {
+    if (!_composerEmojiPanelVisible || !mounted) {
+      return;
+    }
+    setState(() {
+      _composerEmojiPanelVisible = false;
     });
   }
 

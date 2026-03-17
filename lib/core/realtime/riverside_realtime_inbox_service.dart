@@ -337,6 +337,9 @@ class RiverSideRealtimeInboxService extends ChangeNotifier {
       for (final item in previousChatChannels) item.id: item,
     };
     for (final item in nextChatChannels) {
+      if (!item.isDirectMessage) {
+        continue;
+      }
       if (_activeChatChannelId == item.id) {
         continue;
       }
@@ -349,17 +352,13 @@ class RiverSideRealtimeInboxService extends ChangeNotifier {
       if (!unreadIncreased && !timestampAdvanced) {
         continue;
       }
-      final title = item.isDirectMessage
-          ? '来自 ${item.name} 的新私信'
-          : '${item.name} 有新消息';
+      final title = '来自 ${item.name} 的新私信';
       final message = item.lastMessage.trim().isNotEmpty
           ? item.lastMessage.trim()
           : '点击查看详情';
       return RiverSideInAppMessageBanner(
         id: 'river_banner_${_bannerSequence++}',
-        kind: item.isDirectMessage
-            ? RiverSideInAppMessageKind.directMessage
-            : RiverSideInAppMessageKind.channelMessage,
+        kind: RiverSideInAppMessageKind.directMessage,
         title: title,
         message: message,
         channel: item,

@@ -71,6 +71,8 @@ class RiverSideCategoryOption {
     required this.position,
     required this.parentCategoryId,
     required this.description,
+    this.canCreateTopic = true,
+    this.displayName = '',
   });
 
   final int id;
@@ -78,6 +80,8 @@ class RiverSideCategoryOption {
   final int position;
   final int? parentCategoryId;
   final String description;
+  final bool canCreateTopic;
+  final String displayName;
 }
 
 class RiverSideTopicPage {

@@ -11,6 +11,10 @@ String displayRiverSideCategoryName({
   required RiverSideCategoryOption category,
   required List<RiverSideCategoryOption> allCategories,
 }) {
+  final explicit = category.displayName.trim();
+  if (explicit.isNotEmpty) {
+    return explicit;
+  }
   final parentId = category.parentCategoryId;
   if (parentId == null) {
     return category.name;
@@ -86,6 +90,46 @@ List<RiverSideCategoryGroup> buildRiverSideCategoryGroups(
   }
 
   return groups;
+}
+
+List<RiverSideCategoryOption> filterRiverSidePublishableCategories(
+  List<RiverSideCategoryOption> categories,
+) {
+  if (categories.isEmpty) {
+    return const <RiverSideCategoryOption>[];
+  }
+
+  final byId = <int, RiverSideCategoryOption>{
+    for (final item in categories) item.id: item,
+  };
+  final keepIds = <int>{};
+
+  void keepAncestors(RiverSideCategoryOption item) {
+    var parentId = item.parentCategoryId;
+    while (parentId != null) {
+      final parent = byId[parentId];
+      if (parent == null || !keepIds.add(parent.id)) {
+        break;
+      }
+      parentId = parent.parentCategoryId;
+    }
+  }
+
+  for (final item in categories) {
+    if (!item.canCreateTopic) {
+      continue;
+    }
+    keepIds.add(item.id);
+    keepAncestors(item);
+  }
+
+  if (keepIds.isEmpty) {
+    return const <RiverSideCategoryOption>[];
+  }
+
+  return categories
+      .where((item) => keepIds.contains(item.id))
+      .toList(growable: false);
 }
 
 RiverSideCategoryOption? findRiverSideCategoryById({
