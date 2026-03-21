@@ -61,6 +61,7 @@ class _MainPostCard extends StatefulWidget {
     this.jumpHighlightToken = 0,
     this.submittingPollKeys = const <String>{},
     this.showAliasFirst = false,
+    this.autoCollapseBody = true,
     required this.onPollVote,
     required this.onPollClear,
   });
@@ -97,6 +98,7 @@ class _MainPostCard extends StatefulWidget {
   final int jumpHighlightToken;
   final Set<String> submittingPollKeys;
   final bool showAliasFirst;
+  final bool autoCollapseBody;
   final Future<bool> Function(RiverSideTopicPoll poll, List<String> optionIds)
   onPollVote;
   final Future<bool> Function(RiverSideTopicPoll poll) onPollClear;
@@ -114,60 +116,93 @@ class _MainPostCardState extends State<_MainPostCard>
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final post = widget.detail.mainPost;
-    final subtitleColor = theme.colorScheme.onSurfaceVariant;
     final bodySection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            _MetaItem(
-              icon: Icons.schedule_outlined,
-              text: _formatDateTime(post.createdAt),
-              color: subtitleColor,
-            ),
-            _MetaItem(
-              icon: Icons.edit_note,
-              text: '编辑 ${post.editCount}',
-              color: subtitleColor,
-            ),
-            _MetaItem(
-              icon: Icons.visibility_outlined,
-              text: '浏览 ${widget.detail.viewCount}',
-              color: subtitleColor,
-            ),
-            _MetaItem(
-              icon: Icons.thumb_up_alt_outlined,
-              text: '点赞 ${post.likeCount}',
-              color: subtitleColor,
-            ),
-          ],
+        Opacity(
+          opacity: 0.88,
+          child: Wrap(
+            spacing: 14,
+            runSpacing: 8,
+            children: [
+              _MetaItem(
+                icon: Icons.schedule_outlined,
+                text: _formatDateTime(post.createdAt),
+                color: colors.onSurfaceVariant,
+              ),
+              _MetaItem(
+                icon: Icons.edit_note,
+                text: '编辑 ${post.editCount}',
+                color: colors.onSurfaceVariant,
+              ),
+              _MetaItem(
+                icon: Icons.visibility_outlined,
+                text: '浏览 ${widget.detail.viewCount}',
+                color: colors.onSurfaceVariant,
+              ),
+              _MetaItem(
+                icon: Icons.thumb_up_alt_outlined,
+                text: '点赞 ${post.likeCount}',
+                color: colors.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        _PostContent(
-          markdown: post.contentMarkdown,
-          cookedHtml: post.contentCookedHtml,
-          topicId: post.topicId,
-          cookieHeader: widget.cookieHeader,
-          emojiUrls: widget.emojiUrls,
-          onQuoteTap: widget.onQuoteTap,
-          onMentionTap: widget.onMentionTap,
-          onTopicLinkTap: widget.onTopicLinkTap,
+        const SizedBox(height: 14),
+        DefaultTextStyle.merge(
+          style: theme.textTheme.bodyLarge?.copyWith(
+                color: colors.onSurface,
+                height: 1.7,
+              ) ??
+              const TextStyle(),
+          child: _CollapsibleMainPostBody(
+            key: ValueKey<String>(
+              'main-post-body-${post.id}-${post.editCount}-${post.contentMarkdown.hashCode}',
+            ),
+            autoCollapse: widget.autoCollapseBody,
+            child: _PostContent(
+              markdown: post.contentMarkdown,
+              cookedHtml: post.contentCookedHtml,
+              topicId: post.topicId,
+              cookieHeader: widget.cookieHeader,
+              emojiUrls: widget.emojiUrls,
+              onQuoteTap: widget.onQuoteTap,
+              onMentionTap: widget.onMentionTap,
+              onTopicLinkTap: widget.onTopicLinkTap,
+            ),
+          ),
         ),
         if (post.polls.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _TopicPollSection(
-            postId: post.id,
-            polls: post.polls,
-            canVote: post.canVotePoll,
-            submittingPollKeys: widget.submittingPollKeys,
-            onSubmit: widget.onPollVote,
-            onClear: widget.onPollClear,
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerLow.withValues(alpha: 0.58),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: colors.outlineVariant.withValues(alpha: 0.22),
+              ),
+            ),
+            child: _TopicPollSection(
+              postId: post.id,
+              polls: post.polls,
+              canVote: post.canVotePoll,
+              submittingPollKeys: widget.submittingPollKeys,
+              onSubmit: widget.onPollVote,
+              onClear: widget.onPollClear,
+            ),
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
+        Divider(
+          height: 1,
+          thickness: 1,
+          color: colors.outlineVariant.withValues(alpha: 0.24),
+        ),
+        const SizedBox(height: 14),
         _PostReactionBar(
           post: post,
           reacting: widget.isReacting,
@@ -217,22 +252,30 @@ class _MainPostCardState extends State<_MainPostCard>
       child: _JumpHighlightWrapper(
         highlighted: widget.isJumpHighlighted,
         token: widget.jumpHighlightToken,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(26),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
           child: _AiMarqueeBorder(
             enabled: widget.showAiSummaryMarquee,
-            borderRadius: BorderRadius.circular(20),
-            child: Card(
-              margin: EdgeInsets.zero,
-              elevation: 0,
-              color: theme.colorScheme.surfaceContainerLow,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(26),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: colors.outlineVariant.withValues(alpha: 0.26),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.shadow.withValues(alpha: 0.06),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
+              clipBehavior: Clip.antiAlias,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -256,13 +299,14 @@ class _MainPostCardState extends State<_MainPostCard>
                             )
                           : (widget.showTransferAction
                                 ? _MainPostInlineActions(
-                                    onTransferPressed: widget.onTransferPressed,
+                                    onTransferPressed:
+                                        widget.onTransferPressed,
                                     transferTargetProvider:
                                         widget.transferTargetProvider,
                                   )
                                 : null),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 16),
                     revealedBody,
                   ],
                 ),
@@ -272,6 +316,263 @@ class _MainPostCardState extends State<_MainPostCard>
         ),
       ),
     );
+  }
+
+}
+
+class _CollapsibleMainPostBody extends StatefulWidget {
+  const _CollapsibleMainPostBody({
+    super.key,
+    required this.autoCollapse,
+    required this.child,
+  });
+
+  final bool autoCollapse;
+  final Widget child;
+
+  @override
+  State<_CollapsibleMainPostBody> createState() => _CollapsibleMainPostBodyState();
+}
+
+class _CollapsibleMainPostBodyState extends State<_CollapsibleMainPostBody> {
+  static const int _collapsedLines = 12;
+
+  double _contentHeight = 0;
+  bool _isCollapsed = false;
+
+  double _collapsedHeight(BuildContext context) {
+    final style = DefaultTextStyle.of(context).style;
+    final fontSize = style.fontSize ?? 16;
+    final lineHeight = style.height ?? 1.7;
+    return fontSize * lineHeight * _collapsedLines + 8;
+  }
+
+  void _handleMeasuredSize(Size size) {
+    if (!mounted) {
+      return;
+    }
+    final nextHeight = size.height;
+    final collapsedHeight = _collapsedHeight(context);
+    final willCollapse = widget.autoCollapse && nextHeight > collapsedHeight + 4;
+    if ((_contentHeight - nextHeight).abs() < 0.5 &&
+        _isCollapsed == willCollapse) {
+      return;
+    }
+    setState(() {
+      _contentHeight = nextHeight;
+      _isCollapsed = willCollapse;
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _CollapsibleMainPostBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.autoCollapse == widget.autoCollapse) {
+      return;
+    }
+    if (!widget.autoCollapse) {
+      setState(() {
+        _isCollapsed = false;
+      });
+      return;
+    }
+    final collapsedHeight = _collapsedHeight(context);
+    if (_contentHeight > collapsedHeight + 4) {
+      setState(() {
+        _isCollapsed = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final collapsedHeight = _collapsedHeight(context);
+    final isOverflowing = widget.autoCollapse && _contentHeight > collapsedHeight + 4;
+    final heightFactor = !isOverflowing || !_isCollapsed || _contentHeight <= 0
+        ? 1.0
+        : (collapsedHeight / _contentHeight).clamp(0.0, 1.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: ClipRect(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  heightFactor: heightFactor,
+                  child: _MeasureSize(
+                    onChange: _handleMeasuredSize,
+                    child: widget.child,
+                  ),
+                ),
+              ),
+            ),
+            if (isOverflowing && _isCollapsed)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SizedBox(
+                  height: 120,
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      IgnorePointer(
+                        child: Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                colors.surfaceContainerLow.withValues(
+                                  alpha: 0,
+                                ),
+                                colors.surfaceContainerLow.withValues(
+                                  alpha: 0.32,
+                                ),
+                                colors.surfaceContainerLow.withValues(
+                                  alpha: 0.72,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () {
+                              setState(() {
+                                _isCollapsed = false;
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.unfold_more_rounded,
+                                    size: 18,
+                                    color: colors.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '展开全部内容',
+                                    style: theme.textTheme.labelLarge?.copyWith(
+                                      color: colors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (isOverflowing) ...[
+          if (!_isCollapsed) ...[
+            const SizedBox(height: 12),
+            Center(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () {
+                    setState(() {
+                      _isCollapsed = true;
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.unfold_less_rounded,
+                          size: 18,
+                          color: colors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '收起正文',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+class _MeasureSize extends SingleChildRenderObjectWidget {
+  const _MeasureSize({required this.onChange, required super.child});
+
+  final ValueChanged<Size> onChange;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _MeasureSizeRenderObject(onChange);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _MeasureSizeRenderObject renderObject,
+  ) {
+    renderObject.onChange = onChange;
+  }
+}
+
+class _MeasureSizeRenderObject extends RenderProxyBox {
+  _MeasureSizeRenderObject(this.onChange);
+
+  ValueChanged<Size> onChange;
+  Size? _oldSize;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final newSize = child?.size;
+    if (newSize == null || _oldSize == newSize) {
+      return;
+    }
+    _oldSize = newSize;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      onChange(newSize);
+    });
   }
 }
 

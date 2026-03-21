@@ -1031,31 +1031,123 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
   Future<void> _showQuoteBottomSheet(_QuoteBlock quote) async {
     await showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
+      useSafeArea: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
       builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.62;
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _CommentDetailPageState._labelQuoteTitle,
-                  style: Theme.of(sheetContext).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 320),
-                  child: SingleChildScrollView(
-                    child: _MarkdownContent(
-                      markdown: quote.contentMarkdown,
-                      cookieHeader: _activeCookieHeader(),
-                      emojiUrls: _emojiUrls,
+          top: false,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    theme.colorScheme.surfaceContainerLow.withValues(
+                      alpha: 0.92,
                     ),
-                  ),
+                    theme.colorScheme.surface,
+                  ],
                 ),
-              ],
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 14, 0, 10),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: theme.colorScheme.primaryContainer,
+                            ),
+                            child: Icon(
+                              Icons.format_quote_rounded,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _CommentDetailPageState._labelQuoteTitle,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                Text(
+                                  '查看完整引用内容',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: '关闭',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => Navigator.of(sheetContext).pop(),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Flexible(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerLow
+                              .withValues(alpha: 0.58),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.30,
+                            ),
+                          ),
+                        ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 320),
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                            child: _MarkdownContent(
+                              markdown: quote.contentMarkdown,
+                              cookieHeader: _activeCookieHeader(),
+                              emojiUrls: _emojiUrls,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         );

@@ -44,6 +44,7 @@ class AppSettingsController extends ChangeNotifier {
   static const String _notificationsRealtimeRefreshBannerKey =
       'app.notifications_realtime_refresh_banner';
   static const String _inAppMessagesKey = 'app.in_app_messages';
+  static const String _autoCollapseTopicBodyKey = 'app.auto_collapse_topic_body';
   static const String _topicCommentsRealtimeRefreshBannerKey =
       'app.topic_comments_realtime_refresh_banner';
   static const String _postsSecondFloorGuideKey =
@@ -99,6 +100,7 @@ class AppSettingsController extends ChangeNotifier {
   bool _showPostsRealtimeRefreshBanner = true;
   bool _showNotificationsRealtimeRefreshBanner = true;
   bool _showInAppMessages = true;
+  bool _autoCollapseTopicBody = true;
   bool _showTopicCommentsRealtimeRefreshBanner = true;
   bool _showPostsSecondFloorGuide = true;
   String _riverSideBaseUrl = RiverServerConfig.defaultBaseUrl;
@@ -141,6 +143,7 @@ class AppSettingsController extends ChangeNotifier {
   bool get showNotificationsRealtimeRefreshBanner =>
       _showNotificationsRealtimeRefreshBanner;
   bool get showInAppMessages => _showInAppMessages;
+  bool get autoCollapseTopicBody => _autoCollapseTopicBody;
   bool get showTopicCommentsRealtimeRefreshBanner =>
       _showTopicCommentsRealtimeRefreshBanner;
   bool get showPostsSecondFloorGuide => _showPostsSecondFloorGuide;
@@ -256,6 +259,8 @@ class AppSettingsController extends ChangeNotifier {
         _prefs?.getBool(_inAppMessagesKey) ??
         _prefs?.getBool(_notificationsRealtimeRefreshBannerKey) ??
         true;
+    _autoCollapseTopicBody =
+        _prefs?.getBool(_autoCollapseTopicBodyKey) ?? true;
     _showTopicCommentsRealtimeRefreshBanner =
         _prefs?.getBool(_topicCommentsRealtimeRefreshBannerKey) ?? true;
     _showPostsSecondFloorGuide =
@@ -525,6 +530,15 @@ class AppSettingsController extends ChangeNotifier {
     _showInAppMessages = value;
     notifyListeners();
     unawaited(_saveShowInAppMessages());
+  }
+
+  void updateAutoCollapseTopicBody(bool value) {
+    if (_autoCollapseTopicBody == value) {
+      return;
+    }
+    _autoCollapseTopicBody = value;
+    notifyListeners();
+    unawaited(_saveAutoCollapseTopicBody());
   }
 
   void updateShowTopicCommentsRealtimeRefreshBanner(bool value) {
@@ -940,6 +954,11 @@ class AppSettingsController extends ChangeNotifier {
   Future<void> _saveShowInAppMessages() async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setBool(_inAppMessagesKey, _showInAppMessages);
+  }
+
+  Future<void> _saveAutoCollapseTopicBody() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(_autoCollapseTopicBodyKey, _autoCollapseTopicBody);
   }
 
   Future<void> _saveShowTopicCommentsRealtimeRefreshBanner() async {

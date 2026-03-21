@@ -1789,6 +1789,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         final theme = Theme.of(sheetContext);
+        final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.76;
         return SafeArea(
           top: false,
           child: TweenAnimationBuilder<double>(
@@ -1804,180 +1805,195 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                 ),
               );
             },
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: Material(
-                color: theme.colorScheme.surface.withValues(alpha: 0.98),
-                elevation: 14,
-                shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  side: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.5,
-                    ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      theme.colorScheme.surfaceContainerLow.withValues(
+                        alpha: 0.92,
+                      ),
+                      theme.colorScheme.surface,
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(30),
                   ),
                 ),
-                clipBehavior: Clip.antiAlias,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 10),
                       Center(
                         child: Container(
-                          width: 42,
+                          width: 44,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.outlineVariant.withValues(
-                              alpha: 0.7,
-                            ),
+                            color: theme.colorScheme.outlineVariant,
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(10),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 14, 0, 10),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: theme.colorScheme.primaryContainer,
+                              ),
+                              child: Icon(
+                                Icons.format_quote_rounded,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.format_quote_rounded,
-                              size: 18,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  hasFloorRef
-                                      ? '回复 @${quote.ref.username} 的 #${quote.ref.postNumber}'
-                                      : '引用内容',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    hasFloorRef
+                                        ? '回复 @${quote.ref.username} 的 #${quote.ref.postNumber}'
+                                        : '引用内容',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w800),
                                   ),
-                                ),
-                                Text(
-                                  hasFloorRef ? '查看完整被回复内容' : '查看完整引用内容',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: '关闭',
-                            onPressed: () => Navigator.of(sheetContext).pop(),
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withValues(
-                              alpha: 0.35,
-                            ),
-                          ),
-                        ),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 320),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                            child: quotedPostFuture == null
-                                ? SingleChildScrollView(
-                                    child: _MarkdownContent(
-                                      markdown: quote.contentMarkdown,
-                                      cookieHeader: cookieHeader,
-                                      emojiUrls: _emojiUrls,
+                                  Text(
+                                    hasFloorRef ? '查看完整被回复内容' : '查看完整引用内容',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      color: theme
+                                          .colorScheme
+                                          .onSurfaceVariant,
                                     ),
-                                  )
-                                : FutureBuilder<RiverSideTopicPostDetail>(
-                                    future: quotedPostFuture,
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting) {
-                                        return const Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 20,
-                                          ),
-                                          child: Center(
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              tooltip: '关闭',
+                              onPressed: () => Navigator.of(sheetContext).pop(),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Flexible(
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerLow
+                                .withValues(alpha: 0.58),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant.withValues(
+                                alpha: 0.30,
+                              ),
+                            ),
+                          ),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 320),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                10,
+                                12,
+                                10,
+                              ),
+                              child: quotedPostFuture == null
+                                  ? SingleChildScrollView(
+                                      child: _MarkdownContent(
+                                        markdown: quote.contentMarkdown,
+                                        cookieHeader: cookieHeader,
+                                        emojiUrls: _emojiUrls,
+                                      ),
+                                    )
+                                  : FutureBuilder<RiverSideTopicPostDetail>(
+                                      future: quotedPostFuture,
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 20,
+                                            ),
+                                            child: Center(
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                  ),
+                                                  SizedBox(width: 10),
+                                                  Text(_labelQuoteLoading),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }
+
+                                        if (snapshot.hasError) {
+                                          return SingleChildScrollView(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2,
+                                                Text(
+                                                  _labelQuoteLoadFailed,
+                                                  style: theme
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color: theme
+                                                            .colorScheme
+                                                            .error,
                                                       ),
                                                 ),
-                                                SizedBox(width: 10),
-                                                Text(_labelQuoteLoading),
+                                                const SizedBox(height: 8),
+                                                _MarkdownContent(
+                                                  markdown:
+                                                      quote.contentMarkdown,
+                                                  cookieHeader: cookieHeader,
+                                                  emojiUrls: _emojiUrls,
+                                                ),
                                               ],
                                             ),
-                                          ),
-                                        );
-                                      }
+                                          );
+                                        }
 
-                                      if (snapshot.hasError) {
+                                        final markdown =
+                                            snapshot.data?.contentMarkdown ??
+                                            quote.contentMarkdown;
                                         return SingleChildScrollView(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                _labelQuoteLoadFailed,
-                                                style: theme.textTheme.bodySmall
-                                                    ?.copyWith(
-                                                      color: theme
-                                                          .colorScheme
-                                                          .error,
-                                                    ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              _MarkdownContent(
-                                                markdown: quote.contentMarkdown,
-                                                cookieHeader: cookieHeader,
-                                                emojiUrls: _emojiUrls,
-                                              ),
-                                            ],
+                                          child: _MarkdownContent(
+                                            markdown: markdown,
+                                            cookieHeader: cookieHeader,
+                                            emojiUrls: _emojiUrls,
                                           ),
                                         );
-                                      }
-
-                                      final markdown =
-                                          snapshot.data?.contentMarkdown ??
-                                          quote.contentMarkdown;
-                                      return SingleChildScrollView(
-                                        child: _MarkdownContent(
-                                          markdown: markdown,
-                                          cookieHeader: cookieHeader,
-                                          emojiUrls: _emojiUrls,
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                      },
+                                    ),
+                            ),
                           ),
                         ),
                       ),
@@ -2903,6 +2919,10 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                               showAiSummaryAction: !_isQingShuiHePanTopic,
                               showReplyAction: !showFloatingReply,
                               showAliasFirst: _isQingShuiHePanTopic,
+                              autoCollapseBody: widget
+                                  .dependencies
+                                  .settingsController
+                                  .autoCollapseTopicBody,
                               isJumpHighlighted: _jumpHighlightPostNumber == 1,
                               jumpHighlightToken: _jumpHighlightPostNumber == 1
                                   ? _jumpHighlightToken

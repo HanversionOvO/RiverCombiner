@@ -22,7 +22,8 @@ class _PostAuthorHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final subtitleColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final colors = Theme.of(context).colorScheme;
+    final subtitleColor = colors.onSurfaceVariant;
     final onlineColor = _onlineStateColor(post.isOnline, context);
 
     final avatar = Stack(
@@ -97,19 +98,35 @@ class _PostAuthorHeader extends StatelessWidget {
                 runSpacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  // 移除了單獨的在線狀態文字行，僅保留頭銜和用戶名
-                  if (post.authorTitle.isNotEmpty)
-                    Text(
-                      post.authorTitle,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: subtitleColor,
-                      ),
-                    ),
                   if (secondaryName.isNotEmpty)
                     Text(
                       '@$secondaryName',
                       style: textTheme.bodySmall?.copyWith(
                         color: subtitleColor,
+                      ),
+                    ),
+                  if (post.authorTitle.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest.withValues(
+                          alpha: 0.72,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: colors.outlineVariant.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Text(
+                        post.authorTitle,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: subtitleColor,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.1,
+                        ),
                       ),
                     ),
                 ],
