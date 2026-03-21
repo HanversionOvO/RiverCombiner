@@ -204,10 +204,9 @@ packages:
   draggable_route:
     dependency: "direct main"
     description:
-      name: draggable_route
-      sha256: "23eeea4264cb387b854fca0c07072339eec1d1447dd9dc66545360d1fd6334bc"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
+      path: "third_party/draggable_route"
+      relative: true
+    source: path
     version: "0.7.3"
   emoji_picker_flutter:
     dependency: "direct main"

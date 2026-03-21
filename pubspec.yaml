@@ -97,6 +97,8 @@ dev_dependencies:
 dependency_overrides:
   flutter_dynamic_icon:
     path: packages/flutter_dynamic_icon
+  draggable_route:
+    path: third_party/draggable_route
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
