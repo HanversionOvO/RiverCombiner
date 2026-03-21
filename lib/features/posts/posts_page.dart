@@ -1742,6 +1742,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   String _lastMiniAppsManifestUrl = '';
   final Map<int, List<RiverSideTopicSummary>> _tabTopicSnapshotsByIndex =
       <int, List<RiverSideTopicSummary>>{};
+  int _lastSyncedTabIndex = 0;
   _SecondFloorWeatherData? _secondFloorWeatherData;
   bool _loadingSecondFloorWeather = false;
   String? _secondFloorWeatherError;
@@ -4490,16 +4491,25 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   }
 
   void _onTabChanged() {
-    if (_tabController.indexIsChanging) {
-      return;
-    }
     _syncHeaderWithCurrentTab();
   }
 
   void _syncHeaderWithCurrentTab() {
-    final key = _tabKeys[_tabController.index];
+    final currentIndex = _tabController.index;
+    final tabChanged = _lastSyncedTabIndex != currentIndex;
+    _lastSyncedTabIndex = currentIndex;
+    final key = _tabKeys[currentIndex];
     final offset = key?.currentState?.currentScrollOffset ?? 0;
-    _onActiveTabScrollOffsetChanged(offset);
+    final next = (offset / 96).clamp(0.0, 1.0);
+    if (!mounted) {
+      return;
+    }
+    if (!tabChanged && (_headerScrollFactor - next).abs() < 0.01) {
+      return;
+    }
+    setState(() {
+      _headerScrollFactor = next;
+    });
   }
 
   Future<void> _clearCurrentForumFootprints() async {
