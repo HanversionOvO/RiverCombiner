@@ -709,6 +709,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     final nextFavorited = !currentFavorited;
     _mutateState(() => _topicFavoriteBusy = true);
     try {
+      var resolvedFavorited = nextFavorited;
       if (_isQingShuiHePanTopic) {
         final auth = _activeQingAuth();
         if (auth == null) {
@@ -726,21 +727,29 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
           _showSimpleToast(_loginRequiredLabel);
           return;
         }
-        await widget.dependencies.accountStore.riverSideApiClient
-            .toggleTopicBookmark(
-              topicId: detail.topicId,
-              bookmarked: nextFavorited,
-              cookieHeader: cookie,
-            );
+        final apiClient = widget.dependencies.accountStore.riverSideApiClient;
+        await apiClient.toggleTopicBookmark(
+          topicId: detail.topicId,
+          bookmarked: nextFavorited,
+          cookieHeader: cookie,
+        );
+        try {
+          resolvedFavorited = await apiClient.fetchTopicBookmarkedState(
+            topicId: detail.topicId,
+            cookieHeader: cookie,
+          );
+        } on RiverSideApiException {
+          resolvedFavorited = nextFavorited;
+        }
       }
       _mutateState(() {
         _topicFavoriteResolved = true;
-        _topicFavorited = nextFavorited;
+        _topicFavorited = resolvedFavorited;
         if (_detail != null) {
-          _detail = _detail!.copyWith(isBookmarked: nextFavorited);
+          _detail = _detail!.copyWith(isBookmarked: resolvedFavorited);
         }
       });
-      _showSimpleToast(nextFavorited ? '收藏成功' : '已取消收藏');
+      _showSimpleToast(resolvedFavorited ? '收藏成功' : '已取消收藏');
     } on RiverSideApiException catch (error) {
       _showSimpleToast(error.message);
     } catch (error) {

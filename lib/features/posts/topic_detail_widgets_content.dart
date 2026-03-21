@@ -295,6 +295,11 @@ class _MarkdownContent extends StatelessWidget {
     final quoteBorder = theme.colorScheme.primary.withValues(
       alpha: isDark ? 0.62 : 0.44,
     );
+    final tableBorder = theme.colorScheme.outlineVariant.withValues(
+      alpha: isDark ? 0.65 : 0.88,
+    );
+    final tableBg = theme.colorScheme.surfaceContainerLow;
+    final tableHeadBg = theme.colorScheme.surfaceContainerHighest;
     var imageBuilderIndex = 0;
     final inlineSyntaxes = <md.InlineSyntax>[
       if (emojiUrls.isNotEmpty) _EmojiInlineSyntax(emojiUrls),
@@ -367,6 +372,24 @@ class _MarkdownContent extends StatelessWidget {
           color: theme.colorScheme.onSurface,
           height: 1.45,
         ),
+        tableHead: (baseStyle ?? textTheme.bodyMedium)?.copyWith(
+          color: theme.colorScheme.onSurface,
+          fontWeight: FontWeight.w700,
+        ),
+        tableBody: (baseStyle ?? textTheme.bodyMedium)?.copyWith(
+          color: theme.colorScheme.onSurface,
+          height: 1.5,
+        ),
+        tableHeadAlign: TextAlign.left,
+        tableCellsPadding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        tableCellsDecoration: BoxDecoration(
+          color: tableBg,
+          border: Border.all(color: tableBorder),
+        ),
+        tableHeadCellsDecoration: BoxDecoration(
+          color: tableHeadBg,
+          border: Border.all(color: tableBorder),
+        ),
         blockquotePadding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         blockquoteDecoration: BoxDecoration(
           color: quoteBg,
@@ -421,6 +444,9 @@ class _MarkdownContent extends StatelessWidget {
       textStyle: baseStyle,
       customWidgetBuilder: (element) {
         final tag = (element.localName ?? '').toLowerCase();
+        if (tag == 'table') {
+          return _HtmlTableBlock(element: element);
+        }
         if (tag != 'a') {
           return null;
         }
@@ -465,9 +491,16 @@ class _MarkdownContent extends StatelessWidget {
             'border-collapse': 'collapse',
             'background-color': _toCssColor(tableBg),
             'border': '1px solid ${_toCssColor(tableBorder)}',
+            'color': _toCssColor(theme.colorScheme.onSurface),
             'border-radius': '12px',
             'overflow': 'hidden',
             'margin': '0',
+          };
+        }
+        if (tag == 'tr') {
+          return <String, String>{
+            'background-color': _toCssColor(tableBg),
+            'color': _toCssColor(theme.colorScheme.onSurface),
           };
         }
         if (tag == 'th') {
@@ -478,12 +511,15 @@ class _MarkdownContent extends StatelessWidget {
             'background-color': _toCssColor(
               theme.colorScheme.surfaceContainerHighest,
             ),
+            'color': _toCssColor(theme.colorScheme.onSurface),
             'border': '1px solid ${_toCssColor(tableBorder)}',
           };
         }
         if (tag == 'td') {
           return <String, String>{
             'padding': '10px 12px',
+            'background-color': _toCssColor(tableBg),
+            'color': _toCssColor(theme.colorScheme.onSurface),
             'border': '1px solid ${_toCssColor(tableBorder)}',
           };
         }
@@ -766,6 +802,153 @@ class _InlineVideoSourceCard extends StatefulWidget {
 
   @override
   State<_InlineVideoSourceCard> createState() => _InlineVideoSourceCardState();
+}
+
+class _HtmlTableBlock extends StatelessWidget {
+  const _HtmlTableBlock({required this.element});
+
+  final dynamic element;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final rows = _extractRows(element);
+    if (rows.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final maxColumns = rows
+        .map((row) => row.length)
+        .fold<int>(0, (current, next) => math.max(current, next));
+    if (maxColumns <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerLow,
+            border: Border.all(
+              color: colors.outlineVariant.withValues(alpha: 0.72),
+            ),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Table(
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              border: TableBorder(
+                horizontalInside: BorderSide(
+                  color: colors.outlineVariant.withValues(alpha: 0.6),
+                ),
+                verticalInside: BorderSide(
+                  color: colors.outlineVariant.withValues(alpha: 0.6),
+                ),
+              ),
+              defaultColumnWidth: const IntrinsicColumnWidth(),
+              children: [
+                for (final row in rows)
+                  TableRow(
+                    children: [
+                      for (var index = 0; index < maxColumns; index++)
+                        _HtmlTableCell(
+                          text: index < row.length ? row[index].text : '',
+                          isHeader: index < row.length && row[index].isHeader,
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<List<_HtmlTableCellData>> _extractRows(dynamic tableElement) {
+    final directRows = _parseRowList(tableElement.children);
+    if (directRows.isNotEmpty) {
+      return directRows;
+    }
+
+    final rows = <List<_HtmlTableCellData>>[];
+    for (final child in tableElement.children) {
+      rows.addAll(_parseRowList(child.children));
+    }
+    return rows;
+  }
+
+  List<List<_HtmlTableCellData>> _parseRowList(dynamic elements) {
+    final rows = <List<_HtmlTableCellData>>[];
+    for (final rowElement in elements) {
+      if ((rowElement.localName ?? '').toLowerCase() != 'tr') {
+        continue;
+      }
+      final cells = <_HtmlTableCellData>[];
+      for (final cell in rowElement.children) {
+        final tag = (cell.localName ?? '').toLowerCase();
+        if (tag != 'th' && tag != 'td') {
+          continue;
+        }
+        final text = _decodeHtmlEntities('${cell.text ?? ''}').trim();
+        cells.add(
+          _HtmlTableCellData(
+            text: text,
+            isHeader: tag == 'th',
+          ),
+        );
+      }
+      if (cells.isNotEmpty) {
+        rows.add(cells);
+      }
+    }
+    return rows;
+  }
+}
+
+class _HtmlTableCell extends StatelessWidget {
+  const _HtmlTableCell({
+    required this.text,
+    required this.isHeader,
+  });
+
+  final String text;
+  final bool isHeader;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 88),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      color: isHeader
+          ? colors.surfaceContainerHighest
+          : colors.surfaceContainerLow,
+      child: Text(
+        text,
+        style: (isHeader
+                ? theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  )
+                : theme.textTheme.bodyMedium)
+            ?.copyWith(color: colors.onSurface),
+      ),
+    );
+  }
+}
+
+class _HtmlTableCellData {
+  const _HtmlTableCellData({
+    required this.text,
+    required this.isHeader,
+  });
+
+  final String text;
+  final bool isHeader;
 }
 
 class _InlineVideoSourceCardState extends State<_InlineVideoSourceCard> {

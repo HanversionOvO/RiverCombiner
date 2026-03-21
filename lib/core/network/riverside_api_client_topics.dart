@@ -231,6 +231,28 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
     );
   }
 
+  Future<bool> fetchTopicBookmarkedState({
+    required int topicId,
+    String? cookieHeader,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$riverSideBaseUrl/t/topic/$topicId.json'),
+      headers: _buildJsonHeaders(cookieHeader: cookieHeader),
+    );
+
+    if (response.statusCode != 200) {
+      throw RiverSideApiException(
+        'Failed to load topic bookmark state, HTTP ${response.statusCode}',
+      );
+    }
+
+    final decoded = _decodeJsonObject(
+      response,
+      fallbackMessage: 'Invalid topic bookmark state response format',
+    );
+    return _asBool(decoded['bookmarked']);
+  }
+
   Future<List<RiverSideTopicPostDetail>> fetchTopicPostsByIds({
     required int topicId,
     required List<int> postIds,
