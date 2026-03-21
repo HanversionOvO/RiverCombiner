@@ -20,6 +20,21 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
     return result.topics;
   }
 
+  Future<List<RiverSideTopicSummary>> fetchBookmarkedTopicSummaries({
+    int page = 0,
+    String? cookieHeader,
+    String? userApiKey,
+    String? userApiClientId,
+  }) async {
+    final result = await fetchBookmarkedTopicPage(
+      page: page,
+      cookieHeader: cookieHeader,
+      userApiKey: userApiKey,
+      userApiClientId: userApiClientId,
+    );
+    return result.topics;
+  }
+
   Future<RiverSideTopicPage> fetchTopicPage({
     required RiverSideTopicFeed feed,
     int page = 0,
@@ -56,97 +71,49 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
       response,
       fallbackMessage: 'Invalid topic response format',
     );
+    return _parseTopicPagePayload(
+      decoded,
+      page: page,
+      fallbackFeed: feed,
+      cookieHeader: cookieHeader,
+      userApiKey: userApiKey,
+      userApiClientId: userApiClientId,
+    );
+  }
 
-    final topicList = _toStringMap(decoded['topic_list']);
-    final topicsRaw = topicList['topics'];
-    if (topicsRaw is! List) {
-      return RiverSideTopicPage(
-        topics: const <RiverSideTopicSummary>[],
-        hasMore: false,
-        page: page,
+  Future<RiverSideTopicPage> fetchBookmarkedTopicPage({
+    int page = 0,
+    String? cookieHeader,
+    String? userApiKey,
+    String? userApiClientId,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$riverSideBaseUrl/bookmarks.json?page=$page'),
+      headers: _buildJsonHeaders(
+        cookieHeader: cookieHeader,
+        userApiKey: userApiKey,
+        userApiClientId: userApiClientId,
+      ),
+    );
+
+    if (response.statusCode != 200) {
+      throw RiverSideApiException(
+        'Failed to load bookmarked topics, HTTP ${response.statusCode}',
       );
     }
 
-    final usersById = _extractUsersById(decoded['users']);
-    var categoryNamesById = _extractCategoryNamesFromTopicPayload(decoded);
-    if (categoryNamesById.isEmpty) {
-      categoryNamesById =
-          _categoryNameCacheByCookieKey[_categoryCacheKey(
-            cookieHeader: cookieHeader,
-            userApiKey: userApiKey,
-            userApiClientId: userApiClientId,
-          )] ??
-          const <int, String>{};
-    }
-
-    final result = <RiverSideTopicSummary>[];
-    for (final rawTopic in topicsRaw) {
-      final topic = _toStringMap(rawTopic);
-      if (topic.isEmpty) {
-        continue;
-      }
-
-      final topicId = _asInt(topic['id']) ?? 0;
-      final title = (topic['title'] ?? '').toString().trim();
-      if (topicId == 0 || title.isEmpty) {
-        continue;
-      }
-
-      final topicCategoryId = _asInt(topic['category_id']);
-      final categoryName = topicCategoryId == null
-          ? '未分类'
-          : (categoryNamesById[topicCategoryId] ??
-                '分类#$topicCategoryId');
-
-      final authorUserId = _findPrimaryPosterUserId(topic['posters']);
-      final user = authorUserId == null ? null : usersById[authorUserId];
-
-      final username =
-          (user?['username'] ?? topic['last_poster_username'] ?? '')
-              .toString()
-              .trim();
-      final displayName = (user?['name'] ?? '').toString().trim();
-      final authorName = displayName.isEmpty
-          ? (username.isEmpty ? '匿名用户' : username)
-          : displayName;
-      final avatarTemplate = (user?['avatar_template'] ?? '').toString();
-
-      result.add(
-        RiverSideTopicSummary(
-          id: topicId,
-          title: title,
-          excerpt: _sanitizeExcerpt((topic['excerpt'] ?? '').toString()),
-          categoryId: topicCategoryId,
-          categoryName: categoryName,
-          replyCount: _asInt(topic['reply_count']) ?? 0,
-          commentCount: (() {
-            final postsCount = _asInt(topic['posts_count']);
-            if (postsCount != null && postsCount > 0) {
-              return (postsCount - 1).clamp(0, 1 << 30);
-            }
-            return null;
-          })(),
-          viewCount: _asInt(topic['views']) ?? 0,
-          createdAt: DateTime.tryParse((topic['created_at'] ?? '').toString()),
-          authorDisplayName: authorName,
-          authorUsername: username,
-          authorAvatarUrl: _normalizeAvatarUrl(avatarTemplate),
-          isHot: feed == RiverSideTopicFeed.hot || _asBool(topic['is_hot']),
-          isPinned:
-              _asBool(topic['pinned']) || _asBool(topic['pinned_globally']),
-        ),
-      );
-    }
-
-    final moreTopicsUrl = (topicList['more_topics_url'] ?? '')
-        .toString()
-        .trim();
-    final perPage = _asInt(topicList['per_page']) ?? 0;
-    final hasMore =
-        moreTopicsUrl.isNotEmpty ||
-        (perPage > 0 ? result.length >= perPage : result.isNotEmpty);
-
-    return RiverSideTopicPage(topics: result, hasMore: hasMore, page: page);
+    final decoded = _decodeJsonObject(
+      response,
+      fallbackMessage: 'Invalid bookmarked topics response format',
+    );
+    return _parseTopicPagePayload(
+      decoded,
+      page: page,
+      fallbackFeed: null,
+      cookieHeader: cookieHeader,
+      userApiKey: userApiKey,
+      userApiClientId: userApiClientId,
+    );
   }
 
   Future<RiverSideTopicDetail> fetchTopicDetail({
@@ -369,5 +336,106 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
       newPostsSinceSummary: _asInt(summaryMap['new_posts_since_summary']) ?? 0,
       updatedAt: DateTime.tryParse((summaryMap['updated_at'] ?? '').toString()),
     );
+  }
+
+  RiverSideTopicPage _parseTopicPagePayload(
+    Map<String, dynamic> decoded, {
+    required int page,
+    required RiverSideTopicFeed? fallbackFeed,
+    String? cookieHeader,
+    String? userApiKey,
+    String? userApiClientId,
+  }) {
+    final topicList = _toStringMap(decoded['topic_list']);
+    final topicsRaw = topicList['topics'];
+    if (topicsRaw is! List) {
+      return RiverSideTopicPage(
+        topics: const <RiverSideTopicSummary>[],
+        hasMore: false,
+        page: page,
+      );
+    }
+
+    final usersById = _extractUsersById(decoded['users']);
+    var categoryNamesById = _extractCategoryNamesFromTopicPayload(decoded);
+    if (categoryNamesById.isEmpty) {
+      categoryNamesById =
+          _categoryNameCacheByCookieKey[_categoryCacheKey(
+            cookieHeader: cookieHeader,
+            userApiKey: userApiKey,
+            userApiClientId: userApiClientId,
+          )] ??
+          const <int, String>{};
+    }
+
+    final result = <RiverSideTopicSummary>[];
+    for (final rawTopic in topicsRaw) {
+      final topic = _toStringMap(rawTopic);
+      if (topic.isEmpty) {
+        continue;
+      }
+
+      final topicId = _asInt(topic['id']) ?? 0;
+      final title = (topic['title'] ?? '').toString().trim();
+      if (topicId == 0 || title.isEmpty) {
+        continue;
+      }
+
+      final topicCategoryId = _asInt(topic['category_id']);
+      final categoryName = topicCategoryId == null
+          ? '未分类'
+          : (categoryNamesById[topicCategoryId] ?? '分类#$topicCategoryId');
+
+      final authorUserId = _findPrimaryPosterUserId(topic['posters']);
+      final user = authorUserId == null ? null : usersById[authorUserId];
+
+      final username =
+          (user?['username'] ?? topic['last_poster_username'] ?? '')
+              .toString()
+              .trim();
+      final displayName = (user?['name'] ?? '').toString().trim();
+      final authorName = displayName.isEmpty
+          ? (username.isEmpty ? '匿名用户' : username)
+          : displayName;
+      final avatarTemplate = (user?['avatar_template'] ?? '').toString();
+
+      result.add(
+        RiverSideTopicSummary(
+          id: topicId,
+          title: title,
+          excerpt: _sanitizeExcerpt((topic['excerpt'] ?? '').toString()),
+          categoryId: topicCategoryId,
+          categoryName: categoryName,
+          replyCount: _asInt(topic['reply_count']) ?? 0,
+          commentCount: (() {
+            final postsCount = _asInt(topic['posts_count']);
+            if (postsCount != null && postsCount > 0) {
+              return (postsCount - 1).clamp(0, 1 << 30);
+            }
+            return null;
+          })(),
+          viewCount: _asInt(topic['views']) ?? 0,
+          createdAt: DateTime.tryParse((topic['created_at'] ?? '').toString()),
+          authorDisplayName: authorName,
+          authorUsername: username,
+          authorAvatarUrl: _normalizeAvatarUrl(avatarTemplate),
+          isHot:
+              fallbackFeed == RiverSideTopicFeed.hot ||
+              _asBool(topic['is_hot']),
+          isPinned:
+              _asBool(topic['pinned']) || _asBool(topic['pinned_globally']),
+        ),
+      );
+    }
+
+    final moreTopicsUrl = (topicList['more_topics_url'] ?? '')
+        .toString()
+        .trim();
+    final perPage = _asInt(topicList['per_page']) ?? 0;
+    final hasMore =
+        moreTopicsUrl.isNotEmpty ||
+        (perPage > 0 ? result.length >= perPage : result.isNotEmpty);
+
+    return RiverSideTopicPage(topics: result, hasMore: hasMore, page: page);
   }
 }

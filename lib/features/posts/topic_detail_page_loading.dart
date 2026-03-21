@@ -407,6 +407,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
     try {
       if (_isQingShuiHePanTopic) {
         await _loadInitialForQing();
+        unawaited(_recordCurrentTopicFootprint());
         if (shouldSkipEntranceAnimation) {
           unawaited(_contentRevealController.forward(from: 0));
         } else {
@@ -462,6 +463,7 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
         _emojiGroups = emojiGroups;
         _loadingInitial = false;
       });
+      unawaited(_recordCurrentTopicFootprint());
       if (shouldSkipEntranceAnimation) {
         unawaited(_contentRevealController.forward(from: 0));
       } else {
@@ -549,6 +551,48 @@ extension _TopicDetailPageLoading on _TopicDetailPageState {
       _loadingInitial = false;
     });
     _maybeAutoLoadMore();
+  }
+
+  Future<void> _recordCurrentTopicFootprint() async {
+    final detail = _detail;
+    if (detail == null) {
+      return;
+    }
+    final excerpt = _buildTopicFootprintExcerpt(detail.mainPost.contentMarkdown);
+    final categoryLabel = _isQingShuiHePanTopic ? '清水河畔' : 'RiverSide';
+    await widget.dependencies.topicFootprintStore.record(
+      TopicFootprintEntry(
+        provider: widget.provider,
+        topicId: detail.topicId,
+        title: detail.title.trim().isEmpty ? '(无标题)' : detail.title.trim(),
+        excerpt: excerpt,
+        categoryName: categoryLabel,
+        replyCount: detail.replyCount,
+        commentCount: detail.replyCount,
+        viewCount: detail.viewCount,
+        authorDisplayName: detail.mainPost.authorDisplayName,
+        authorUsername: detail.mainPost.authorUsername,
+        authorUserId: detail.mainPost.authorUserId,
+        authorAvatarUrl: detail.mainPost.authorAvatarUrl,
+        visitedAtMillis: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  String _buildTopicFootprintExcerpt(String source) {
+    final collapsed = source
+        .replaceAll(RegExp(r'!\[[^\]]*\]\([^)]+\)'), ' ')
+        .replaceAll(RegExp(r'\[[^\]]+\]\([^)]+\)'), ' ')
+        .replaceAll(RegExp(r'[`>#*_~\-]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (collapsed.isEmpty) {
+      return '';
+    }
+    if (collapsed.length <= 120) {
+      return collapsed;
+    }
+    return '${collapsed.substring(0, 120).trimRight()}…';
   }
 
   _QingTopicLoadResult _parseQingPostListPage({

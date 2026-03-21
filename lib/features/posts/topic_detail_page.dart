@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -27,6 +28,7 @@ import 'package:river/core/image_host/picui_image_host_service.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_message_bus_models.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
+import 'package:river/core/posts/topic_footprint_store.dart';
 import 'package:river/core/qing/qing_emoji_catalog.dart';
 import 'package:river/core/realtime/riverside_message_bus_poller.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
@@ -2104,7 +2106,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
       return;
     }
     await Navigator.of(context).push(
-      riverPageRoute<void>(
+      DraggableRoute<void>(
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: topicId,

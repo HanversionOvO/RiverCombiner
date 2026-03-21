@@ -575,7 +575,7 @@ extension _SearchPageActions on _SearchPageState {
 
   Future<void> _openTopicDetail(RiverSidePostSearchItem item) async {
     await Navigator.of(context).push(
-      riverPageRoute<void>(
+      DraggableRoute<void>(
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: item.topicId,

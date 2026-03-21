@@ -323,7 +323,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
       return;
     }
     await Navigator.of(context).push(
-      riverPageRoute<void>(
+      DraggableRoute<void>(
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: topicId,

@@ -453,7 +453,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     final createdId = pickedAction.createdTopicId;
     if (createdId != null && createdId > 0) {
       await Navigator.of(context).push(
-        riverPageRoute<void>(
+        DraggableRoute<void>(
           builder: (_) => TopicDetailPage(
             dependencies: widget.dependencies,
             topicId: createdId,

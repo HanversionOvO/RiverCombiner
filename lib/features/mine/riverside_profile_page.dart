@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:motion/motion.dart';
@@ -385,7 +386,7 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
       return;
     }
     await Navigator.of(context).push(
-      riverPageRoute<void>(
+      DraggableRoute<void>(
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: topicId,

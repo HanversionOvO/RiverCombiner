@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -86,6 +87,9 @@ class _RiverAppState extends State<RiverApp> {
     final accountFuture = _dependencies.accountStore.initialize(
       sharedPreferencesFuture: sharedPreferencesFuture,
     );
+    final topicFootprintFuture = _dependencies.topicFootprintStore.initialize(
+      sharedPreferencesFuture: sharedPreferencesFuture,
+    );
 
     await settingsFuture;
     unawaited(
@@ -97,6 +101,7 @@ class _RiverAppState extends State<RiverApp> {
       setState(() {});
     }
     await accountFuture;
+    await topicFootprintFuture;
     _dependencies.postsStartupPreloadStore.start(
       accountStore: _dependencies.accountStore,
     );
@@ -255,7 +260,7 @@ class _RiverAppState extends State<RiverApp> {
           return;
         }
         await Navigator.of(context).push(
-          riverPageRoute<void>(
+          DraggableRoute<void>(
             builder: (_) =>
                 TopicDetailPage(dependencies: _dependencies, topicId: topicId),
           ),
@@ -317,7 +322,7 @@ class _RiverAppState extends State<RiverApp> {
             ? '未知用户'
             : notification.username.trim();
         await Navigator.of(context).push(
-          riverPageRoute<void>(
+          DraggableRoute<void>(
             builder: (_) => TopicDetailPage(
               dependencies: _dependencies,
               topicId: notification.topicId!,

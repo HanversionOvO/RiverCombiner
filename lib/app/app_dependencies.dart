@@ -9,6 +9,7 @@ import 'package:river/core/mini_apps/river_mini_app_floating_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_host_store.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
+import 'package:river/core/posts/topic_footprint_store.dart';
 import 'package:river/core/realtime/riverside_realtime_inbox_service.dart';
 import 'package:river/core/update/app_update_checker.dart';
 
@@ -23,6 +24,7 @@ class AppDependencies {
   final AccountStore accountStore;
   final AppUpdateChecker updateChecker;
   final PostsStartupPreloadStore postsStartupPreloadStore;
+  final TopicFootprintStore topicFootprintStore = TopicFootprintStore();
   final RiverMiniAppFloatingStore miniAppFloatingStore =
       RiverMiniAppFloatingStore();
   final RiverMiniAppHostStore miniAppHostStore = RiverMiniAppHostStore();

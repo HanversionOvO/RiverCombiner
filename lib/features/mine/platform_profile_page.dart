@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:draggable_route/draggable_route.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/features/mine/platform_profile_models.dart';
 import 'package:river/features/mine/platform_profile_repository.dart';
 import 'package:river/features/posts/topic_detail_page.dart';
-import 'package:river/core/navigation/river_page_route.dart';
 import 'package:url_launcher/url_launcher.dart';
 class PlatformProfilePage extends StatefulWidget {
   const PlatformProfilePage({
@@ -78,7 +78,7 @@ class _PlatformProfilePageState extends State<PlatformProfilePage>
       return;
     }
     await Navigator.of(context).push(
-      riverPageRoute<void>(
+      DraggableRoute<void>(
         builder: (_) => TopicDetailPage(
           dependencies: widget.dependencies,
           topicId: item.topicId!,

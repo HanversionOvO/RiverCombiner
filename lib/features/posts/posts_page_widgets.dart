@@ -31,7 +31,7 @@ class _TopicListTab extends StatefulWidget {
     super.key,
     required this.dependencies,
     required this.forumProvider,
-    required this.feed,
+    required this.tab,
     this.boardId,
     required this.categoryNameMap,
     required this.filterVersion,
@@ -45,7 +45,7 @@ class _TopicListTab extends StatefulWidget {
 
   final AppDependencies dependencies;
   final _PostsForumProvider forumProvider;
-  final RiverSideTopicFeed feed;
+  final _PostsTopicTabItem tab;
   final int? boardId;
   final Map<int, String> categoryNameMap;
   final int filterVersion;
@@ -86,6 +86,7 @@ class _TopicListTabState extends State<_TopicListTab>
   @override
   void initState() {
     super.initState();
+    widget.dependencies.topicFootprintStore.addListener(_onFootprintsChanged);
     _loadFirstPage();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -112,9 +113,17 @@ class _TopicListTabState extends State<_TopicListTab>
 
   @override
   void dispose() {
+    widget.dependencies.topicFootprintStore.removeListener(_onFootprintsChanged);
     _showBackToTopNotifier.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onFootprintsChanged() {
+    if (!mounted || !widget.tab.footprintsOnly) {
+      return;
+    }
+    unawaited(_loadFirstPage());
   }
 
   void _onScroll() {
@@ -264,7 +273,7 @@ class _TopicListTabState extends State<_TopicListTab>
         _topics = topics;
         _topicItemKeys.clear();
         _isLoading = false;
-        _hasMore = topics.isNotEmpty;
+        _hasMore = widget.tab.footprintsOnly ? false : topics.isNotEmpty;
         _page = 0;
       });
       widget.onTopicsSnapshotChanged?.call(
@@ -282,7 +291,7 @@ class _TopicListTabState extends State<_TopicListTab>
   }
 
   Future<void> _loadMore() async {
-    if (_isLoadingMore) return;
+    if (_isLoadingMore || widget.tab.footprintsOnly) return;
     final serial = _requestSerial;
     setState(() => _isLoadingMore = true);
 
@@ -312,15 +321,22 @@ class _TopicListTabState extends State<_TopicListTab>
   }
 
   Future<List<RiverSideTopicSummary>> _fetchTopics({required int page}) {
+    if (widget.tab.footprintsOnly) {
+      return _fetchFootprints();
+    }
     if (widget.forumProvider == _PostsForumProvider.qingShuiHePan) {
       return _fetchQingTopics(page: page);
     }
     final cookie = widget.dependencies.accountStore.riverSideCookieHeaderFor(
       widget.dependencies.accountStore.activeRiverSideUsername ?? '',
     );
+    if (widget.tab.favoritesOnly) {
+      return widget.dependencies.accountStore.riverSideApiClient
+          .fetchBookmarkedTopicSummaries(page: page, cookieHeader: cookie);
+    }
     return widget.dependencies.accountStore.riverSideApiClient
         .fetchTopicSummaries(
-          feed: widget.feed,
+          feed: widget.tab.feed!,
           categoryId: widget.boardId,
           page: page,
           cookieHeader: cookie,
@@ -345,17 +361,25 @@ class _TopicListTabState extends State<_TopicListTab>
     final endpoint =
         '${RiverServerConfig.instance.qingShuiHePanBaseUrl}/mobcent/app/web/index.php';
     final requestBody = <String, String>{
-      'r': 'forum/topiclist',
-      'isImageList': '1',
-      'sortby': _qingSortByFromFeed(widget.feed),
+      'r': widget.tab.favoritesOnly ? 'user/topiclist' : 'forum/topiclist',
       'page': '${page + 1}',
       'pageSize': '20',
       'accessToken': auth.token,
       'accessSecret': auth.secret,
     };
-    final boardId = widget.boardId;
-    if (boardId != null && boardId > 0) {
-      requestBody['boardId'] = '$boardId';
+    if (widget.tab.favoritesOnly) {
+      requestBody['type'] = 'favorite';
+      final uid = auth.userId;
+      if (uid != null && uid > 0) {
+        requestBody['uid'] = '$uid';
+      }
+    } else {
+      requestBody['isImageList'] = '1';
+      requestBody['sortby'] = _qingSortByFromFeed(widget.tab.feed!);
+      final boardId = widget.boardId;
+      if (boardId != null && boardId > 0) {
+        requestBody['boardId'] = '$boardId';
+      }
     }
 
     final response = await http
@@ -461,6 +485,15 @@ class _TopicListTabState extends State<_TopicListTab>
     return topics;
   }
 
+  Future<List<RiverSideTopicSummary>> _fetchFootprints() async {
+    final entries = await widget.dependencies.topicFootprintStore.entriesFor(
+      widget.forumProvider == _PostsForumProvider.qingShuiHePan
+          ? AccountProvider.qingShuiHePan
+          : AccountProvider.riverSide,
+    );
+    return entries.map((item) => item.toTopicSummary()).toList(growable: false);
+  }
+
   String _qingSortByFromFeed(RiverSideTopicFeed feed) {
     switch (feed) {
       case RiverSideTopicFeed.latestCreated:
@@ -536,11 +569,11 @@ class _TopicListTabState extends State<_TopicListTab>
     return DateTime.fromMillisecondsSinceEpoch(isMillis ? value : value * 1000);
   }
 
-  void _openDetail(
+  Future<void> _openDetail(
     BuildContext sourceContext,
     RiverSideTopicSummary topic, {
     bool jumpToReplies = false,
-  }) {
+  }) async {
     // Disable Hero linkage for list -> detail transition on Posts page.
     final avatarHeroTag = 'topic_detail_avatar_nohero_${topic.id}';
     final nameHeroTag = 'topic_detail_name_nohero_${topic.id}';
@@ -548,7 +581,7 @@ class _TopicListTabState extends State<_TopicListTab>
     final provider = widget.forumProvider == _PostsForumProvider.qingShuiHePan
         ? AccountProvider.qingShuiHePan
         : AccountProvider.riverSide;
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       DraggableRoute<void>(
         source: sourceContext,
         builder: (_) => TopicDetailPage(
@@ -571,6 +604,10 @@ class _TopicListTabState extends State<_TopicListTab>
         ),
       ),
     );
+    if (!mounted || !widget.tab.favoritesOnly) {
+      return;
+    }
+    await _loadFirstPage();
   }
 
   void _openAuthor(RiverSideTopicSummary topic) {
@@ -609,6 +646,16 @@ class _TopicListTabState extends State<_TopicListTab>
     final showSkeleton = _isLoading && _topics.isEmpty && _error == null;
     final showError = _error != null && _topics.isEmpty;
     final showEmpty = _topics.isEmpty && !showSkeleton && !showError;
+    final emptyLabel = widget.tab.favoritesOnly
+        ? '暂无收藏帖子'
+        : widget.tab.footprintsOnly
+        ? '暂无浏览足迹'
+        : '暂无帖子';
+    final retryLabel = widget.tab.favoritesOnly
+        ? '重新加载收藏'
+        : widget.tab.footprintsOnly
+        ? '重新加载足迹'
+        : '刷新';
 
     late final Widget stateChild;
     late final String stateKey;
@@ -644,13 +691,13 @@ class _TopicListTabState extends State<_TopicListTab>
               color: Colors.grey.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '暂无帖子',
+            Text(
+              emptyLabel,
               style: TextStyle(color: Colors.grey),
             ),
             TextButton(
               onPressed: _loadFirstPage,
-              child: const Text('刷新'),
+              child: Text(retryLabel),
             ),
           ],
         ),
@@ -757,7 +804,7 @@ class _TopicListTabState extends State<_TopicListTab>
                   displayCategoryName: _displayCategoryName(topic),
                   useRiverSideIdentityStyle:
                       widget.forumProvider != _PostsForumProvider.qingShuiHePan,
-                  isHotFeed: widget.feed == RiverSideTopicFeed.hot,
+                  isHotFeed: widget.tab.isHotFeed,
                   onTap: (sourceContext) => _openDetail(sourceContext, topic),
                   onCommentTap: (sourceContext) =>
                       _openDetail(sourceContext, topic, jumpToReplies: true),
@@ -783,7 +830,7 @@ class _TopicListTabState extends State<_TopicListTab>
                     curve: Curves.easeOutBack,
                     scale: visible ? 1 : 0.82,
                     child: FloatingActionButton.small(
-                      heroTag: 'posts_back_to_top_${widget.feed.name}',
+                      heroTag: 'posts_back_to_top_${widget.tab.id}',
                       onPressed: visible ? _scrollToTop : null,
                       elevation: 2,
                       child: const Icon(Icons.arrow_upward_rounded),
@@ -831,7 +878,7 @@ class _TopicListTabState extends State<_TopicListTab>
             displayCategoryName: topic.categoryName,
             useRiverSideIdentityStyle:
                 widget.forumProvider != _PostsForumProvider.qingShuiHePan,
-            isHotFeed: widget.feed == RiverSideTopicFeed.hot,
+            isHotFeed: widget.tab.isHotFeed,
             onTap: (_) {},
             onCommentTap: (_) {},
             onAuthorTap: () {},

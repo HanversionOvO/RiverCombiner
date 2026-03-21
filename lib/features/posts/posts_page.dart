@@ -1576,6 +1576,24 @@ extension _PostsForumProviderX on _PostsForumProvider {
   };
 }
 
+class _PostsTopicTabItem {
+  const _PostsTopicTabItem({
+    required this.id,
+    required this.label,
+    this.feed,
+    this.favoritesOnly = false,
+    this.footprintsOnly = false,
+  });
+
+  final String id;
+  final String label;
+  final RiverSideTopicFeed? feed;
+  final bool favoritesOnly;
+  final bool footprintsOnly;
+
+  bool get isHotFeed => feed == RiverSideTopicFeed.hot;
+}
+
 class _MiniAppMetaRow extends StatelessWidget {
   const _MiniAppMetaRow({required this.label, required this.value});
 
@@ -1659,7 +1677,25 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   final CardStackSwiperController _forumSwitchSwiperController =
       CardStackSwiperController();
   bool _forumSwitchBySwipeBusy = false;
-  final List<RiverSideTopicFeed> _feeds = RiverSideTopicFeed.values;
+  static const List<_PostsTopicTabItem> _tabs = <_PostsTopicTabItem>[
+    _PostsTopicTabItem(
+      id: 'latestCreated',
+      label: '最新发表',
+      feed: RiverSideTopicFeed.latestCreated,
+    ),
+    _PostsTopicTabItem(
+      id: 'latestReplied',
+      label: '最新回复',
+      feed: RiverSideTopicFeed.latestReplied,
+    ),
+    _PostsTopicTabItem(id: 'favorites', label: '收藏', favoritesOnly: true),
+    _PostsTopicTabItem(id: 'footprints', label: '足迹', footprintsOnly: true),
+    _PostsTopicTabItem(
+      id: 'hot',
+      label: '热门',
+      feed: RiverSideTopicFeed.hot,
+    ),
+  ];
 
   int _filterVersion = 0;
 
@@ -1715,6 +1751,8 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   bool _secondFloorGuideHintLoopRunning = false;
   bool _secondFloorGuideHintStopRequested = false;
 
+  _PostsTopicTabItem get _currentTabItem => _tabs[_tabController.index];
+
   @override
   void initState() {
     super.initState();
@@ -1729,7 +1767,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     widget.dependencies.settingsController.addListener(
       _onRefreshBannerSettingsChanged,
     );
-    _tabController = TabController(length: _feeds.length, vsync: this);
+    _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(_onTabChanged);
     _secondFloorController = AnimationController(
       vsync: this,
@@ -2607,9 +2645,10 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   }
 
   Future<List<RiverSideTopicSummary>> _fetchQingTopicsForAiPage({
-    required RiverSideTopicFeed feed,
+    required RiverSideTopicFeed? feed,
     required int page,
     required int? boardId,
+    bool favoritesOnly = false,
   }) async {
     final username =
         widget.dependencies.accountStore.activeQingShuiHePanUsername;
@@ -2625,19 +2664,28 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     final endpoint =
         '${RiverServerConfig.instance.qingShuiHePanBaseUrl}/mobcent/app/web/index.php';
     final requestBody = <String, String>{
-      'r': 'forum/topiclist',
-      'isImageList': '1',
-      'sortby': switch (feed) {
-        RiverSideTopicFeed.latestCreated => 'new',
-        RiverSideTopicFeed.latestReplied => 'all',
-        RiverSideTopicFeed.hot => 'marrow',
-      },
+      'r': favoritesOnly ? 'user/topiclist' : 'forum/topiclist',
       'page': '${page + 1}',
       'pageSize': '20',
       'accessToken': auth.token,
       'accessSecret': auth.secret,
     };
-    if (boardId != null && boardId > 0) {
+    if (favoritesOnly) {
+      requestBody['type'] = 'favorite';
+      final uid = auth.userId;
+      if (uid != null && uid > 0) {
+        requestBody['uid'] = '$uid';
+      }
+    } else {
+      requestBody['isImageList'] = '1';
+      requestBody['sortby'] = switch (feed) {
+        RiverSideTopicFeed.latestCreated => 'new',
+        RiverSideTopicFeed.latestReplied => 'all',
+        RiverSideTopicFeed.hot => 'marrow',
+        null => 'all',
+      };
+    }
+    if (!favoritesOnly && boardId != null && boardId > 0) {
       requestBody['boardId'] = '$boardId';
     }
 
@@ -2752,20 +2800,38 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     }
 
     const maxPages = 8;
-    final feed = _feeds[currentTabIndex];
+    final tab = _tabs[currentTabIndex];
+    if (tab.footprintsOnly) {
+      final result = topicMap.values.toList(growable: false)
+        ..sort((a, b) {
+          final aTime = a.createdAt?.millisecondsSinceEpoch ?? 0;
+          final bTime = b.createdAt?.millisecondsSinceEpoch ?? 0;
+          return bTime.compareTo(aTime);
+        });
+      return result;
+    }
     if (_forumProvider == _PostsForumProvider.riverSide) {
       final cookie = _activeCookieHeader();
       for (var page = 0; page < maxPages; page++) {
-        final pageTopics = await widget
-            .dependencies
-            .accountStore
-            .riverSideApiClient
-            .fetchTopicSummaries(
-              feed: feed,
-              categoryId: _selectedBoardId,
-              page: page,
-              cookieHeader: cookie,
-            );
+        final pageTopics = tab.favoritesOnly
+            ? await widget
+                  .dependencies
+                  .accountStore
+                  .riverSideApiClient
+                  .fetchBookmarkedTopicSummaries(
+                    page: page,
+                    cookieHeader: cookie,
+                  )
+            : await widget
+                  .dependencies
+                  .accountStore
+                  .riverSideApiClient
+                  .fetchTopicSummaries(
+                    feed: tab.feed!,
+                    categoryId: _selectedBoardId,
+                    page: page,
+                    cookieHeader: cookie,
+                  );
         if (pageTopics.isEmpty) {
           break;
         }
@@ -2783,9 +2849,10 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     } else {
       for (var page = 0; page < maxPages; page++) {
         final pageTopics = await _fetchQingTopicsForAiPage(
-          feed: feed,
+          feed: tab.feed,
           page: page,
           boardId: _selectedBoardId,
+          favoritesOnly: tab.favoritesOnly,
         );
         if (pageTopics.isEmpty) {
           break;
@@ -2817,11 +2884,13 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
         ? 'RiverSide'
         : '清水河畔';
     final boardName = _selectedBoardName?.trim();
-    final sectionLabel = boardName == null || boardName.isEmpty
-        ? '全部板块'
-        : boardName;
+    final sectionLabel = _currentTabItem.favoritesOnly
+        ? '收藏列表'
+        : _currentTabItem.footprintsOnly
+        ? '浏览足迹'
+        : (boardName == null || boardName.isEmpty ? '全部板块' : boardName);
     final instruction =
-        '请总结 $forumName 今日（$sectionLabel / ${_feeds[_tabController.index].label}）的帖子内容，'
+        '请总结 $forumName 今日（$sectionLabel / ${_currentTabItem.label}）的帖子内容，'
         '按以下结构输出：\n'
         '1）一句总体氛围判断；\n'
         '2）3-6条重点讨论话题（每条一行）；\n'
@@ -2962,7 +3031,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                           _buildAiSummaryMetaChip(label: forumName),
                           _buildAiSummaryMetaChip(label: sectionLabel),
                           _buildAiSummaryMetaChip(
-                            label: _feeds[_tabController.index].label,
+                            label: _currentTabItem.label,
                           ),
                           _buildAiSummaryMetaChip(
                             label: '今日 ${topics.length} 条',
@@ -3203,19 +3272,22 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     return _loadQingShuiHePanCategories(forceRefresh: forceRefresh);
   }
 
-  Future<List<RiverSideTopicSummary>?> _takeStartupPreloadedTopicsForFeed(
-    RiverSideTopicFeed feed,
+  Future<List<RiverSideTopicSummary>?> _takeStartupPreloadedTopicsForTab(
+    _PostsTopicTabItem tab,
   ) {
-    if (_selectedBoardId != null) {
+    if (_selectedBoardId != null ||
+        tab.feed == null ||
+        tab.favoritesOnly ||
+        tab.footprintsOnly) {
       return Future<List<RiverSideTopicSummary>?>.value(null);
     }
     if (_forumProvider == _PostsForumProvider.riverSide) {
       return widget.dependencies.postsStartupPreloadStore.takeRiverTopicsFirstPage(
-        feed: feed,
+        feed: tab.feed!,
       );
     }
     return widget.dependencies.postsStartupPreloadStore.takeQingTopicsFirstPage(
-      feed: feed,
+      feed: tab.feed!,
     );
   }
 
@@ -5160,7 +5232,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     RiverSideTopicFeed feed, {
     bool refresh = true,
   }) async {
-    final targetIndex = _feeds.indexOf(feed);
+    final targetIndex = _tabs.indexWhere((tab) => tab.feed == feed);
     if (targetIndex < 0 || !mounted) {
       return;
     }
@@ -5228,9 +5300,9 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                         Expanded(
                           child: TabBarView(
                             controller: _tabController,
-                            children: _feeds.asMap().entries.map((entry) {
+                            children: _tabs.asMap().entries.map((entry) {
                               final index = entry.key;
-                              final feed = entry.value;
+                              final tab = entry.value;
 
                               _tabKeys[index] ??=
                                   GlobalKey<_TopicListTabState>();
@@ -5239,11 +5311,15 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                 key: _tabKeys[index],
                                 dependencies: widget.dependencies,
                                 forumProvider: _forumProvider,
-                                feed: feed,
-                                boardId: _selectedBoardId,
+                                tab: tab,
+                                boardId: tab.favoritesOnly
+                                    ? null
+                                    : _selectedBoardId,
                                 categoryNameMap: categoryNameMap,
                                 filterVersion: _filterVersion,
                                 showInlineRealtimeHint:
+                                    !tab.favoritesOnly &&
+                                    !tab.footprintsOnly &&
                                     _forumProvider ==
                                         _PostsForumProvider.riverSide &&
                                     _showPostsRealtimeRefreshBanner &&
@@ -5253,7 +5329,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                 onDismissRealtimeUpdate:
                                     _dismissRealtimeTopicUpdateHint,
                                 onTakeStartupPreloadedTopics: () =>
-                                    _takeStartupPreloadedTopicsForFeed(feed),
+                                    _takeStartupPreloadedTopicsForTab(tab),
                                 onTopicsSnapshotChanged: (topics) =>
                                     _onTabTopicsSnapshotChanged(index, topics),
                                 onScrollOffsetChanged: (offset) {
@@ -5274,7 +5350,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                   ignoring: !showSecondFloor,
                   child: _PostsSecondFloorLayer(
                     progress: progress,
-                    feedLabel: _feeds[_tabController.index].label,
+                    feedLabel: _currentTabItem.label,
                     weatherData: _secondFloorWeatherData,
                     loadingWeather: _loadingSecondFloorWeather,
                     weatherError: _secondFloorWeatherError,
@@ -5533,8 +5609,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                           child: Opacity(
                                             opacity: subtitleVisibility,
                                             child: Text(
-                                              _feeds[_tabController.index]
-                                                  .label,
+                                              _currentTabItem.label,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: theme.textTheme.labelMedium
@@ -5608,19 +5683,24 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                   fontSize: 15,
                                 ),
                                 labelPadding: const EdgeInsets.only(right: 24),
-                                tabs: _feeds
-                                    .map((feed) => Tab(text: feed.label))
+                                tabs: _tabs
+                                    .map((tab) => Tab(text: tab.label))
                                     .toList(),
                               ),
                             ),
-                            Container(
-                              width: 1,
-                              height: 20,
-                              color: theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.5),
-                              margin: const EdgeInsets.symmetric(horizontal: 8),
-                            ),
-                            _buildBoardFilterButton(theme),
+                            if (!_currentTabItem.favoritesOnly &&
+                                !_currentTabItem.footprintsOnly) ...[
+                              Container(
+                                width: 1,
+                                height: 20,
+                                color: theme.colorScheme.outlineVariant
+                                    .withValues(alpha: 0.5),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
+                              _buildBoardFilterButton(theme),
+                            ],
                           ],
                         ),
                       ),

@@ -2166,7 +2166,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
         return;
       }
       await Navigator.of(context).push(
-        riverPageRoute<void>(
+        DraggableRoute<void>(
           builder: (_) => TopicDetailPage(
             dependencies: widget.dependencies,
             topicId: jump.topicId!,
