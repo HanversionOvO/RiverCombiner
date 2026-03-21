@@ -755,6 +755,8 @@ class _TopicListTabState extends State<_TopicListTab>
                 child: _TopicCard(
                   topic: topic,
                   displayCategoryName: _displayCategoryName(topic),
+                  useRiverSideIdentityStyle:
+                      widget.forumProvider != _PostsForumProvider.qingShuiHePan,
                   isHotFeed: widget.feed == RiverSideTopicFeed.hot,
                   onTap: (sourceContext) => _openDetail(sourceContext, topic),
                   onCommentTap: (sourceContext) =>
@@ -827,6 +829,8 @@ class _TopicListTabState extends State<_TopicListTab>
           return _TopicCard(
             topic: topic,
             displayCategoryName: topic.categoryName,
+            useRiverSideIdentityStyle:
+                widget.forumProvider != _PostsForumProvider.qingShuiHePan,
             isHotFeed: widget.feed == RiverSideTopicFeed.hot,
             onTap: (_) {},
             onCommentTap: (_) {},
@@ -919,6 +923,7 @@ class _TopicCard extends StatelessWidget {
   const _TopicCard({
     required this.topic,
     required this.displayCategoryName,
+    required this.useRiverSideIdentityStyle,
     required this.isHotFeed,
     required this.onTap,
     required this.onCommentTap,
@@ -927,6 +932,7 @@ class _TopicCard extends StatelessWidget {
 
   final RiverSideTopicSummary topic;
   final String displayCategoryName;
+  final bool useRiverSideIdentityStyle;
   final bool isHotFeed;
   final ValueChanged<BuildContext> onTap;
   final ValueChanged<BuildContext> onCommentTap;
@@ -937,14 +943,22 @@ class _TopicCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isPinned = topic.isPinned;
     final isHot = topic.isHot || isHotFeed;
-    final authorPrimary = riverSidePrimaryLabel(
-      username: topic.authorUsername,
-      displayName: topic.authorDisplayName,
-    );
-    final authorSecondary = riverSideSecondaryLabel(
-      username: topic.authorUsername,
-      displayName: topic.authorDisplayName,
-    );
+    final authorPrimary = useRiverSideIdentityStyle
+        ? riverSidePrimaryLabel(
+            username: topic.authorUsername,
+            displayName: topic.authorDisplayName,
+          )
+        : (topic.authorDisplayName.trim().isNotEmpty
+              ? topic.authorDisplayName.trim()
+              : topic.authorUsername.trim());
+    final authorSecondary = useRiverSideIdentityStyle
+        ? riverSideSecondaryLabel(
+            username: topic.authorUsername,
+            displayName: topic.authorDisplayName,
+          )
+        : (topic.authorUsername.trim().isEmpty
+              ? ''
+              : '@${topic.authorUsername.trim()}');
     final timeLabel = _formatTimeRelative(topic.createdAt);
     final metaLabel = authorSecondary.isEmpty
         ? timeLabel
