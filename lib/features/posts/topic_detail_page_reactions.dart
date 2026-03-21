@@ -26,6 +26,7 @@ extension _TopicDetailPageReactions on _TopicDetailPageState {
     final selected = await showModalBottomSheet<_ReactionOption>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return _ReactionPickerSheet(
@@ -68,6 +69,7 @@ extension _TopicDetailPageReactions on _TopicDetailPageState {
     final selected = await showModalBottomSheet<_ReactionOption>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return _ReactionPickerSheet(
@@ -585,6 +587,7 @@ class _ReactionPickerSheetState extends State<_ReactionPickerSheet>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.52;
     return SafeArea(
       top: false,
       child: TweenAnimationBuilder<double>(
@@ -597,143 +600,175 @@ class _ReactionPickerSheetState extends State<_ReactionPickerSheet>
             child: Opacity(opacity: value, child: child),
           );
         },
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          child: Material(
-            color: colors.surface.withValues(alpha: 0.98),
-            elevation: 10,
-            shadowColor: colors.shadow.withValues(alpha: 0.22),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(26),
-              side: BorderSide(
-                color: colors.outlineVariant.withValues(alpha: 0.45),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  colors.surfaceContainerLow.withValues(alpha: 0.92),
+                  colors.surface,
+                ],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(30),
               ),
             ),
-            clipBehavior: Clip.antiAlias,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 10),
                   Center(
                     child: Container(
                       width: 44,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: colors.outlineVariant.withValues(alpha: 0.6),
+                        color: colors.outlineVariant,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 18,
-                        color: colors.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '选择反应',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 14, 0, 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: colors.primaryContainer,
+                          ),
+                          child: Icon(
+                            Icons.auto_awesome_rounded,
+                            color: colors.onPrimaryContainer,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        splashRadius: 18,
-                        tooltip: '关闭',
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    '点击一个表情发送点赞状态',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '选择反应',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                '点击一个表情发送点赞状态',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          splashRadius: 18,
+                          tooltip: '关闭',
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: List<Widget>.generate(widget.options.length, (
-                      index,
-                    ) {
-                      final option = widget.options[index];
-                      final isCurrent = widget.currentReactionId == option.id;
-                      final start = (0.05 + index * 0.045).clamp(0.0, 0.86);
-                      final end = (start + 0.24).clamp(start + 0.06, 1.0);
-                      final animation = CurvedAnimation(
-                        parent: _controller,
-                        curve: Interval(start, end, curve: Curves.easeOutCubic),
-                      );
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.12),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: Hero(
-                            tag: _reactionHeroTag(
-                              postId: widget.postId,
-                              reactionId: option.id,
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: List<Widget>.generate(widget.options.length, (
+                          index,
+                        ) {
+                          final option = widget.options[index];
+                          final isCurrent = widget.currentReactionId == option.id;
+                          final start = (0.05 + index * 0.045).clamp(0.0, 0.86);
+                          final end = (start + 0.24).clamp(start + 0.06, 1.0);
+                          final animation = CurvedAnimation(
+                            parent: _controller,
+                            curve: Interval(
+                              start,
+                              end,
+                              curve: Curves.easeOutCubic,
                             ),
-                            child: Material(
-                              color: isCurrent
-                                  ? colors.primaryContainer
-                                  : colors.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(14),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(14),
-                                onTap: () => _handleSelect(option),
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    14,
-                                    10,
-                                    14,
-                                    10,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      AnimatedScale(
-                                        scale: _selectingReactionId == option.id
-                                            ? 1.2
-                                            : 1,
-                                        duration: const Duration(
-                                          milliseconds: 140,
+                          );
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.12),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: Hero(
+                                tag: _reactionHeroTag(
+                                  postId: widget.postId,
+                                  reactionId: option.id,
+                                ),
+                                child: Material(
+                                  color: isCurrent
+                                      ? colors.primaryContainer.withValues(
+                                          alpha: 0.92,
+                                        )
+                                      : colors.surfaceContainerLow.withValues(
+                                          alpha: 0.74,
                                         ),
-                                        curve: Curves.easeOutBack,
-                                        child: Text(
-                                          option.emoji,
-                                          style: const TextStyle(fontSize: 24),
-                                        ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () => _handleSelect(option),
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        14,
+                                        12,
+                                        14,
+                                        12,
                                       ),
-                                      if (isCurrent) ...[
-                                        const SizedBox(width: 8),
-                                        Icon(
-                                          Icons.check_circle_rounded,
-                                          size: 18,
-                                          color: colors.primary,
-                                        ),
-                                      ],
-                                    ],
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          AnimatedScale(
+                                            scale:
+                                                _selectingReactionId == option.id
+                                                ? 1.2
+                                                : 1,
+                                            duration: const Duration(
+                                              milliseconds: 140,
+                                            ),
+                                            curve: Curves.easeOutBack,
+                                            child: Text(
+                                              option.emoji,
+                                              style: const TextStyle(
+                                                fontSize: 24,
+                                              ),
+                                            ),
+                                          ),
+                                          if (isCurrent) ...[
+                                            const SizedBox(width: 8),
+                                            Icon(
+                                              Icons.check_circle_rounded,
+                                              size: 18,
+                                              color: colors.primary,
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    }),
+                          );
+                        }),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 2),
                 ],
               ),
             ),

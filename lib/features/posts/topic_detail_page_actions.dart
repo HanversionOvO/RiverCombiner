@@ -490,80 +490,99 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     final picked = await showModalBottomSheet<_TopicMoreAction>(
       context: context,
       showDragHandle: false,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         final sheetTheme = Theme.of(sheetContext);
         final canOperate = detail != null;
         final busy = _topicFavoriteBusy || _topicReportBusy;
+        final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.46;
         return SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        sheetTheme.colorScheme.surface,
-                        sheetTheme.colorScheme.surfaceContainerLow,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    sheetTheme.colorScheme.surfaceContainerLow.withValues(
+                      alpha: 0.92,
+                    ),
+                    sheetTheme.colorScheme.surface,
+                  ],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: sheetTheme.colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 14, 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: sheetTheme.colorScheme.primaryContainer,
+                          ),
+                          child: Icon(
+                            Icons.more_horiz_rounded,
+                            color: sheetTheme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '帖子操作',
+                                style: sheetTheme.textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              Text(
+                                '分享、举报与收藏',
+                                style: sheetTheme.textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: sheetTheme
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '关闭',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: sheetTheme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.34,
-                      ),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: sheetTheme.colorScheme.shadow.withValues(
-                          alpha: 0.08,
-                        ),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        ListTile(
-                          dense: true,
-                          leading: Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: sheetTheme.colorScheme.primaryContainer
-                                  .withValues(alpha: 0.72),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            alignment: Alignment.center,
-                            child: Icon(
-                              Icons.more_horiz_rounded,
-                              size: 19,
-                              color: sheetTheme.colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                          title: Text(
-                            '帖子操作',
-                            style: sheetTheme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '分享、举报与收藏',
-                            style: sheetTheme.textTheme.bodySmall?.copyWith(
-                              color: sheetTheme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
                         _TopicMoreActionTile(
                           icon: Icons.share_outlined,
                           title: _TopicDetailPageState._labelSharePoster,
@@ -598,8 +617,8 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -2764,36 +2783,127 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
     final own = !_isQingShuiHePanTopic && _isOwnComment(post);
     final action = await showModalBottomSheet<String>(
       context: context,
-      showDragHandle: true,
+      useSafeArea: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
       builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.42;
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.content_copy_outlined),
-                title: const Text(
-                  _TopicDetailPageState._labelActionCopyContent,
+          top: false,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    theme.colorScheme.surfaceContainerLow.withValues(
+                      alpha: 0.92,
+                    ),
+                    theme.colorScheme.surface,
+                  ],
                 ),
-                onTap: () => Navigator.of(sheetContext).pop('copy'),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
               ),
-              if (own)
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined),
-                  title: const Text(
-                    _TopicDetailPageState._labelActionEditComment,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
                   ),
-                  onTap: () => Navigator.of(sheetContext).pop('edit'),
-                ),
-              if (own)
-                ListTile(
-                  leading: const Icon(Icons.delete_outline),
-                  title: const Text(
-                    _TopicDetailPageState._labelActionDeleteComment,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 14, 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.colorScheme.primaryContainer,
+                          ),
+                          child: Icon(
+                            Icons.mode_comment_outlined,
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '评论操作',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                own ? '复制、编辑或删除这条评论' : '复制这条评论内容',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '关闭',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
                   ),
-                  onTap: () => Navigator.of(sheetContext).pop('delete'),
-                ),
-            ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+                    child: Column(
+                      children: [
+                        _TopicMoreActionTile(
+                          icon: Icons.content_copy_outlined,
+                          title: _TopicDetailPageState._labelActionCopyContent,
+                          subtitle: '复制当前评论的正文内容',
+                          onTap: () => Navigator.of(sheetContext).pop('copy'),
+                        ),
+                        if (own) ...[
+                          const SizedBox(height: 8),
+                          _TopicMoreActionTile(
+                            icon: Icons.edit_outlined,
+                            title:
+                                _TopicDetailPageState._labelActionEditComment,
+                            subtitle: '重新编辑这条评论',
+                            onTap: () => Navigator.of(sheetContext).pop('edit'),
+                          ),
+                          const SizedBox(height: 8),
+                          _TopicMoreActionTile(
+                            icon: Icons.delete_outline,
+                            title:
+                                _TopicDetailPageState._labelActionDeleteComment,
+                            subtitle: '从当前帖子中删除这条评论',
+                            onTap: () =>
+                                Navigator.of(sheetContext).pop('delete'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },

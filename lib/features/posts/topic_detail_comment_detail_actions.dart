@@ -885,36 +885,128 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
     final own = _isOwnComment(post);
     final action = await showModalBottomSheet<String>(
       context: context,
-      showDragHandle: true,
+      useSafeArea: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
       builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.42;
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.content_copy_outlined),
-                title: const Text(
-                  _CommentDetailPageState._labelActionCopyContent,
+          top: false,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    theme.colorScheme.surfaceContainerLow.withValues(
+                      alpha: 0.92,
+                    ),
+                    theme.colorScheme.surface,
+                  ],
                 ),
-                onTap: () => Navigator.of(sheetContext).pop('copy'),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
               ),
-              if (own)
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined),
-                  title: const Text(
-                    _CommentDetailPageState._labelActionEditComment,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
                   ),
-                  onTap: () => Navigator.of(sheetContext).pop('edit'),
-                ),
-              if (own)
-                ListTile(
-                  leading: const Icon(Icons.delete_outline),
-                  title: const Text(
-                    _CommentDetailPageState._labelActionDeleteComment,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 14, 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.colorScheme.primaryContainer,
+                          ),
+                          child: Icon(
+                            Icons.mode_comment_outlined,
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '评论操作',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                own ? '复制、编辑或删除这条评论' : '复制这条评论内容',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '关闭',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
                   ),
-                  onTap: () => Navigator.of(sheetContext).pop('delete'),
-                ),
-            ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+                    child: Column(
+                      children: [
+                        _TopicMoreActionTile(
+                          icon: Icons.content_copy_outlined,
+                          title:
+                              _CommentDetailPageState._labelActionCopyContent,
+                          subtitle: '复制当前评论的正文内容',
+                          onTap: () => Navigator.of(sheetContext).pop('copy'),
+                        ),
+                        if (own) ...[
+                          const SizedBox(height: 8),
+                          _TopicMoreActionTile(
+                            icon: Icons.edit_outlined,
+                            title:
+                                _CommentDetailPageState._labelActionEditComment,
+                            subtitle: '重新编辑这条评论',
+                            onTap: () => Navigator.of(sheetContext).pop('edit'),
+                          ),
+                          const SizedBox(height: 8),
+                          _TopicMoreActionTile(
+                            icon: Icons.delete_outline,
+                            title:
+                                _CommentDetailPageState._labelActionDeleteComment,
+                            subtitle: '从当前评论串中删除这条评论',
+                            onTap: () =>
+                                Navigator.of(sheetContext).pop('delete'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
