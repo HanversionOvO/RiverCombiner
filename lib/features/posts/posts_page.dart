@@ -1592,6 +1592,22 @@ class _PostsTopicTabItem {
   final bool footprintsOnly;
 
   bool get isHotFeed => feed == RiverSideTopicFeed.hot;
+
+  IconData get icon {
+    switch (id) {
+      case 'latestCreated':
+        return Icons.fiber_new_rounded;
+      case 'latestReplied':
+        return Icons.chat_bubble_rounded;
+      case 'favorites':
+        return Icons.bookmark_rounded;
+      case 'footprints':
+        return Icons.history_rounded;
+      case 'hot':
+        return Icons.local_fire_department_rounded;
+    }
+    return Icons.circle_rounded;
+  }
 }
 
 class _MiniAppMetaRow extends StatelessWidget {
@@ -1698,6 +1714,9 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   ];
 
   int _filterVersion = 0;
+  List<String> _lastPostsTabOrder = List<String>.from(
+    AppSettingsController.defaultPostsTabOrder,
+  );
 
   final Map<int, GlobalKey<_TopicListTabState>> _tabKeys = {};
   String? _lastActiveRiverUsername;
@@ -1752,7 +1771,23 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   bool _secondFloorGuideHintLoopRunning = false;
   bool _secondFloorGuideHintStopRequested = false;
 
-  _PostsTopicTabItem get _currentTabItem => _tabs[_tabController.index];
+  List<_PostsTopicTabItem> get _orderedTabs {
+    final order = widget.dependencies.settingsController.postsTabOrder;
+    final byId = <String, _PostsTopicTabItem>{
+      for (final item in _tabs) item.id: item,
+    };
+    final result = <_PostsTopicTabItem>[];
+    for (final id in order) {
+      final item = byId.remove(id);
+      if (item != null) {
+        result.add(item);
+      }
+    }
+    result.addAll(byId.values);
+    return result;
+  }
+
+  _PostsTopicTabItem get _currentTabItem => _orderedTabs[_tabController.index];
 
   @override
   void initState() {
@@ -1762,6 +1797,9 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
         widget.dependencies.accountStore.activeRiverSideUsername;
     _lastActiveQingUsername =
         widget.dependencies.accountStore.activeQingShuiHePanUsername;
+    _lastPostsTabOrder = List<String>.from(
+      widget.dependencies.settingsController.postsTabOrder,
+    );
     _forumProvider = _resolveInitialForumProvider();
     _notifyForumProviderChanged();
     widget.dependencies.accountStore.addListener(_onAccountStoreChanged);
@@ -1852,6 +1890,22 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
   }
 
   void _onRefreshBannerSettingsChanged() {
+    final nextPostsTabOrder = widget.dependencies.settingsController.postsTabOrder;
+    if (!listEquals(_lastPostsTabOrder, nextPostsTabOrder)) {
+      final previousTabs = _tabsFromOrder(_lastPostsTabOrder);
+      final currentIndex = _tabController.index.clamp(
+        0,
+        previousTabs.length - 1,
+      );
+      final currentTabId = previousTabs[currentIndex].id;
+      _lastPostsTabOrder = List<String>.from(nextPostsTabOrder);
+      final nextTabs = _orderedTabs;
+      final nextIndex = nextTabs.indexWhere((item) => item.id == currentTabId);
+      if (nextIndex >= 0 && nextIndex != _tabController.index) {
+        _tabController.index = nextIndex;
+        _lastSyncedTabIndex = nextIndex;
+      }
+    }
     final nextMiniAppsManifestUrl =
         widget.dependencies.settingsController.miniAppsManifestUrl;
     if (nextMiniAppsManifestUrl != _lastMiniAppsManifestUrl) {
@@ -1873,6 +1927,21 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       _secondFloorGuideHintStopRequested = true;
     }
     setState(() {});
+  }
+
+  List<_PostsTopicTabItem> _tabsFromOrder(List<String> order) {
+    final byId = <String, _PostsTopicTabItem>{
+      for (final item in _tabs) item.id: item,
+    };
+    final result = <_PostsTopicTabItem>[];
+    for (final id in order) {
+      final item = byId.remove(id);
+      if (item != null) {
+        result.add(item);
+      }
+    }
+    result.addAll(byId.values);
+    return result;
   }
 
   void _scheduleSecondFloorGuideHint() {
@@ -2801,7 +2870,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     }
 
     const maxPages = 8;
-    final tab = _tabs[currentTabIndex];
+    final tab = _orderedTabs[currentTabIndex];
     if (tab.footprintsOnly) {
       final result = topicMap.values.toList(growable: false)
         ..sort((a, b) {
@@ -5269,7 +5338,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     RiverSideTopicFeed feed, {
     bool refresh = true,
   }) async {
-    final targetIndex = _tabs.indexWhere((tab) => tab.feed == feed);
+    final targetIndex = _orderedTabs.indexWhere((tab) => tab.feed == feed);
     if (targetIndex < 0 || !mounted) {
       return;
     }
@@ -5337,7 +5406,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                         Expanded(
                           child: TabBarView(
                             controller: _tabController,
-                            children: _tabs.asMap().entries.map((entry) {
+                            children: _orderedTabs.asMap().entries.map((entry) {
                               final index = entry.key;
                               final tab = entry.value;
 
@@ -5715,24 +5784,80 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                         child: Row(
                           children: [
                             Expanded(
-                              child: TabBar(
-                                controller: _tabController,
-                                isScrollable: true,
-                                tabAlignment: TabAlignment.start,
-                                indicatorColor: theme.colorScheme.primary,
-                                labelColor: theme.colorScheme.primary,
-                                unselectedLabelColor:
-                                    theme.colorScheme.onSurfaceVariant,
-                                indicatorSize: TabBarIndicatorSize.label,
-                                dividerColor: Colors.transparent,
-                                labelStyle: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                              child: Container(
+                                height: 40,
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHigh
+                                      .withValues(alpha: 0.64),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: theme.colorScheme.outlineVariant
+                                        .withValues(alpha: 0.26),
+                                  ),
                                 ),
-                                labelPadding: const EdgeInsets.only(right: 24),
-                                tabs: _tabs
-                                    .map((tab) => Tab(text: tab.label))
-                                    .toList(),
+                                child: TabBar(
+                                  controller: _tabController,
+                                  isScrollable: true,
+                                  tabAlignment: TabAlignment.start,
+                                  dividerColor: Colors.transparent,
+                                  indicatorSize: TabBarIndicatorSize.tab,
+                                  indicatorPadding: EdgeInsets.zero,
+                                  labelPadding: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                  ),
+                                  splashBorderRadius: BorderRadius.circular(14),
+                                  overlayColor: WidgetStatePropertyAll(
+                                    theme.colorScheme.primary.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                  ),
+                                  indicator: BoxDecoration(
+                                    color: theme.colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: theme.colorScheme.shadow
+                                            .withValues(alpha: 0.08),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  labelColor: theme.colorScheme.onSurface,
+                                  unselectedLabelColor:
+                                      theme.colorScheme.onSurfaceVariant,
+                                  labelStyle: theme.textTheme.labelLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.1,
+                                      ),
+                                  unselectedLabelStyle: theme
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: -0.1,
+                                      ),
+                                tabs: _orderedTabs.map((tab) {
+                                    return Tab(
+                                      height: 32,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(tab.icon, size: 15),
+                                            const SizedBox(width: 6),
+                                            Text(tab.label),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
                               ),
                             ),
                             if (!_currentTabItem.favoritesOnly &&

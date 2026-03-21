@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:river/core/config/server_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +29,14 @@ enum AppHomeForumPreference { riverSide, qingShuiHePan }
 enum AppHomeWidgetFeedPreference { latestCreated, latestReplied, hot }
 
 class AppSettingsController extends ChangeNotifier {
+  static const List<String> defaultPostsTabOrder = <String>[
+    'latestCreated',
+    'latestReplied',
+    'favorites',
+    'footprints',
+    'hot',
+  ];
+
   static const String _themeModeKey = 'app.theme_mode';
   static const String _themeSeedColorKey = 'app.theme_seed_color';
   static const String _fontScaleKey = 'app.font_scale';
@@ -45,6 +54,7 @@ class AppSettingsController extends ChangeNotifier {
       'app.notifications_realtime_refresh_banner';
   static const String _inAppMessagesKey = 'app.in_app_messages';
   static const String _autoCollapseTopicBodyKey = 'app.auto_collapse_topic_body';
+  static const String _postsTabOrderKey = 'app.posts_tab_order';
   static const String _topicCommentsRealtimeRefreshBannerKey =
       'app.topic_comments_realtime_refresh_banner';
   static const String _postsSecondFloorGuideKey =
@@ -101,6 +111,7 @@ class AppSettingsController extends ChangeNotifier {
   bool _showNotificationsRealtimeRefreshBanner = true;
   bool _showInAppMessages = true;
   bool _autoCollapseTopicBody = true;
+  List<String> _postsTabOrder = List<String>.from(defaultPostsTabOrder);
   bool _showTopicCommentsRealtimeRefreshBanner = true;
   bool _showPostsSecondFloorGuide = true;
   String _riverSideBaseUrl = RiverServerConfig.defaultBaseUrl;
@@ -144,6 +155,7 @@ class AppSettingsController extends ChangeNotifier {
       _showNotificationsRealtimeRefreshBanner;
   bool get showInAppMessages => _showInAppMessages;
   bool get autoCollapseTopicBody => _autoCollapseTopicBody;
+  List<String> get postsTabOrder => List<String>.unmodifiable(_postsTabOrder);
   bool get showTopicCommentsRealtimeRefreshBanner =>
       _showTopicCommentsRealtimeRefreshBanner;
   bool get showPostsSecondFloorGuide => _showPostsSecondFloorGuide;
@@ -261,6 +273,9 @@ class AppSettingsController extends ChangeNotifier {
         true;
     _autoCollapseTopicBody =
         _prefs?.getBool(_autoCollapseTopicBodyKey) ?? true;
+    _postsTabOrder = _normalizePostsTabOrder(
+      _prefs?.getStringList(_postsTabOrderKey),
+    );
     _showTopicCommentsRealtimeRefreshBanner =
         _prefs?.getBool(_topicCommentsRealtimeRefreshBannerKey) ?? true;
     _showPostsSecondFloorGuide =
@@ -539,6 +554,16 @@ class AppSettingsController extends ChangeNotifier {
     _autoCollapseTopicBody = value;
     notifyListeners();
     unawaited(_saveAutoCollapseTopicBody());
+  }
+
+  void updatePostsTabOrder(List<String> value) {
+    final normalized = _normalizePostsTabOrder(value);
+    if (listEquals(_postsTabOrder, normalized)) {
+      return;
+    }
+    _postsTabOrder = normalized;
+    notifyListeners();
+    unawaited(_savePostsTabOrder());
   }
 
   void updateShowTopicCommentsRealtimeRefreshBanner(bool value) {
@@ -961,12 +986,31 @@ class AppSettingsController extends ChangeNotifier {
     await _prefs!.setBool(_autoCollapseTopicBodyKey, _autoCollapseTopicBody);
   }
 
+  Future<void> _savePostsTabOrder() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setStringList(_postsTabOrderKey, _postsTabOrder);
+  }
+
   Future<void> _saveShowTopicCommentsRealtimeRefreshBanner() async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setBool(
       _topicCommentsRealtimeRefreshBannerKey,
       _showTopicCommentsRealtimeRefreshBanner,
     );
+  }
+
+  List<String> _normalizePostsTabOrder(List<String>? raw) {
+    final remaining = List<String>.from(defaultPostsTabOrder);
+    final ordered = <String>[];
+    for (final item in raw ?? const <String>[]) {
+      final id = item.trim();
+      if (id.isEmpty || !remaining.remove(id)) {
+        continue;
+      }
+      ordered.add(id);
+    }
+    ordered.addAll(remaining);
+    return ordered;
   }
 
   Future<void> _saveShowPostsSecondFloorGuide() async {

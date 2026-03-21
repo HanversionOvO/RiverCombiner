@@ -97,6 +97,34 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     ),
   ];
 
+  static const List<_PostsTabOption> _postsTabOptions = <_PostsTabOption>[
+    _PostsTabOption(
+      id: 'latestCreated',
+      label: '最新发表',
+      icon: Icons.fiber_new_rounded,
+    ),
+    _PostsTabOption(
+      id: 'latestReplied',
+      label: '最新回复',
+      icon: Icons.chat_bubble_rounded,
+    ),
+    _PostsTabOption(
+      id: 'favorites',
+      label: '收藏',
+      icon: Icons.bookmark_rounded,
+    ),
+    _PostsTabOption(
+      id: 'footprints',
+      label: '足迹',
+      icon: Icons.history_rounded,
+    ),
+    _PostsTabOption(
+      id: 'hot',
+      label: '热门',
+      icon: Icons.local_fire_department_rounded,
+    ),
+  ];
+
   List<String> _systemFonts = const <String>[];
   bool _fontsLoading = true;
 
@@ -319,6 +347,38 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
     }
   }
 
+  String _postsTabOrderSummary(AppSettingsController settings) {
+    final labels = settings.postsTabOrder.map((id) {
+      for (final item in _postsTabOptions) {
+        if (item.id == id) {
+          return item.label;
+        }
+      }
+      return id;
+    }).toList(growable: false);
+    return labels.join(' / ');
+  }
+
+  Future<void> _openPostsTabOrderSheet(AppSettingsController settings) async {
+    final selected = await showModalBottomSheet<List<String>>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _PostsTabOrderSheet(
+          selectedOrder: settings.postsTabOrder,
+          options: _postsTabOptions,
+        );
+      },
+    );
+    if (selected == null) {
+      return;
+    }
+    settings.updatePostsTabOrder(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MineSettingsPageScaffold(
@@ -537,6 +597,13 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                       value: settings.autoCollapseTopicBody,
                       onChanged: settings.updateAutoCollapseTopicBody,
                     ),
+                    const SizedBox(height: 8),
+                    _ActionTile(
+                      icon: Icons.reorder_rounded,
+                      title: '帖子页 Tabs 排序',
+                      subtitle: _postsTabOrderSummary(settings),
+                      onTap: () => _openPostsTabOrderSheet(settings),
+                    ),
                   ],
                 ),
               ),
@@ -614,4 +681,16 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
       ),
     );
   }
+}
+
+class _PostsTabOption {
+  const _PostsTabOption({
+    required this.id,
+    required this.label,
+    required this.icon,
+  });
+
+  final String id;
+  final String label;
+  final IconData icon;
 }

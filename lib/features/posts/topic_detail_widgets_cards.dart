@@ -402,14 +402,17 @@ class _CollapsibleMainPostBodyState extends State<_CollapsibleMainPostBody> {
             AnimatedSize(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
-              alignment: Alignment.topCenter,
+              alignment: Alignment.topLeft,
               child: ClipRect(
                 child: Align(
-                  alignment: Alignment.topCenter,
+                  alignment: Alignment.topLeft,
                   heightFactor: heightFactor,
-                  child: _MeasureSize(
-                    onChange: _handleMeasuredSize,
-                    child: widget.child,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _MeasureSize(
+                      onChange: _handleMeasuredSize,
+                      child: widget.child,
+                    ),
                   ),
                 ),
               ),
