@@ -4502,6 +4502,33 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
     _onActiveTabScrollOffsetChanged(offset);
   }
 
+  Future<void> _clearCurrentForumFootprints() async {
+    final provider = _forumProvider == _PostsForumProvider.qingShuiHePan
+        ? AccountProvider.qingShuiHePan
+        : AccountProvider.riverSide;
+    final confirmed = await showRiverConfirmDialog(
+      context: context,
+      title: '清空足迹',
+      message: '确定清空当前论坛的浏览足迹吗？此操作不可撤销。',
+      confirmText: '清空',
+      icon: Icons.history_toggle_off_rounded,
+      isDestructive: true,
+    );
+    if (!confirmed) {
+      return;
+    }
+    await widget.dependencies.topicFootprintStore.clear(provider);
+    if (!mounted) {
+      return;
+    }
+    final key = _tabKeys[_tabController.index];
+    await key?.currentState?.scrollToTopAndRefresh();
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showRiverSnackBar('已清空足迹');
+  }
+
   void _setSecondFloorPullDistance(double value) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final triggerDistance = _secondFloorTriggerDistanceForViewport();
@@ -5638,6 +5665,16 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                 if (_forumProvider ==
                                     _PostsForumProvider.riverSide) ...[
                                   _buildOnlineUsersPill(theme),
+                                  const SizedBox(width: 8),
+                                ],
+                                if (_currentTabItem.footprintsOnly) ...[
+                                  IconButton.filledTonal(
+                                    onPressed: _clearCurrentForumFootprints,
+                                    tooltip: '清空足迹',
+                                    icon: const Icon(
+                                      Icons.history_toggle_off_rounded,
+                                    ),
+                                  ),
                                   const SizedBox(width: 8),
                                 ],
                                 if (!useBottomSearchTab)
