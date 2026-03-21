@@ -941,6 +941,7 @@ class _TopicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isPinned = topic.isPinned;
     final isHot = topic.isHot || isHotFeed;
     final authorPrimary = useRiverSideIdentityStyle
@@ -963,230 +964,313 @@ class _TopicCard extends StatelessWidget {
     final metaLabel = authorSecondary.isEmpty
         ? timeLabel
         : '$authorSecondary · $timeLabel';
+    final categoryLabel = displayCategoryName.trim().isEmpty
+        ? '未分类'
+        : displayCategoryName.trim();
 
-    // Hero tags must stay consistent with profile sheet.
     final avatarHeroTag = _buildAuthorAvatarHeroTag(topic);
     final nameHeroTag = _buildAuthorNameHeroTag(topic);
     final titleHeroTag = 'title_${topic.id}';
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colors.surface,
+            colors.surfaceContainerLowest.withValues(alpha: 0.94),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.32),
+        ),
         boxShadow: [
-          // 优化阴影：更柔和、扩散更平滑
           BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: colors.shadow.withValues(alpha: 0.05),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: colors.primary.withValues(alpha: 0.03),
+            blurRadius: 30,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      clipBehavior:
-          Clip.antiAlias, // Keep ripple clipped inside rounded corners.
+      clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => onTap(context),
-          splashColor: theme.colorScheme.primary.withValues(alpha: 0.08),
-          highlightColor: theme.colorScheme.primary.withValues(alpha: 0.04),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- 椤堕儴淇℃伅鏍?---
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: onAuthorTap,
-                      child: Hero(
-                        tag: avatarHeroTag,
-                        child: CircleAvatar(
-                          radius: 14,
-                          backgroundImage: topic.authorAvatarUrl.isNotEmpty
-                              ? NetworkImage(topic.authorAvatarUrl)
-                              : null,
-                          backgroundColor:
-                              theme.colorScheme.surfaceContainerHighest,
-                          child: topic.authorAvatarUrl.isEmpty
-                              ? Icon(
-                                  Icons.person,
-                                  size: 16,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                )
-                              : null,
-                        ),
+          splashColor: colors.primary.withValues(alpha: 0.08),
+          highlightColor: colors.primary.withValues(alpha: 0.03),
+          child: Stack(
+            children: [
+              Positioned(
+                top: -18,
+                right: -18,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          colors.primary.withValues(alpha: 0.10),
+                          colors.primary.withValues(alpha: 0),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Hero(
-                            tag: nameHeroTag,
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Text.rich(
-                                TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: authorPrimary,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: onAuthorTap,
+                          child: Hero(
+                            tag: avatarHeroTag,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: colors.outlineVariant.withValues(
+                                    alpha: 0.30,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                softWrap: false,
-                                style: theme.textTheme.labelLarge,
+                              ),
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundImage: topic.authorAvatarUrl.isNotEmpty
+                                    ? NetworkImage(topic.authorAvatarUrl)
+                                    : null,
+                                backgroundColor:
+                                    colors.surfaceContainerHighest,
+                                child: topic.authorAvatarUrl.isEmpty
+                                    ? Icon(
+                                        Icons.person,
+                                        size: 18,
+                                        color: colors.onSurfaceVariant,
+                                      )
+                                    : null,
                               ),
                             ),
                           ),
-                          Text(
-                            metaLabel,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.outline,
-                              fontSize: 11,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Hero(
+                                  tag: nameHeroTag,
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: Text(
+                                      authorPrimary,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.1,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  metaLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
+                        ),
+                        if (isPinned || isHot)
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            alignment: WrapAlignment.end,
+                            children: [
+                              if (isPinned)
+                                _buildTag(
+                                  theme,
+                                  icon: Icons.push_pin_rounded,
+                                  text: '置顶',
+                                  backgroundColor: colors.primaryContainer
+                                      .withValues(alpha: 0.80),
+                                  foregroundColor: colors.primary,
+                                ),
+                              if (isHot)
+                                _buildTag(
+                                  theme,
+                                  icon: Icons.local_fire_department_rounded,
+                                  text: '热门',
+                                  backgroundColor: const Color(0xFFFFF0E0),
+                                  foregroundColor: const Color(0xFFB75A00),
+                                ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Hero(
+                      tag: titleHeroTag,
+                      flightShuttleBuilder:
+                          (
+                            flightContext,
+                            animation,
+                            flightDirection,
+                            fromHeroContext,
+                            toHeroContext,
+                          ) {
+                            return DefaultTextStyle.merge(
+                              style:
+                                  theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.18,
+                                    height: 1.24,
+                                  ) ??
+                                  const TextStyle(),
+                              child: (toHeroContext.widget as Hero).child,
+                            );
+                          },
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Text(
+                          topic.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.18,
+                            height: 1.24,
+                          ),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    if (topic.excerpt.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        topic.excerpt.replaceAll('\n', ' '),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          height: 1.52,
+                          fontSize: 13.5,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest.withValues(
+                          alpha: 0.34,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colors.outlineVariant.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.grid_view_rounded,
+                                  size: 14,
+                                  color: colors.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    categoryLabel,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: colors.onSurface,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => onCommentTap(context),
+                            child: _IconText(
+                              icon: Icons.chat_bubble_outline_rounded,
+                              text: '${topic.commentCount ?? topic.replyCount}',
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _IconText(
+                            icon: Icons.remove_red_eye_outlined,
+                            text: '${topic.viewCount}',
                           ),
                         ],
                       ),
                     ),
-
-                    // 鏍囩鍖哄煙
-                    if (isPinned)
-                      _buildTag(
-                        theme,
-                        '置顶',
-                        theme.colorScheme.primaryContainer,
-                        theme.colorScheme.primary,
-                      ),
-                    if (isPinned && isHot) const SizedBox(width: 6),
-                    if (isHot)
-                      _buildTag(
-                        theme,
-                        '热门',
-                        Colors.orange.shade50,
-                        Colors.orange.shade800,
-                      ),
                   ],
                 ),
-
-                const SizedBox(height: 12),
-
-                // --- 标题 (Hero 源) ---
-                Hero(
-                  tag: titleHeroTag,
-                  flightShuttleBuilder:
-                      (
-                        flightContext,
-                        animation,
-                        flightDirection,
-                        fromHeroContext,
-                        toHeroContext,
-                      ) {
-                        return DefaultTextStyle.merge(
-                          style:
-                              theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.1,
-                              ) ??
-                              const TextStyle(),
-                          child: (toHeroContext.widget as Hero).child,
-                        );
-                      },
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Text(
-                      topic.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.1,
-                      ),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-
-                if (topic.excerpt.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    topic.excerpt.replaceAll('\n', ' '),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      height: 1.5,
-                      fontSize: 14,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-
-                const SizedBox(height: 14),
-
-                // --- 搴曢儴鏁版嵁鏍?---
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        displayCategoryName,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => onCommentTap(context),
-                      child: _IconText(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        text: '${topic.commentCount ?? topic.replyCount}',
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    _IconText(
-                      icon: Icons.remove_red_eye_outlined,
-                      text: '${topic.viewCount}',
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // 辅助方法：构建标签
-  Widget _buildTag(ThemeData theme, String text, Color bg, Color fg) {
+  Widget _buildTag(
+    ThemeData theme, {
+    required IconData icon,
+    required String text,
+    required Color backgroundColor,
+    required Color foregroundColor,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(4),
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.bold),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: foregroundColor),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 10.5,
+              color: foregroundColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1211,13 +1295,32 @@ class _IconText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.outline;
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
-        Text(text, style: TextStyle(fontSize: 12, color: color)),
-      ],
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: 0.84),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.24),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: colors.onSurfaceVariant),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontSize: 11.5,
+              color: colors.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
