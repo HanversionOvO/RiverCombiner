@@ -38,6 +38,7 @@ class RiverSideTopicSummary {
     required this.categoryId,
     required this.categoryName,
     required this.replyCount,
+    this.commentCount,
     required this.viewCount,
     required this.createdAt,
     required this.authorDisplayName,
@@ -54,6 +55,7 @@ class RiverSideTopicSummary {
   final int? categoryId;
   final String categoryName;
   final int replyCount;
+  final int? commentCount;
   final int viewCount;
   final DateTime? createdAt;
   final String authorDisplayName;

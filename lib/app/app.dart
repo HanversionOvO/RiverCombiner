@@ -10,6 +10,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/app/app_settings_controller.dart';
+import 'package:river/core/account/account_models.dart';
 import 'package:river/core/account/account_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_floating_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_host_store.dart';
@@ -300,7 +301,47 @@ class _RiverAppState extends State<RiverApp> {
     }
     switch (banner.kind) {
       case RiverSideInAppMessageKind.notification:
-        _homeShellController.performQuickAction(HomeQuickAction.notifications);
+        final notification = banner.notification;
+        if (notification == null ||
+            notification.topicId == null ||
+            notification.topicId! <= 0) {
+          _homeShellController.performQuickAction(
+            HomeQuickAction.notifications,
+          );
+          return;
+        }
+        final title = notification.title.trim().isEmpty
+            ? '帖子详情'
+            : notification.title.trim();
+        final authorName = notification.username.trim().isEmpty
+            ? '未知用户'
+            : notification.username.trim();
+        await Navigator.of(context).push(
+          riverPageRoute<void>(
+            builder: (_) => TopicDetailPage(
+              dependencies: _dependencies,
+              topicId: notification.topicId!,
+              provider: AccountProvider.riverSide,
+              initialPostNumberOnOpen:
+                  (notification.postNumber != null &&
+                      notification.postNumber! > 1)
+                  ? notification.postNumber
+                  : null,
+              preview: TopicDetailPreview(
+                title: title,
+                authorDisplayName: authorName,
+                authorUsername: authorName,
+                authorAvatarUrl: notification.avatarUrl,
+                titleHeroTag:
+                    'realtime_notification_topic_title_${notification.id}',
+                authorAvatarHeroTag:
+                    'realtime_notification_topic_avatar_${notification.id}',
+                authorNameHeroTag:
+                    'realtime_notification_topic_name_${notification.id}',
+              ),
+            ),
+          ),
+        );
         return;
       case RiverSideInAppMessageKind.channelMessage:
       case RiverSideInAppMessageKind.directMessage:

@@ -1416,12 +1416,14 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
     final keyboardVisible =
         !emojiPanelVisible && (bottomInset > 0 || _focusNode.hasFocus);
     final media = MediaQuery.of(context);
+    final bottomSafeInset = media.padding.bottom;
     final screenHeight = media.size.height;
     final maxAvailableHeight = screenHeight - media.padding.top - 8;
     final requestedHeight = widget.maxHeight > 0
         ? widget.maxHeight
         : screenHeight * 0.88;
     final editorHeight = requestedHeight.clamp(420.0, maxAvailableHeight);
+    final bottomContentInset = math.max(bottomInset, bottomSafeInset);
     final statusText = _loadingDraft
         ? '正在同步草稿...'
         : (_lastDraftSavedAt != null
@@ -1432,6 +1434,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
       color: Colors.transparent,
       child: SafeArea(
         top: false,
+        bottom: false,
         child: Align(
           alignment: Alignment.bottomCenter,
           child: SizedBox(
@@ -1847,7 +1850,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
                     AnimatedPadding(
                       duration: const Duration(milliseconds: 120),
                       curve: Curves.easeOutCubic,
-                      padding: EdgeInsets.only(bottom: bottomInset),
+                      padding: EdgeInsets.only(bottom: bottomContentInset),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [

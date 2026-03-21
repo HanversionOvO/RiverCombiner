@@ -257,7 +257,11 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
         : MediaQuery.viewInsetsOf(context).bottom;
     final dockInset = _selectionMode
         ? 74.0
-        : (_composerDockHeight > 0 ? _composerDockHeight : 112.0);
+        : (_composerEmojiPanelVisible
+              ? (_composerDockHeight > 0
+                    ? _composerDockHeight
+                    : _composerCollapsedDockHeight)
+              : _composerCollapsedDockHeight);
     final listBottomPadding = (dockInset + keyboardInset + 16).toDouble();
     final floatingBottom = (dockInset + keyboardInset + 28).toDouble();
     return Stack(

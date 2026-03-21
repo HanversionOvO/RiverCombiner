@@ -446,7 +446,7 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
         riverPageRoute<void>(
           builder: (_) => RiverSideProfileWebViewPage(
             username: _username,
-            title: widget.account.displayName,
+            title: widget.account.primaryDisplayLabel,
             cookieHeader: cookie,
           ),
         ),
@@ -628,9 +628,7 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final displayName = widget.account.displayName.isNotEmpty
-        ? widget.account.displayName
-        : widget.account.username;
+    final displayName = widget.account.primaryDisplayLabel;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -769,6 +767,7 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
 
         final overview = snapshot.data!;
         final account = overview.account;
+        final secondaryName = account.secondaryDisplayLabel;
         final showFollowButton = !_isSelfProfile && overview.canFollow;
         final showMessageButton =
             !_isSelfProfile && overview.canSendPrivateMessage;
@@ -850,12 +849,13 @@ class _RiverSideProfilePageState extends State<RiverSideProfilePage>
                                 );
                               },
                             ),
-                            Text(
-                              '@${account.username}',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                            if (secondaryName.isNotEmpty)
+                              Text(
+                                secondaryName,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
                             if (overview.location.isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Row(
@@ -2206,6 +2206,8 @@ class _UsersTabState extends State<_UsersTab>
         if (overviewSnap.hasData && overviewSnap.data!.isProfileHidden) {
           return const _ProfileHiddenView();
         }
+        final isRiverSideProfile =
+            overviewSnap.data?.account.provider == AccountProvider.riverSide;
         return FutureBuilder<List<RiverSideProfileFollowUser>>(
           future: widget.usersFuture,
           builder: (context, snapshot) {
@@ -2245,8 +2247,22 @@ class _UsersTabState extends State<_UsersTab>
                                 ? const Icon(Icons.person)
                                 : null,
                           ),
-                          title: Text(user.displayName),
-                          subtitle: Text('@${user.username}'),
+                          title: Text(
+                            isRiverSideProfile
+                                ? riverSidePrimaryLabel(
+                                    username: user.username,
+                                    displayName: user.displayName,
+                                  )
+                                : user.displayName,
+                          ),
+                          subtitle: Text(
+                            isRiverSideProfile
+                                ? riverSideSecondaryLabel(
+                                    username: user.username,
+                                    displayName: user.displayName,
+                                  )
+                                : '@${user.username}',
+                          ),
                           onTap: () => widget.onUserTap(user),
                         );
                       },

@@ -119,6 +119,13 @@ extension RiverSideApiClientTopicMethods on RiverSideApiClient {
           categoryId: topicCategoryId,
           categoryName: categoryName,
           replyCount: _asInt(topic['reply_count']) ?? 0,
+          commentCount: (() {
+            final postsCount = _asInt(topic['posts_count']);
+            if (postsCount != null && postsCount > 0) {
+              return (postsCount - 1).clamp(0, 1 << 30);
+            }
+            return null;
+          })(),
           viewCount: _asInt(topic['views']) ?? 0,
           createdAt: DateTime.tryParse((topic['created_at'] ?? '').toString()),
           authorDisplayName: authorName,

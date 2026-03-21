@@ -113,6 +113,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
   int _newMessageHintCount = 0;
   RiverSideChatMessageItem? _replyingMessage;
   double _composerDockHeight = 112;
+  double _composerCollapsedDockHeight = 112;
   int? _pressedMessageId;
   Timer? _pressedMessageClearTimer;
   String? _error;
@@ -502,11 +503,27 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
     if (next <= 0) {
       return;
     }
-    if ((next - _composerDockHeight).abs() < 0.8 || !mounted) {
+    if (!mounted) {
+      return;
+    }
+    if (_composerEmojiPanelVisible) {
+      if ((next - _composerDockHeight).abs() < 0.8) {
+        return;
+      }
+      setState(() {
+        _composerDockHeight = next;
+      });
+      return;
+    }
+    final dockChanged = (next - _composerDockHeight).abs() >= 0.8;
+    final collapsedChanged =
+        (next - _composerCollapsedDockHeight).abs() >= 0.8;
+    if (!dockChanged && !collapsedChanged) {
       return;
     }
     setState(() {
       _composerDockHeight = next;
+      _composerCollapsedDockHeight = next;
     });
   }
 
@@ -516,7 +533,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
     }
     HapticFeedback.selectionClick();
     if (_composerEmojiPanelVisible) {
-      _hideComposerEmojiPanel();
+      setState(() {
+        _composerEmojiPanelVisible = false;
+        _composerDockHeight = _composerCollapsedDockHeight;
+      });
       _composerFocusNode.requestFocus();
       return;
     }
@@ -541,6 +561,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> with RouteAware {
     }
     setState(() {
       _composerEmojiPanelVisible = false;
+      _composerDockHeight = _composerCollapsedDockHeight;
     });
   }
 

@@ -608,9 +608,8 @@ class _RiverSideUserProfileSheetState
     }
 
     final account = _resolvedAccount;
-    final name = account.displayName.trim().isEmpty
-        ? account.username
-        : account.displayName;
+    final name = account.primaryDisplayLabel;
+    final secondaryName = account.secondaryDisplayLabel;
     final overview = snapshot.data;
     final showFollowButton =
         widget.provider == AccountProvider.riverSide &&
@@ -627,6 +626,7 @@ class _RiverSideUserProfileSheetState
         _buildHeader(
           account: account,
           name: name,
+          secondaryName: secondaryName,
           showFollowButton: showFollowButton,
           showMessageButton: showMessageButton,
           isFollowing: _followStateResolved
@@ -671,6 +671,7 @@ class _RiverSideUserProfileSheetState
   Widget _buildHeader({
     required UserAccount account,
     required String name,
+    required String secondaryName,
     required bool showFollowButton,
     required bool showMessageButton,
     required bool isFollowing,
@@ -716,12 +717,13 @@ class _RiverSideUserProfileSheetState
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                '@${account.username}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+              if (secondaryName.isNotEmpty)
+                Text(
+                  secondaryName,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
               if (account.title.trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(

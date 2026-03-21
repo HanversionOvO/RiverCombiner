@@ -1097,10 +1097,14 @@ class _SystemActionPostCard extends StatelessWidget {
     final subtitleColor = theme.colorScheme.onSurfaceVariant;
     final accent = _accentColor(theme, post.actionCode);
     final username = _normalizeMentionUsernameToken(post.authorUsername.trim());
-    final actor = post.authorDisplayName.trim();
-    final actorLabel = username.isNotEmpty
-        ? '@$username'
-        : (actor.isNotEmpty ? actor : '');
+    final actorPrimary = riverSidePrimaryLabel(
+      username: username,
+      displayName: post.authorDisplayName,
+    );
+    final actorSecondary = riverSideSecondaryLabel(
+      username: username,
+      displayName: post.authorDisplayName,
+    );
 
     Widget card = Card(
       margin: margin,
@@ -1152,9 +1156,17 @@ class _SystemActionPostCard extends StatelessWidget {
                           text: _formatDateTime(post.createdAt),
                           color: subtitleColor,
                         ),
-                        if (actorLabel.isNotEmpty)
+                        if (actorPrimary.isNotEmpty)
                           Text(
-                            actorLabel,
+                            actorPrimary,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: subtitleColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        if (actorSecondary.isNotEmpty)
+                          Text(
+                            actorSecondary,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: subtitleColor,
                             ),

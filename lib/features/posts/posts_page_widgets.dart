@@ -445,6 +445,7 @@ class _TopicListTabState extends State<_TopicListTab>
           categoryId: _toInt(item['board_id']),
           categoryName: boardName.isEmpty ? '清水河畔' : boardName,
           replyCount: _toInt(item['replies']) ?? 0,
+          commentCount: _toInt(item['replies']) ?? 0,
           viewCount: _toInt(item['hits']) ?? 0,
           createdAt: createdAt,
           authorDisplayName: displayName.isEmpty ? authorUsername : displayName,
@@ -804,6 +805,7 @@ class _TopicListTabState extends State<_TopicListTab>
         categoryId: 1,
         categoryName: '综合讨论',
         replyCount: 36,
+        commentCount: 36,
         viewCount: 248,
         createdAt: DateTime.now(),
         authorDisplayName: 'River 用户',
@@ -935,6 +937,18 @@ class _TopicCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isPinned = topic.isPinned;
     final isHot = topic.isHot || isHotFeed;
+    final authorPrimary = riverSidePrimaryLabel(
+      username: topic.authorUsername,
+      displayName: topic.authorDisplayName,
+    );
+    final authorSecondary = riverSideSecondaryLabel(
+      username: topic.authorUsername,
+      displayName: topic.authorDisplayName,
+    );
+    final timeLabel = _formatTimeRelative(topic.createdAt);
+    final metaLabel = authorSecondary.isEmpty
+        ? timeLabel
+        : '$authorSecondary · $timeLabel';
 
     // Hero tags must stay consistent with profile sheet.
     final avatarHeroTag = _buildAuthorAvatarHeroTag(topic);
@@ -1004,7 +1018,7 @@ class _TopicCard extends StatelessWidget {
                                 TextSpan(
                                   children: [
                                     TextSpan(
-                                      text: topic.authorDisplayName,
+                                      text: authorPrimary,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
@@ -1020,7 +1034,7 @@ class _TopicCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            _formatTimeRelative(topic.createdAt),
+                            metaLabel,
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.outline,
                               fontSize: 11,
@@ -1130,7 +1144,7 @@ class _TopicCard extends StatelessWidget {
                       onTap: () => onCommentTap(context),
                       child: _IconText(
                         icon: Icons.chat_bubble_outline_rounded,
-                        text: '${topic.replyCount}',
+                        text: '${topic.commentCount ?? topic.replyCount}',
                       ),
                     ),
                     const SizedBox(width: 16),

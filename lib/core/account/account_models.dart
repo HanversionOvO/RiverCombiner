@@ -99,6 +99,69 @@ class UserAccount {
   }
 }
 
+bool _sameIdentityLabel(String left, String right) {
+  return left.trim().toLowerCase() == right.trim().toLowerCase();
+}
+
+String riverSidePrimaryLabel({
+  required String username,
+  required String displayName,
+}) {
+  final normalizedUsername = username.trim();
+  if (normalizedUsername.isNotEmpty) {
+    return normalizedUsername;
+  }
+  return displayName.trim();
+}
+
+String riverSideSecondaryLabel({
+  required String username,
+  required String displayName,
+  bool includeAt = true,
+}) {
+  final normalizedUsername = username.trim();
+  final normalizedDisplayName = displayName.trim();
+  final alias = normalizedDisplayName.isNotEmpty &&
+          !_sameIdentityLabel(normalizedDisplayName, normalizedUsername)
+      ? normalizedDisplayName
+      : normalizedUsername;
+  if (alias.isEmpty) {
+    return '';
+  }
+  return includeAt ? '@$alias' : alias;
+}
+
+extension UserAccountDisplayLabelExtension on UserAccount {
+  String get primaryDisplayLabel {
+    if (provider == AccountProvider.riverSide) {
+      return riverSidePrimaryLabel(
+        username: username,
+        displayName: displayName,
+      );
+    }
+    final normalizedDisplayName = displayName.trim();
+    if (normalizedDisplayName.isNotEmpty) {
+      return normalizedDisplayName;
+    }
+    return username.trim();
+  }
+
+  String get secondaryDisplayLabel {
+    if (provider == AccountProvider.riverSide) {
+      return riverSideSecondaryLabel(
+        username: username,
+        displayName: displayName,
+      );
+    }
+    final normalizedUsername = username.trim();
+    if (normalizedUsername.isNotEmpty) {
+      return '@$normalizedUsername';
+    }
+    final normalizedDisplayName = displayName.trim();
+    return normalizedDisplayName.isEmpty ? '' : '@$normalizedDisplayName';
+  }
+}
+
 @immutable
 class AddAccountResult {
   const AddAccountResult({required this.success, required this.message});

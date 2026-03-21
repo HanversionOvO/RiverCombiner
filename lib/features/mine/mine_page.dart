@@ -539,53 +539,9 @@ class _MinePageState extends State<MinePage> {
     }
     return showModalBottomSheet<_AvatarEditTarget>(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final theme = Theme.of(sheetContext);
-        return SafeArea(
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.42),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const CircleAvatar(
-                    radius: 14,
-                    backgroundImage: AssetImage('assets/images/rs.png'),
-                  ),
-                  title: const Text('修改 RiverSide 头像'),
-                  onTap: () => Navigator.of(
-                    sheetContext,
-                  ).pop(_AvatarEditTarget.riverSide),
-                ),
-                Divider(
-                  height: 1,
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.22,
-                  ),
-                ),
-                ListTile(
-                  leading: const CircleAvatar(
-                    radius: 14,
-                    backgroundImage: AssetImage('assets/images/hp.png'),
-                  ),
-                  title: const Text('修改清水河畔头像'),
-                  onTap: () => Navigator.of(
-                    sheetContext,
-                  ).pop(_AvatarEditTarget.qingShuiHePan),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (sheetContext) => const _AvatarEditTargetSheet(),
     );
   }
 
@@ -1320,7 +1276,7 @@ class _MinePageState extends State<MinePage> {
     final borderAlpha = lerpDouble(0.18, 0.26, collapse)!;
     final subtitle = switch ((account, qingAccount)) {
       (UserAccount _, UserAccount _) => '已登录双平台',
-      (UserAccount accountValue, null) => '@${accountValue.username}',
+      (UserAccount accountValue, null) => accountValue.secondaryDisplayLabel,
       (null, UserAccount qingValue) => '@${qingValue.username}',
       _ => '未登录',
     };
@@ -1669,7 +1625,7 @@ class _MinePageState extends State<MinePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        account.displayName,
+                        account.primaryDisplayLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.headlineSmall?.copyWith(
@@ -1678,16 +1634,17 @@ class _MinePageState extends State<MinePage> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '@${account.username}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: _avatarAsCardBackground
-                              ? Colors.white.withValues(alpha: 0.92)
-                              : theme.colorScheme.onSurfaceVariant,
+                      if (account.secondaryDisplayLabel.isNotEmpty)
+                        Text(
+                          account.secondaryDisplayLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: _avatarAsCardBackground
+                                ? Colors.white.withValues(alpha: 0.92)
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -2093,7 +2050,7 @@ class _MinePageState extends State<MinePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      account.displayName,
+                      account.primaryDisplayLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -2102,14 +2059,15 @@ class _MinePageState extends State<MinePage> {
                       ),
                     ),
                     const SizedBox(height: 1),
-                    Text(
-                      '@${account.username}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    if (account.secondaryDisplayLabel.isNotEmpty)
+                      Text(
+                        account.secondaryDisplayLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

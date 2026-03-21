@@ -195,6 +195,209 @@ class _AccountManagerSheet extends StatefulWidget {
   State<_AccountManagerSheet> createState() => _AccountManagerSheetState();
 }
 
+class _AvatarEditTargetSheet extends StatelessWidget {
+  const _AvatarEditTargetSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.46;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.92),
+              theme.colorScheme.surface,
+            ],
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 14, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: theme.colorScheme.primaryContainer,
+                      ),
+                      child: Icon(
+                        Icons.image_outlined,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '修改头像',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '选择要更新头像的平台账号',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+                child: Column(
+                  children: [
+                    _AvatarEditTargetAction(
+                      assetPath: 'assets/images/rs.png',
+                      fallbackIcon: Icons.water_rounded,
+                      title: '修改 RiverSide 头像',
+                      subtitle: '上传并同步 RiverSide 头像',
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(_AvatarEditTarget.riverSide),
+                    ),
+                    const SizedBox(height: 8),
+                    _AvatarEditTargetAction(
+                      assetPath: 'assets/images/hp.png',
+                      fallbackIcon: Icons.school_rounded,
+                      title: '修改清水河畔头像',
+                      subtitle: '上传并同步清水河畔头像',
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(_AvatarEditTarget.qingShuiHePan),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarEditTargetAction extends StatelessWidget {
+  const _AvatarEditTargetAction({
+    required this.assetPath,
+    required this.fallbackIcon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final String assetPath;
+  final IconData fallbackIcon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.colorScheme.surfaceContainerLow.withValues(
+              alpha: 0.74,
+            ),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.30),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.surface.withValues(alpha: 0.92),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ClipOval(
+                  child: Image.asset(
+                    assetPath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        fallbackIcon,
+                        size: 20,
+                        color: theme.colorScheme.primary,
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AccountManagerSheetState extends State<_AccountManagerSheet> {
   bool _isEditing = false;
   late List<UserAccount> _riverSideAccounts;
@@ -619,7 +822,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      account.displayName,
+                      account.primaryDisplayLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyLarge?.copyWith(
@@ -630,14 +833,15 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      '@${account.username}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    if (account.secondaryDisplayLabel.isNotEmpty)
+                      Text(
+                        account.secondaryDisplayLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

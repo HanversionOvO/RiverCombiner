@@ -2529,7 +2529,11 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                     child: Material(
                                       color: Colors.transparent,
                                       child: Text(
-                                        preview.authorDisplayName,
+                                        riverSidePrimaryLabel(
+                                          username: preview.authorUsername,
+                                          displayName:
+                                              preview.authorDisplayName,
+                                        ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: theme.textTheme.titleSmall
@@ -3283,9 +3287,10 @@ class _TopicSharePosterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final post = detail.mainPost;
-    final authorName = post.authorDisplayName.trim().isEmpty
-        ? post.authorUsername
-        : post.authorDisplayName;
+    final authorName = riverSidePrimaryLabel(
+      username: post.authorUsername,
+      displayName: post.authorDisplayName,
+    );
     final content = mainContentMarkdown.trim().isEmpty
         ? _TopicDetailPageState._labelEmpty
         : mainContentMarkdown.trim();

@@ -2723,6 +2723,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
           categoryId: _parseInt(item['board_id']),
           categoryName: boardName,
           replyCount: _parseInt(item['replies']) ?? 0,
+          commentCount: _parseInt(item['replies']) ?? 0,
           viewCount: _parseInt(item['hits']) ?? 0,
           createdAt: createdAt,
           authorDisplayName: displayName,
