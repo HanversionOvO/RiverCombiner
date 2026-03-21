@@ -1192,30 +1192,14 @@ class _TopicCard extends StatelessWidget {
                         ),
                       ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.grid_view_rounded,
-                                  size: 14,
-                                  color: colors.primary,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    categoryLabel,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.labelMedium
-                                        ?.copyWith(
-                                          color: colors.onSurface,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          Expanded(child: _buildCategoryLabel(theme, categoryLabel)),
+                          const SizedBox(width: 10),
+                          Container(
+                            width: 1,
+                            height: 28,
+                            color: colors.outlineVariant.withValues(alpha: 0.24),
                           ),
                           const SizedBox(width: 10),
                           GestureDetector(
@@ -1241,6 +1225,59 @@ class _TopicCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryLabel(ThemeData theme, String categoryLabel) {
+    final colors = theme.colorScheme;
+    final segments = categoryLabel
+        .split(RegExp(r'\s*/\s*'))
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    final primary = segments.isEmpty ? categoryLabel : segments.last;
+    final parentPath = segments.length > 1
+        ? segments.take(segments.length - 1).join('  ·  ')
+        : '';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.grid_view_rounded,
+          size: 14,
+          color: colors.primary,
+        ),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (parentPath.isNotEmpty)
+                Text(
+                  parentPath,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              Text(
+                primary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colors.onSurface,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
