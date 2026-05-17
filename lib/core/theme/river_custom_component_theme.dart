@@ -28,6 +28,8 @@ class RiverCustomComponentTheme
     required this.categoryPickerRadius,
     required this.emojiPickerRadius,
     required this.aiActionButtonRadius,
+    required this.settingsSectionRadius,
+    required this.settingsCardRadius,
   });
 
   // -- base values (standard preset) -----------------------------------------
@@ -41,6 +43,8 @@ class RiverCustomComponentTheme
   static const _baseCategoryPickerRadius = BorderRadius.all(Radius.circular(RiverRadius.lg));
   static const _baseEmojiPickerRadius = BorderRadius.all(Radius.circular(RiverRadius.lg));
   static const _baseAiActionButtonRadius = BorderRadius.all(Radius.circular(RiverRadius.md));
+  static const _baseSettingsSectionRadius = BorderRadius.all(Radius.circular(RiverRadius.lg));
+  static const _baseSettingsCardRadius = BorderRadius.all(Radius.circular(RiverRadius.md));
 
   /// Creates a [RiverCustomComponentTheme] scaled for the given corner preset.
   ///
@@ -74,6 +78,8 @@ class RiverCustomComponentTheme
       categoryPickerRadius: scaleRadius(_baseCategoryPickerRadius),
       emojiPickerRadius: scaleRadius(_baseEmojiPickerRadius),
       aiActionButtonRadius: scaleRadius(_baseAiActionButtonRadius),
+      settingsSectionRadius: scaleRadius(_baseSettingsSectionRadius),
+      settingsCardRadius: scaleRadius(_baseSettingsCardRadius),
     );
   }
 
@@ -99,6 +105,8 @@ class RiverCustomComponentTheme
   final BorderRadius categoryPickerRadius;
   final BorderRadius emojiPickerRadius;
   final BorderRadius aiActionButtonRadius;
+  final BorderRadius settingsSectionRadius;
+  final BorderRadius settingsCardRadius;
 
   // -- ThemeExtension contract -----------------------------------------------
 
@@ -113,6 +121,8 @@ class RiverCustomComponentTheme
     BorderRadius? categoryPickerRadius,
     BorderRadius? emojiPickerRadius,
     BorderRadius? aiActionButtonRadius,
+    BorderRadius? settingsSectionRadius,
+    BorderRadius? settingsCardRadius,
   }) {
     return RiverCustomComponentTheme(
       snackBarRadius: snackBarRadius ?? this.snackBarRadius,
@@ -130,6 +140,10 @@ class RiverCustomComponentTheme
       emojiPickerRadius: emojiPickerRadius ?? this.emojiPickerRadius,
       aiActionButtonRadius:
           aiActionButtonRadius ?? this.aiActionButtonRadius,
+      settingsSectionRadius:
+          settingsSectionRadius ?? this.settingsSectionRadius,
+      settingsCardRadius:
+          settingsCardRadius ?? this.settingsCardRadius,
     );
   }
 
@@ -149,6 +163,8 @@ class RiverCustomComponentTheme
       categoryPickerRadius: BorderRadius.lerp(categoryPickerRadius, other.categoryPickerRadius, t)!,
       emojiPickerRadius: BorderRadius.lerp(emojiPickerRadius, other.emojiPickerRadius, t)!,
       aiActionButtonRadius: BorderRadius.lerp(aiActionButtonRadius, other.aiActionButtonRadius, t)!,
+      settingsSectionRadius: BorderRadius.lerp(settingsSectionRadius, other.settingsSectionRadius, t)!,
+      settingsCardRadius: BorderRadius.lerp(settingsCardRadius, other.settingsCardRadius, t)!,
     );
   }
 
@@ -165,7 +181,9 @@ class RiverCustomComponentTheme
           imageViewerOverlayRadius == other.imageViewerOverlayRadius &&
           categoryPickerRadius == other.categoryPickerRadius &&
           emojiPickerRadius == other.emojiPickerRadius &&
-          aiActionButtonRadius == other.aiActionButtonRadius;
+          aiActionButtonRadius == other.aiActionButtonRadius &&
+          settingsSectionRadius == other.settingsSectionRadius &&
+          settingsCardRadius == other.settingsCardRadius;
 
   @override
   int get hashCode => Object.hash(
@@ -178,5 +196,7 @@ class RiverCustomComponentTheme
         categoryPickerRadius,
         emojiPickerRadius,
         aiActionButtonRadius,
+        settingsSectionRadius,
+        settingsCardRadius,
       );
 }

@@ -740,7 +740,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(RiverRadius.md),
+        borderRadius: theme.extension<RiverCustomComponentTheme>()!.settingsCardRadius,
       ),
       child: Text(
         '暂无账号',
