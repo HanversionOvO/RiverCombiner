@@ -4,7 +4,7 @@
   "status": "idle",
   "current_milestone": null,
   "current_task_id": null,
-  "milestones": [],
+  "milestones": [{"id": "phase-1", "name": "MVP — 基础设施 + 核心迁移", "status": "not_started", "requirements": ["REQ-001", "REQ-002", "REQ-004"]}, {"id": "phase-2", "name": "Complete — 高复杂度迁移 + 质量门禁", "status": "not_started", "requirements": ["REQ-002", "REQ-003"]}],
   "artifacts": [
     "project.md",
     "config.json",

@@ -1,0 +1,31 @@
+{
+  "session_id": "SPEC-ui-unification-2026-05-17",
+  "seed_input": "现在APP中很多地方UI设计不太统一，我想把各部分的UI进行统一。",
+  "input_type": "text",
+  "timestamp": "2026-05-17T12:54:00+08:00",
+  "mode": "interactive",
+  "complexity": "moderate",
+  "depth": "standard",
+  "focus_areas": ["UI/UX 统一", "设计系统"],
+  "spec_type": "platform",
+  "iteration_count": 0,
+  "iteration_history": [],
+  "seed_analysis": {
+    "problem_statement": "river 应用中多处 UI 设计不一致：BorderRadius 值分散在 55 个文件中（529 处），fontSize 硬编码在 13 个特征文件中（31 处），颜色使用不统一（有的用主题色，有的用硬编码 Colors.white/black/grey）。虽然存在集中式主题系统（_buildTheme 基于 ColorScheme.fromSeed 和可配置角半径），但各特征模块大量使用硬编码值和自定义样式，未遵循主题系统。",
+    "target_users": ["高校学生用户"],
+    "domain": "社交/社区 Flutter 移动应用",
+    "constraints": ["API 兼容现有后端", "iOS/Android 双平台同步发布", "不能破坏现有功能"],
+    "dimensions": ["设计令牌统一", "组件样式标准化", "主题系统覆盖率", "布局一致性", "无障碍与暗黑模式"]
+  },
+  "has_codebase": true,
+  "phasesCompleted": [
+    { "phase": 1, "name": "discovery", "output_file": "spec-config.json", "completed_at": "2026-05-17T12:54:00+08:00" },
+    { "phase": 1.5, "name": "requirement-expansion", "output_file": "refined-requirements.json", "completed_at": "2026-05-17T12:54:00+08:00" },
+    { "phase": 2, "name": "product-brief", "output_file": "product-brief.md", "completed_at": "2026-05-17T12:54:00+08:00" },
+    { "phase": 3, "name": "prd", "output_file": "requirements/", "completed_at": "2026-05-17T12:54:00+08:00" },
+    { "phase": 4, "name": "architecture", "output_file": "architecture/", "completed_at": "2026-05-17T12:54:00+08:00" },
+    { "phase": 5, "name": "epics", "output_file": "epics/", "completed_at": "2026-05-17T12:54:00+08:00" },
+    { "phase": 6, "name": "readiness-check", "output_file": "readiness-report.md", "completed_at": "2026-05-17T12:54:00+08:00" },
+    { "phase": 7, "name": "roadmap", "output_file": "roadmap.md", "completed_at": "2026-05-17T12:54:00+08:00" }
+  ]
+}

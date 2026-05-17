@@ -1,0 +1,79 @@
+{
+  "title": "river UI 统一 — 设计系统标准化",
+  "problem": "App 中各模块 UI 不一致：529 处硬编码 BorderRadius、31 处硬编码 fontSize、大量硬编码颜色未使用主题 ColorScheme。虽有集中式主题 _buildTheme()，但特征模块仍然大量使用自定义值。",
+  "goals": [
+    "建立统一的设计令牌系统（颜色、字体、圆角、间距）",
+    "将各特征模块的硬编码样式迁移到主题系统",
+    "完善暗黑模式支持、字体可定制性、整体动效一致性",
+    "统一组件间距、信息层级、导航一致性"
+  ],
+  "features": [
+    {
+      "id": "FT-UI-001",
+      "name": "设计令牌系统",
+      "description": "定义一套完整的设计令牌：色彩系统（primary/secondary/surface/error + light/dark）、字体排版比例（display/headline/title/body/label）、圆角尺寸阶梯（xs/sm/md/lg/xl）、间距栅格（4px 基准）。统一为 ThemeData 扩展或独立 Token 类。",
+      "priority": "must",
+      "acceptance_criteria": [
+        "所有颜色通过 ColorScheme 引用，无直接 Color(0xFF...) 出现在特征代码中",
+        "字体大小通过 TextTheme 层级引用，无直接 fontSize: 出现在特征代码中",
+        "圆角值通过主题系统或共享常量引用",
+        "间距基于 4px 栅格系统"
+      ]
+    },
+    {
+      "id": "FT-UI-002",
+      "name": "组件样式标准化",
+      "description": "对自定义组件（RiverMarkdownEditor、RiverSnackBar、RiverConfirmDialog、RiverEmojiPicker 等）的样式进行审查和标准化，使其全部通过 ThemeData 组件主题或 ColorScheme 获取样式。消除 hardcoded Colors.white/black/grey。",
+      "priority": "must",
+      "acceptance_criteria": [
+        "所有核心自定义组件通过 Theme.of(context) 获取样式",
+        "消除硬编码的 Colors.white、Colors.black、Colors.grey",
+        "组件在 light/dark 模式下均正确显示"
+      ]
+    },
+    {
+      "id": "FT-UI-003",
+      "name": "主题系统完善",
+      "description": "增强现有 _buildTheme() 系统：修复暗黑模式下的对比度问题、完善字体粗细预设系统、添加主题切换动画、支持更多组件主题定制（TabBar、BottomNavigationBar、Slider 等）。",
+      "priority": "should",
+      "acceptance_criteria": [
+        "暗黑模式下所有文字和图标满足 WCAG AA 对比度标准",
+        "主题切换有平滑过渡动画（duration ≥ 300ms）",
+        "完整覆盖 Flutter 内置组件的主题定制"
+      ]
+    },
+    {
+      "id": "FT-UI-004",
+      "name": "布局一致性",
+      "description": "统一页面布局模式：标准页面 padding、列表项间距、卡片内边距、Section 间距等。定义 LayoutConstants 或使用主题系统的 layout 扩展。",
+      "priority": "should",
+      "acceptance_criteria": [
+        "所有页面使用统一的水平和垂直间距",
+        "同类信息层级在各页面间保持一致",
+        "卡片和列表项内边距统一"
+      ]
+    }
+  ],
+  "non_functional": [
+    {
+      "id": "NFR-UI-001",
+      "type": "usability",
+      "description": "WCAG AA 对比度标准——暗黑和明亮模式下文字/图标均满足最低对比度要求"
+    },
+    {
+      "id": "NFR-UI-002",
+      "type": "performance",
+      "description": "主题切换和 UI 变更不应引入额外的帧丢失——所有动画保持 60fps"
+    },
+    {
+      "id": "NFR-UI-003",
+      "type": "maintainability",
+      "description": "新增 UI 组件必须通过 lint 规则检查硬编码颜色/字体/圆角"
+    }
+  ],
+  "boundaries": {
+    "in_scope": ["设计令牌定义", "主题系统代码重构", "组件样式迁移", "暗黑模式修复", "布局间距统一"],
+    "out_of_scope": ["全新组件开发（非 UI 统一相关）", "后端 API 变更", "小程序 WebView 内部 UI（受限于 Web 内容）", "全新动画或交互模式（仅为统一现有行为）"],
+    "assumptions": ["现有 _buildTheme() 架构作为起点", "不改变颜色种子生成逻辑", "保留用户自定义角半径和字体粗细功能"]
+  }
+}
