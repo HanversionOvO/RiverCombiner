@@ -1,0 +1,689 @@
+{
+  "version": "1.0",
+  "schema_version": "1.0",
+  "project": "river",
+  "last_updated": "2026-05-17T12:54:00+08:00",
+  "features": [
+    {
+      "id": "FT-001",
+      "name": "Authentication",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-001", "TC-002", "TC-003", "TC-004", "TC-005", "TC-006", "TC-007"],
+      "phase": null
+    },
+    {
+      "id": "FT-002",
+      "name": "Home & Navigation",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-008", "TC-009", "TC-010", "TC-011", "TC-012"],
+      "phase": null
+    },
+    {
+      "id": "FT-003",
+      "name": "Topic Feed",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-013", "TC-014", "TC-015", "TC-016", "TC-017"],
+      "phase": null
+    },
+    {
+      "id": "FT-004",
+      "name": "Topic Detail",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-018", "TC-019", "TC-020", "TC-021", "TC-022", "TC-023"],
+      "phase": null
+    },
+    {
+      "id": "FT-005",
+      "name": "Compose",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-024", "TC-025", "TC-026", "TC-027", "TC-028"],
+      "phase": null
+    },
+    {
+      "id": "FT-006",
+      "name": "Search",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-029", "TC-030", "TC-031"],
+      "phase": null
+    },
+    {
+      "id": "FT-007",
+      "name": "Notifications & Real-time",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-032", "TC-033", "TC-034", "TC-035", "TC-036"],
+      "phase": null
+    },
+    {
+      "id": "FT-008",
+      "name": "User Profile & Settings",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-037", "TC-038", "TC-039", "TC-040", "TC-041"],
+      "phase": null
+    },
+    {
+      "id": "FT-009",
+      "name": "Mini Apps",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-042", "TC-043", "TC-044", "TC-045", "TC-046", "TC-047", "TC-048", "TC-049"],
+      "phase": null
+    },
+    {
+      "id": "FT-010",
+      "name": "Core Infrastructure",
+      "status": "active",
+      "requirement_ids": [],
+      "component_ids": ["TC-050", "TC-051", "TC-052", "TC-053", "TC-054", "TC-055", "TC-056"],
+      "phase": null
+    }
+  ],
+  "components": [
+    {
+      "id": "TC-001",
+      "name": "AccountStore",
+      "type": "Store",
+      "code_locations": ["lib/core/account/account_store.dart"],
+      "feature_ids": ["FT-001"],
+      "symbols": ["AccountStore"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-002",
+      "name": "AccountModels",
+      "type": "Model",
+      "code_locations": ["lib/core/account/account_models.dart"],
+      "feature_ids": ["FT-001"],
+      "symbols": ["AccountProvider", "UserAccount", "UserAccountDisplayLabelExtension", "AddAccountResult", "QingShuiHePanAuth"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-003",
+      "name": "LoginPage",
+      "type": "Page",
+      "code_locations": ["lib/features/login/login_page.dart"],
+      "feature_ids": ["FT-001"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-004",
+      "name": "QingShuiHePanLoginService",
+      "type": "Service",
+      "code_locations": ["lib/features/login/qingshuihepan_login_service.dart"],
+      "feature_ids": ["FT-001"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-005",
+      "name": "RiverSidePasswordLoginService",
+      "type": "Service",
+      "code_locations": ["lib/features/login/riverside_password_login_service.dart"],
+      "feature_ids": ["FT-001"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-006",
+      "name": "RiverSideSessionReader",
+      "type": "Service",
+      "code_locations": ["lib/features/login/riverside_session_reader.dart"],
+      "feature_ids": ["FT-001"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-007",
+      "name": "RiverSideLoginWebViewPage",
+      "type": "Page",
+      "code_locations": ["lib/features/login/riverside_login_webview_page.dart", "lib/features/login/riverside_login_flow_mode.dart", "lib/features/login/qingshuihepan_login_sheet.dart", "lib/features/login/riverside_external_fallback_page.dart"],
+      "feature_ids": ["FT-001"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-008",
+      "name": "RiverApp",
+      "type": "Widget",
+      "code_locations": ["lib/app/app.dart", "lib/main.dart"],
+      "feature_ids": ["FT-002"],
+      "symbols": ["RiverApp", "main"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-009",
+      "name": "AppDependencies",
+      "type": "Provider",
+      "code_locations": ["lib/app/app_dependencies.dart"],
+      "feature_ids": ["FT-002"],
+      "symbols": ["AppDependencies", "PostsStartupPreloadStore"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-010",
+      "name": "HomeShellPage",
+      "type": "Page",
+      "code_locations": ["lib/features/home/home_shell_page.dart"],
+      "feature_ids": ["FT-002"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-011",
+      "name": "RiverPageRoute",
+      "type": "Util",
+      "code_locations": ["lib/core/navigation/river_page_route.dart", "lib/core/navigation/river_route_observer.dart"],
+      "feature_ids": ["FT-002"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-012",
+      "name": "TabPlaceholderPage",
+      "type": "Page",
+      "code_locations": ["lib/features/home/tab_placeholder_page.dart"],
+      "feature_ids": ["FT-002"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-013",
+      "name": "PostsPage",
+      "type": "Page",
+      "code_locations": ["lib/features/posts/posts_page.dart", "lib/features/posts/posts_page_widgets.dart"],
+      "feature_ids": ["FT-003"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-014",
+      "name": "TopicFootprintStore",
+      "type": "Store",
+      "code_locations": ["lib/core/posts/topic_footprint_store.dart"],
+      "feature_ids": ["FT-003"],
+      "symbols": ["TopicFootprintEntry", "TopicFootprintStore"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-015",
+      "name": "RiverSideTopicModels",
+      "type": "Model",
+      "code_locations": ["lib/core/network/riverside_topic_models.dart"],
+      "feature_ids": ["FT-003", "FT-004"],
+      "symbols": ["RiverSideTopicFeed", "RiverSideTopicSummary", "RiverSideTopicPage", "RiverSideTopicDetail", "RiverSideTopicPostDetail", "RiverSideTopicPoll", "RiverSideAiTopicSummary"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-016",
+      "name": "RiverSideApiClientPosts",
+      "type": "ApiClient",
+      "code_locations": ["lib/core/network/riverside_api_client_posts.dart"],
+      "feature_ids": ["FT-003"],
+      "symbols": ["RiverSideApiClientPostMethods"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-017",
+      "name": "RiverSideApiClientTopics",
+      "type": "ApiClient",
+      "code_locations": ["lib/core/network/riverside_api_client_topics.dart"],
+      "feature_ids": ["FT-003"],
+      "symbols": ["RiverSideApiClientTopicMethods"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-018",
+      "name": "TopicDetailPage",
+      "type": "Page",
+      "code_locations": ["lib/features/posts/topic_detail_page.dart", "lib/features/posts/topic_detail_page_actions.dart", "lib/features/posts/topic_detail_page_loading.dart", "lib/features/posts/topic_detail_page_reactions.dart"],
+      "feature_ids": ["FT-004"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-019",
+      "name": "TopicDetailWidgets",
+      "type": "Widget",
+      "code_locations": ["lib/features/posts/topic_detail_widgets_cards.dart", "lib/features/posts/topic_detail_widgets_content.dart", "lib/features/posts/topic_detail_widgets_images.dart", "lib/features/posts/topic_detail_widgets_meta.dart"],
+      "feature_ids": ["FT-004"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-020",
+      "name": "TopicDetailContentUtils",
+      "type": "Util",
+      "code_locations": ["lib/features/posts/topic_detail_content_utils.dart"],
+      "feature_ids": ["FT-004"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-021",
+      "name": "CommentDetailPage",
+      "type": "Page",
+      "code_locations": ["lib/features/posts/topic_detail_comment_detail_page.dart", "lib/features/posts/topic_detail_comment_detail_actions.dart", "lib/features/posts/topic_detail_comment_detail_ui.dart"],
+      "feature_ids": ["FT-004"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-022",
+      "name": "RiverSideApiClientReactions",
+      "type": "ApiClient",
+      "code_locations": ["lib/core/network/riverside_api_client_reactions.dart", "lib/core/network/riverside_api_client_parsing_reactions.dart"],
+      "feature_ids": ["FT-004"],
+      "symbols": ["RiverSideApiClientReactionMethods", "RiverSideApiClientParsingReactionsMethods"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-023",
+      "name": "RiverImageViewer",
+      "type": "Widget",
+      "code_locations": ["lib/core/widgets/river_image_viewer.dart", "lib/core/widgets/river_image_viewer_components.dart"],
+      "feature_ids": ["FT-004", "FT-010"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-024",
+      "name": "ComposeTopicPage",
+      "type": "Page",
+      "code_locations": ["lib/features/compose/compose_topic_page.dart", "lib/features/compose/compose_topic_page_actions.dart", "lib/features/compose/compose_topic_page_view.dart"],
+      "feature_ids": ["FT-005"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-025",
+      "name": "ComposeTopicPreviewPage",
+      "type": "Page",
+      "code_locations": ["lib/features/compose/compose_topic_preview_page.dart"],
+      "feature_ids": ["FT-005"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-026",
+      "name": "RiverMarkdownEditor",
+      "type": "Widget",
+      "code_locations": ["lib/core/widgets/river_markdown_editor.dart"],
+      "feature_ids": ["FT-005"],
+      "symbols": ["RiverMarkdownEditor", "RiverMarkdownDraftEntry", "RiverMarkdownMentionUser", "RiverMarkdownAiScene", "RiverMarkdownAiRequest"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-027",
+      "name": "RiverPublishCategoryPickerSheet",
+      "type": "Widget",
+      "code_locations": ["lib/core/widgets/river_publish_category_picker_sheet.dart"],
+      "feature_ids": ["FT-005"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-028",
+      "name": "RiverSideCategoryPickerSheet",
+      "type": "Widget",
+      "code_locations": ["lib/core/widgets/riverside_category_picker_sheet.dart"],
+      "feature_ids": ["FT-005"],
+      "symbols": ["RiverSideCategoryPickerSheet", "RiverSideCategoryLoader"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-029",
+      "name": "SearchPage",
+      "type": "Page",
+      "code_locations": ["lib/features/search/search_page.dart", "lib/features/search/search_page_actions.dart", "lib/features/search/search_page_view.dart"],
+      "feature_ids": ["FT-006"],
+      "symbols": ["SearchPage", "SearchPageController", "SearchPageInitialMode"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-030",
+      "name": "RiverSideSearchModels",
+      "type": "Model",
+      "code_locations": ["lib/core/network/riverside_search_models.dart"],
+      "feature_ids": ["FT-006"],
+      "symbols": ["RiverSidePostSearchPage", "RiverSidePostSearchItem", "RiverSideUserSearchItem", "RiverSideCategorySearchItem"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-031",
+      "name": "RiverSideApiClientSearch",
+      "type": "ApiClient",
+      "code_locations": ["lib/core/network/riverside_api_client_search.dart"],
+      "feature_ids": ["FT-006"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-032",
+      "name": "NotificationsPage",
+      "type": "Page",
+      "code_locations": ["lib/features/notifications/notifications_page.dart", "lib/features/notifications/notifications_page_actions.dart", "lib/features/notifications/notifications_page_view.dart"],
+      "feature_ids": ["FT-007"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-033",
+      "name": "ChatDetailPage",
+      "type": "Page",
+      "code_locations": ["lib/features/notifications/chat_detail_page.dart", "lib/features/notifications/chat_detail_page_actions.dart", "lib/features/notifications/chat_detail_page_ui.dart", "lib/features/notifications/chat_detail_page_view.dart"],
+      "feature_ids": ["FT-007"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-034",
+      "name": "RiverSideRealtimeInboxService",
+      "type": "Service",
+      "code_locations": ["lib/core/realtime/riverside_realtime_inbox_service.dart"],
+      "feature_ids": ["FT-007"],
+      "symbols": ["RiverSideRealtimeInboxService", "RiverSideInAppMessageKind", "RiverSideInAppMessageBanner"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-035",
+      "name": "RiverSideMessageBusPoller",
+      "type": "Service",
+      "code_locations": ["lib/core/realtime/riverside_message_bus_poller.dart"],
+      "feature_ids": ["FT-007"],
+      "symbols": ["RiverSideMessageBusPoller", "RiverSideMessageBusEventsCallback", "RiverSideMessageBusErrorCallback"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-036",
+      "name": "RiverSideNotificationModels",
+      "type": "Model",
+      "code_locations": ["lib/core/network/riverside_notification_models.dart", "lib/core/network/riverside_message_bus_models.dart"],
+      "feature_ids": ["FT-007"],
+      "symbols": ["RiverSideNotificationItem", "RiverSideChatChannelItem", "RiverSideChatMessageItem", "RiverSideMessageBusEvent", "RiverSidePresenceUser"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-037",
+      "name": "MinePage",
+      "type": "Page",
+      "code_locations": ["lib/features/mine/mine_page.dart", "lib/features/mine/mine_page_widgets.dart"],
+      "feature_ids": ["FT-008"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-038",
+      "name": "RiverSideProfilePage",
+      "type": "Page",
+      "code_locations": ["lib/features/mine/riverside_profile_page.dart", "lib/features/mine/riverside_profile_page_widgets.dart", "lib/features/mine/riverside_profile_sheet.dart", "lib/features/mine/riverside_profile_action_bar.dart"],
+      "feature_ids": ["FT-008"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-039",
+      "name": "RiverSideProfileModels",
+      "type": "Model",
+      "code_locations": ["lib/core/network/riverside_profile_models.dart"],
+      "feature_ids": ["FT-008"],
+      "symbols": ["RiverSideProfileActivityKind", "RiverSideProfileOverview", "RiverSideProfileActivityItem", "RiverSideProfileBadge", "RiverSideProfileFollowUser"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-040",
+      "name": "SettingsPages",
+      "type": "Page",
+      "code_locations": [
+        "lib/features/mine/ai_settings_page.dart",
+        "lib/features/mine/appearance_settings_page.dart",
+        "lib/features/mine/appearance_settings_widgets.dart",
+        "lib/features/mine/developer_settings_page.dart",
+        "lib/features/mine/server_settings_page.dart",
+        "lib/features/mine/storage_settings_page.dart",
+        "lib/features/mine/storage_settings_widgets.dart",
+        "lib/features/mine/notifications_push_settings_page.dart",
+        "lib/features/mine/image_host_settings_page.dart",
+        "lib/features/mine/about_page.dart",
+        "lib/features/mine/feedback_webview_page.dart",
+        "lib/features/mine/platform_profile_page.dart",
+        "lib/features/mine/platform_profile_models.dart",
+        "lib/features/mine/platform_profile_repository.dart",
+        "lib/features/mine/riverside_account_settings_page.dart",
+        "lib/features/mine/riverside_account_settings_page_widgets.dart",
+        "lib/features/mine/riverside_profile_webview_page.dart"
+      ],
+      "feature_ids": ["FT-008"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-041",
+      "name": "AppSettingsController",
+      "type": "Controller",
+      "code_locations": ["lib/app/app_settings_controller.dart"],
+      "feature_ids": ["FT-008", "FT-002"],
+      "symbols": ["AppSettingsController", "AppFontWeightPreset", "AppAppIconPreset", "AppCornerPreset", "AppAiProvider", "AppHomeForumPreference", "AppHomeWidgetFeedPreference"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-042",
+      "name": "RiverMiniAppModels",
+      "type": "Model",
+      "code_locations": ["lib/core/mini_apps/river_mini_app_models.dart"],
+      "feature_ids": ["FT-009"],
+      "symbols": ["RiverMiniAppEntry", "RiverMiniAppManifest"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-043",
+      "name": "RiverMiniAppRepository",
+      "type": "Repository",
+      "code_locations": ["lib/core/mini_apps/river_mini_app_repository.dart"],
+      "feature_ids": ["FT-009"],
+      "symbols": ["RiverMiniAppRepository"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-044",
+      "name": "RiverMiniAppInstallStore",
+      "type": "Store",
+      "code_locations": ["lib/core/mini_apps/river_mini_app_install_store.dart"],
+      "feature_ids": ["FT-009"],
+      "symbols": ["RiverMiniAppInstallStore", "RiverMiniAppStorageOverview", "RiverMiniAppStorageItem"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-045",
+      "name": "RiverMiniAppHostStore",
+      "type": "Store",
+      "code_locations": ["lib/core/mini_apps/river_mini_app_host_store.dart"],
+      "feature_ids": ["FT-009"],
+      "symbols": ["RiverMiniAppHostStore", "RiverMiniAppHostSession"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-046",
+      "name": "RiverMiniAppFloatingStore",
+      "type": "Store",
+      "code_locations": ["lib/core/mini_apps/river_mini_app_floating_store.dart"],
+      "feature_ids": ["FT-009"],
+      "symbols": ["RiverMiniAppFloatingStore", "RiverMiniAppFloatingEntry"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-047",
+      "name": "RiverMiniAppPermissionStore",
+      "type": "Store",
+      "code_locations": ["lib/core/mini_apps/river_mini_app_permission_store.dart"],
+      "feature_ids": ["FT-009"],
+      "symbols": ["RiverMiniAppPermissionStore", "RiverMiniAppNativePermission", "RiverMiniAppPermissionState", "RiverMiniAppPermissionPolicy"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-048",
+      "name": "RiverMiniAppCodecs",
+      "type": "Util",
+      "code_locations": ["lib/core/mini_apps/river_mini_app_code_image_codec.dart", "lib/core/mini_apps/river_mini_app_orbit_code_codec.dart"],
+      "feature_ids": ["FT-009"],
+      "symbols": ["RiverMiniAppCodeImageCodec", "RiverMiniAppOrbitCode", "RiverMiniAppOrbitCodeCodec"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-049",
+      "name": "MiniAppPages",
+      "type": "Page",
+      "code_locations": ["lib/features/mini_apps/mini_app_webview_page.dart", "lib/features/mini_apps/mini_app_permissions_page.dart", "lib/core/mini_apps/river_mini_app_platform_client.dart", "lib/core/mini_apps/river_mini_app_suspension_store.dart"],
+      "feature_ids": ["FT-009"],
+      "symbols": ["RiverMiniAppPlatformClient", "RiverMiniAppSuspensionStore", "RiverMiniAppSuspendedSession", "RiverMiniAppSubmissionStatusItem"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-050",
+      "name": "RiverSideApiClient",
+      "type": "Service",
+      "code_locations": [
+        "lib/core/network/riverside_api_client.dart",
+        "lib/core/network/riverside_api_client_parsing.dart",
+        "lib/core/network/riverside_api_client_parsing_uploads.dart",
+        "lib/core/network/riverside_api_client_profile.dart",
+        "lib/core/network/riverside_api_client_notifications.dart",
+        "lib/core/network/riverside_api_client_message_bus.dart",
+        "lib/core/network/riverside_api_client_chat.dart",
+        "lib/core/network/riverside_api_client_chat_parsing.dart",
+        "lib/core/network/riverside_api_client_categories_emojis.dart",
+        "lib/core/network/riverside_api_client_account_settings.dart"
+      ],
+      "feature_ids": ["FT-010"],
+      "symbols": ["RiverSideApiClient", "RiverSideCreateTopicResult", "RiverSideComposerDraft", "RiverSideApiException"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-051",
+      "name": "RiverServerConfig",
+      "type": "Config",
+      "code_locations": ["lib/core/config/server_config.dart"],
+      "feature_ids": ["FT-010"],
+      "symbols": ["RiverServerConfig"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-052",
+      "name": "AppCacheService",
+      "type": "Service",
+      "code_locations": ["lib/core/storage/app_cache_service.dart"],
+      "feature_ids": ["FT-010"],
+      "symbols": ["AppCacheService", "CacheCategoryInfo", "CacheEntryInfo", "CacheOverview"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-053",
+      "name": "PlatformBridges",
+      "type": "Util",
+      "code_locations": ["lib/core/platform/app_icon_switcher.dart", "lib/core/platform/riverside_cookie_bridge.dart", "lib/core/platform/riverside_webview_support.dart", "lib/core/platform/system_fonts_bridge.dart"],
+      "feature_ids": ["FT-010"],
+      "symbols": ["AppIconSwitcher", "RiverSideCookieBridge", "RiverSideWebViewSupport", "RiverSideWebViewSupportResult", "SystemFontsBridge"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-054",
+      "name": "SharedWidgets",
+      "type": "Widget",
+      "code_locations": ["lib/core/widgets/river_ai_action_button.dart", "lib/core/widgets/river_confirm_dialog.dart", "lib/core/widgets/river_snack_bar.dart", "lib/core/widgets/river_home_widget_service.dart", "lib/core/widgets/river_structured_emoji_picker.dart"],
+      "feature_ids": ["FT-010"],
+      "symbols": ["RiverAiActionButton", "RiverSnackBarTone", "RiverSnackBarMessenger", "RiverHomeWidgetService", "RiverHomeWidgetLaunchType", "RiverEmojiPicker"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-055",
+      "name": "Categories",
+      "type": "Util",
+      "code_locations": ["lib/core/categories/riverside_category_store.dart", "lib/core/categories/riverside_category_utils.dart"],
+      "feature_ids": ["FT-010", "FT-005"],
+      "symbols": ["RiverSideCategoryStore", "RiverSideCategoryGroup"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-056",
+      "name": "RiverAiService",
+      "type": "Service",
+      "code_locations": ["lib/core/ai/river_ai_service.dart"],
+      "feature_ids": ["FT-010", "FT-005"],
+      "symbols": ["RiverAiService", "RiverAiException"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-057",
+      "name": "PicUiImageHostService",
+      "type": "Service",
+      "code_locations": ["lib/core/image_host/picui_image_host_service.dart"],
+      "feature_ids": ["FT-010", "FT-005"],
+      "symbols": ["PicUiImageHostService", "PicUiUploadOptions", "PicUiProfile", "PicUiStrategy", "PicUiImageLinks", "PicUiImageItem", "PicUiImagePage", "PicUiAlbumItem", "PicUiAlbumPage"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-058",
+      "name": "AppUpdateChecker",
+      "type": "Service",
+      "code_locations": ["lib/core/update/app_update_checker.dart"],
+      "feature_ids": ["FT-010"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-059",
+      "name": "QingEmojiCatalog",
+      "type": "Util",
+      "code_locations": ["lib/core/qing/qing_emoji_catalog.dart"],
+      "feature_ids": ["FT-010"],
+      "symbols": ["QingEmojiCatalog"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-060",
+      "name": "RiverSideAccountSettingsModels",
+      "type": "Model",
+      "code_locations": ["lib/core/network/riverside_account_settings_models.dart"],
+      "feature_ids": ["FT-001", "FT-008"],
+      "symbols": ["RiverSideUserEmailState", "RiverSideTitleBadgeOption", "RiverSideUserAuthToken", "RiverSideAccountSettingsSnapshot"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-061",
+      "name": "Constants",
+      "type": "Config",
+      "code_locations": ["lib/core/constants.dart"],
+      "feature_ids": ["FT-010"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-062",
+      "name": "MineSettingsAppBar",
+      "type": "Widget",
+      "code_locations": ["lib/features/mine/widgets/mine_settings_app_bar.dart"],
+      "feature_ids": ["FT-008"],
+      "symbols": ["MineSettingsToolbarAction", "MineSettingsPageScaffold", "MineSettingsAppBar"],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    },
+    {
+      "id": "TC-063",
+      "name": "MineQRPages",
+      "type": "Page",
+      "code_locations": ["lib/features/mine/mine_qr_pages.dart"],
+      "feature_ids": ["FT-008"],
+      "symbols": [],
+      "last_updated": "2026-05-17T12:54:00+08:00"
+    }
+  ],
+  "requirements": [],
+  "architecture_decisions": [],
+  "actions": []
+}
