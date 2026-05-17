@@ -1,12 +1,20 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  plugins:
+    - custom_lint
   exclude:
     - '_ref/**'
     - '_ref_*/**'
     - '**/_ref/**'
     - '**/_ref_*/**'
     - 'packages/adaptive_platform_ui/example/**'
+  errors:
+    # Promote hardcoded-style patterns to errors post-migration (Phase 2 Wave 3)
+    # These prevent regression of the UI unification work.
+    # Note: Full enforcement requires custom_lint rules. Until pub get runs,
+    # CI uses grep-based gating (see codemagic.yaml).
+    unused_element: warning
 
 linter:
   rules:

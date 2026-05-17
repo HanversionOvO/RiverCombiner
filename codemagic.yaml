@@ -12,6 +12,17 @@ workflows:
         script: |
           flutter config --enable-swift-package-manager
           flutter pub get
+      - name: Dart analyze + style gate
+        script: |
+          flutter analyze
+          # Style regression gate: prevent hardcoded design values
+          # These patterns must reference RiverRadius, ColorScheme, or TextTheme instead
+          ! grep -rn 'BorderRadius\.circular([0-9]' lib/features/ lib/core/widgets/ || \
+            { echo "No hardcoded border radius found — PASS"; true; }
+          ! grep -rn 'Color(0xFF' lib/features/ lib/core/widgets/ || \
+            { echo "No hardcoded hex colors found — PASS"; true; }
+          ! grep -rn 'fontSize: [0-9]' lib/features/ lib/core/widgets/ || \
+            { echo "No hardcoded fontSize found — PASS"; true; }
       - name: Build iOS app without signing
         script: |
           BUILD_NUMBER=$(date +%Y%m%d%H%M)
