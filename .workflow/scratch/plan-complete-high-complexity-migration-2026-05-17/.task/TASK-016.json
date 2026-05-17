@@ -1,0 +1,22 @@
+{
+  "id": "TASK-016",
+  "title": "全项目硬编码 BR 清零审计",
+  "description": "扫描全项目确认 lib/features/ 和 lib/core/widgets/ 中零剩余硬编码数字 BorderRadius，收尾遗漏",
+  "type": "verification", "priority": "high", "effort": "medium",
+  "action": "find/grep 扫描全 lib/ 目录，确认所有 BorderRadius.circular(N) 中 N 要么来自 RiverRadius 常量要么来自 ThemeData 派生，对遗漏的个别文件手动修复",
+  "status": "pending",
+  "scope": "lib/",
+  "focus_paths": ["lib/"],
+  "read_first": [".workflow/scratch/plan-complete-high-complexity-migration-2026-05-17/.summaries/"],
+  "depends_on": ["TASK-012","TASK-013","TASK-014","TASK-015"], "wave": 1, "parallel_group": null,
+  "convergence": {
+    "criteria": [
+      "grep -r 'BorderRadius.circular([0-9]' lib/features/ 返回结果仅剩 Colors.transparent 或主题引用上下文（无字面量数字 N）",
+      "grep -r 'BorderRadius.circular([0-9]' lib/core/widgets/ 返回 0 或仅为 transparent 相关"
+    ],
+    "verification": "find lib/ -name '*.dart' -exec grep -l 'BorderRadius.circular([0-9]' {} \\; | wc -l 期望为 0",
+    "definition_of_done": "全 lib/ 目录零硬编码数字 BR（启动屏 palette 除外）"
+  },
+  "implementation": ["运行 grep 扫描全项目", "对每个遗漏文件进行 sed 替换 + import", "确认 dart analyze 全项目通过", "生成最终审计报告"],
+  "meta": { "estimated_time": "2 hours", "risk": "low", "autonomous": true, "checkpoint": true }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "TASK-019",
+  "title": "custom_lint 规则 + CI 门禁",
+  "description": "添加 custom_lint 规则禁止新增硬编码 Color(0x...)/fontSize:/BorderRadius.circular(N)，配置 codemagic CI 门禁",
+  "type": "quality", "priority": "medium", "effort": "medium",
+  "action": "更新 analysis_options.yaml 启用 custom_lint 规则：no_hardcoded_color_in_features（禁止 lib/features/ 中 Color(0xFF...)）、no_hardcoded_border_radius（禁止非 RiverRadius 的 BR 字面量）、no_hardcoded_font_size（禁止 fontSize: N 字面量）。更新 codemagic.yaml 添加 flutter analyze 步骤",
+  "status": "pending",
+  "scope": "project root",
+  "focus_paths": ["analysis_options.yaml", "codemagic.yaml", "pubspec.yaml"],
+  "read_first": ["analysis_options.yaml", "codemagic.yaml", "pubspec.yaml（dev_dependencies）"],
+  "depends_on": ["TASK-012","TASK-013","TASK-014","TASK-015","TASK-016","TASK-017","TASK-018"],
+  "wave": 3, "parallel_group": null,
+  "convergence": {
+    "criteria": [
+      "analysis_options.yaml 包含 'custom_lint' plugin 配置",
+      "pubspec.yaml dev_dependencies 包含 'custom_lint'",
+      "codemagic.yaml 包含 'flutter analyze' 或 'dart analyze' 步骤",
+      "flutter analyze 全项目通过（含 custom_lint 规则检查）"
+    ],
+    "verification": "grep -c 'custom_lint' analysis_options.yaml 返回 >= 1",
+    "definition_of_done": "CI 可阻止 PR 引入硬编码样式回归"
+  },
+  "files": [
+    {"path": "analysis_options.yaml", "action": "modify", "target": "analyzer plugins + custom_lint rules", "change": "添加 custom_lint plugin + 3 条禁止硬编码样式的规则"},
+    {"path": "codemagic.yaml", "action": "modify", "target": "scripts", "change": "添加 flutter analyze 步骤到 build pipeline"},
+    {"path": "pubspec.yaml", "action": "modify", "target": "dev_dependencies", "change": "添加 custom_lint 依赖"}
+  ],
+  "implementation": ["在 pubspec.yaml dev_dependencies 添加 custom_lint: ^0.7.0", "在 analysis_options.yaml 添加 analyzer plugins: [custom_lint] + 3 条 custom_lint 规则", "在 codemagic.yaml 添加 dart analyze 脚本步骤", "运行 flutter pub get && dart analyze 验证"],
+  "meta": { "estimated_time": "2 hours", "risk": "medium", "autonomous": true, "checkpoint": false }
+}

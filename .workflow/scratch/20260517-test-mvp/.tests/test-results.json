@@ -1,0 +1,15 @@
+{
+  "target": "MVP (Phase 1 + Phase 2)",
+  "completed_at": "2026-05-17",
+  "results": [
+    {"id": "T-001", "name": "dart analyze 零错误", "status": "pass"},
+    {"id": "T-002", "name": "全项目零硬编码 BR", "status": "pass"},
+    {"id": "T-003", "name": "设计令牌文件完整性", "status": "pass"},
+    {"id": "T-004", "name": "ThemeExtension 注册", "status": "pass"},
+    {"id": "T-005", "name": "CI Lint Gate 配置", "status": "pass"},
+    {"id": "T-006", "name": "暗黑模式设置页", "status": "pass"},
+    {"id": "T-007", "name": "圆角预设设置页响应", "status": "issue", "details": "分区容器圆角未同步变化 — 静态 RiverRadius 不连接 ThemeExtension"},
+    {"id": "T-008", "name": "编辑器工具栏圆角统一", "status": "pass"}
+  ],
+  "summary": { "total": 8, "passed": 7, "issues": 1, "skipped": 0 }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "TASK-013",
+  "title": "Topic Detail 内容组件迁移",
+  "description": "迁移 topic_detail_widgets_content/meta/images + topic_detail_content_utils（~16 BR）",
+  "type": "feature", "priority": "high", "effort": "large",
+  "action": "sed 批量替换 topic_detail_widgets_content.dart, meta.dart, images.dart, topic_detail_content_utils.dart 中的 BR→RiverRadius 令牌",
+  "status": "pending",
+  "scope": "lib/features/posts/",
+  "focus_paths": ["lib/features/posts/topic_detail_widgets_content.dart", "lib/features/posts/topic_detail_widgets_meta.dart", "lib/features/posts/topic_detail_widgets_images.dart", "lib/features/posts/topic_detail_content_utils.dart"],
+  "read_first": ["lib/core/theme/river_design_tokens.dart", "lib/features/posts/topic_detail_page.dart（父文件导入结构）"],
+  "depends_on": [], "wave": 1, "parallel_group": "migration",
+  "convergence": {
+    "criteria": [
+      "lib/features/posts/topic_detail_widgets_content.dart 不包含硬编码数字 BR",
+      "lib/features/posts/topic_detail_widgets_images.dart 不包含硬编码数字 BR",
+      "dart analyze 零错误"
+    ],
+    "verification": "grep 'BorderRadius.circular([0-9]' lib/features/posts/topic_detail_widgets_content.dart 等 4 个文件返回 0",
+    "definition_of_done": "帖子正文/引用块/代码块/图片使用统一令牌圆角"
+  },
+  "files": [
+    {"path": "lib/features/posts/topic_detail_widgets_content.dart", "action": "modify", "target": "8 处 BR + _MarkdownContent 硬编码颜色", "change": "sed BR 映射 + color→colorScheme"},
+    {"path": "lib/features/posts/topic_detail_widgets_meta.dart", "action": "modify", "target": "2 处 BR", "change": "sed BR 映射"},
+    {"path": "lib/features/posts/topic_detail_widgets_images.dart", "action": "modify", "target": "2 处 BR", "change": "sed BR 映射"},
+    {"path": "lib/features/posts/topic_detail_content_utils.dart", "action": "modify", "target": "4 处 BR", "change": "sed BR 映射"}
+  ],
+  "implementation": ["在 topic_detail_page.dart（父文件）确认已有 river_design_tokens import", "sed 批量替换 4 个 part 文件中的 BR 字面量", "dart analyze 验证"],
+  "meta": { "estimated_time": "3 hours", "risk": "medium", "autonomous": true, "checkpoint": false }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "TASK-017",
+  "title": "暗黑模式 WCAG AA 审计与修复",
+  "description": "审计 5 个关键页面在暗黑模式下的对比度，修复不符合 WCAG AA 的文字/图标颜色",
+  "type": "quality", "priority": "high", "effort": "medium",
+  "action": "手动审计 topic feed/topic detail/compose editor/notifications/settings 5 页面在暗黑模式下的对比度。修复 onSurfaceVariant 等低对比度问题：将低对比度文字颜色调整到符合 4.5:1。确保所有迁移后的页面在暗黑模式下 0 硬编码亮色背景",
+  "status": "pending",
+  "scope": "lib/",
+  "focus_paths": ["lib/app/app.dart _buildTheme()", "lib/features/"],
+  "read_first": ["lib/app/app.dart:514-521（ColorScheme.fromSeed 调用）", "lib/core/theme/river_semantic_colors.dart"],
+  "depends_on": [], "wave": 2, "parallel_group": "quality",
+  "convergence": {
+    "criteria": [
+      "暗黑模式下 topic feed/topic detail/compose/settings 5 页面 0 处硬编码亮色背景闪现",
+      "onSurfaceVariant 在暗黑模式下与 surface 的对比度 >= 4.5:1",
+      "NFR-usability-001 验证通过"
+    ],
+    "verification": "手动 QA：5 页面 × 暗黑模式屏幕截图对比",
+    "definition_of_done": "WCAG AA 达标，暗黑模式体验完整"
+  },
+  "implementation": ["暗黑模式下遍历 5 关键页面，截图记录", "检测对比度不达标的文字/图标", "在 _buildTheme() 的 dark 分支或 RiverSemanticColors.dark() 中调整色值", "重新验证"],
+  "meta": { "estimated_time": "3 hours", "risk": "medium", "autonomous": false, "checkpoint": true }
+}

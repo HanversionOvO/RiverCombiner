@@ -1,0 +1,90 @@
+{
+  "id": "TASK-008",
+  "title": "Mine/Settings 模块迁移（12 文件）",
+  "description": "将 mine 和 settings 特征模块的硬编码样式迁移到令牌系统，这是 MVP 中文件数量最多的特征模块迁移",
+
+  "issue_id": null,
+  "type": "feature",
+  "priority": "high",
+  "effort": "large",
+  "action": "迁移 lib/features/mine/ 中 12 个文件的硬编码样式：_SettingsCard BR(16)→RiverRadius.md, _SettingsSection BR(22)→RiverRadius.lg, 所有硬编码 Colors.white/black→colorScheme.surface/onSurface, 所有 fontSize 字面量→TextTheme 层级引用",
+  "status": "pending",
+
+  "scope": "lib/features/mine/",
+  "focus_paths": ["lib/features/mine/mine_page.dart", "lib/features/mine/mine_page_widgets.dart", "lib/features/mine/appearance_settings_page.dart", "lib/features/mine/appearance_settings_widgets.dart", "lib/features/mine/storage_settings_page.dart", "lib/features/mine/storage_settings_widgets.dart", "lib/features/mine/server_settings_page.dart", "lib/features/mine/about_page.dart", "lib/features/mine/developer_settings_page.dart", "lib/features/mine/ai_settings_page.dart", "lib/features/mine/image_host_settings_page.dart", "lib/features/mine/notifications_push_settings_page.dart"],
+  "read_first": [
+    "lib/features/mine/mine_page_widgets.dart（查看 _SettingsCard 硬编码 BR:16 和颜色使用模式）",
+    "lib/features/mine/appearance_settings_widgets.dart（查看 _SettingsSection BR:22 和设置页内部组件）",
+    "lib/core/theme/river_design_tokens.dart（TASK-001 输出）",
+    "TASK-004 RiverConfirmDialog 迁移后代码（迁移模式参考）"
+  ],
+  "depends_on": ["TASK-003"],
+  "wave": 5,
+  "parallel_group": "feature-modules",
+
+  "convergence": {
+    "criteria": [
+      "lib/features/mine/ 中所有 BorderRadius.circular(N) 的 N 来自 RiverRadius 常量",
+      "lib/features/mine/ 中无直接 Color(0xFF...) 字面量（不含启动屏引用）",
+      "lib/features/mine/ 中无 fontSize: 字面量（TextStyle 中）",
+      "设置页的外观设置卡片在切换 cornerPreset 后 BR 响应变化",
+      "亮/暗模式手动验证设置页各子页面"
+    ],
+    "verification": "grep -r 'BorderRadius.circular(' lib/features/mine/ | wc -l 对比迁移前后数量",
+    "definition_of_done": "12 个文件样式迁移完成，设置页自身遵守用户圆角/主题设置"
+  },
+
+  "files": [
+    {"path": "lib/features/mine/mine_page_widgets.dart", "action": "modify", "target": "_SettingsCard", "change": "BorderRadius.circular(16)→RiverRadius.md, surfaceContainerHighest.withValues(alpha:0.3)→colorScheme.surfaceContainerHighest"},
+    {"path": "lib/features/mine/appearance_settings_widgets.dart", "action": "modify", "target": "_SettingsSection", "change": "BorderRadius.circular(22)→RiverRadius.lg, surfaceContainerLow→colorScheme.surfaceContainerLow"},
+    {"path": "lib/features/mine/appearance_settings_page.dart", "action": "modify", "target": "外观设置页所有组件", "change": "硬编码 Colors.transparent→保持（正确用法），其他硬编码颜色→colorScheme 引用"},
+    {"path": "lib/features/mine/storage_settings_widgets.dart", "action": "modify", "target": "存储设置图表组件", "change": "22 处 BR→RiverRadius 对应值，饼图颜色→colorScheme.primary/secondary/tertiary"},
+    {"path": "lib/features/mine/storage_settings_page.dart", "action": "modify", "target": "存储设置页面", "change": "3 处 BR→RiverRadius"},
+    {"path": "lib/features/mine/server_settings_page.dart", "action": "modify", "target": "服务器设置页", "change": "2 处 BR→RiverRadius.md"},
+    {"path": "lib/features/mine/developer_settings_page.dart", "action": "modify", "target": "开发者设置页", "change": "9 处 BR→RiverRadius"},
+    {"path": "lib/features/mine/about_page.dart", "action": "modify", "target": "关于页面", "change": "6 处 BR→RiverRadius, Colors.white→colorScheme.surface"},
+    {"path": "lib/features/mine/ai_settings_page.dart", "action": "modify", "target": "AI 设置页", "change": "1 处 BR→RiverRadius.md"},
+    {"path": "lib/features/mine/image_host_settings_page.dart", "action": "modify", "target": "图床设置页", "change": "18 处 BR→RiverRadius 对应值"},
+    {"path": "lib/features/mine/notifications_push_settings_page.dart", "action": "modify", "target": "通知推送设置页", "change": "4 处 BR→RiverRadius"},
+    {"path": "lib/features/mine/widgets/mine_settings_app_bar.dart", "action": "modify", "target": "设置页 AppBar 组件", "change": "BR→RiverRadius.md"}
+  ],
+
+  "implementation": [
+    "按文件逐个迁移，每完成一个文件即验证 dart analyze 通过",
+    "优先迁移 mine_page_widgets.dart（_SettingsCard 是最常被看到的设置组件）",
+    "接着迁移 appearance_settings_widgets.dart（外观设置是用户最敏感的页面）",
+    "然后按复杂度从低到高迁移其余设置页面",
+    "每个文件迁移后确认 BR 值映射正确：16→md(12), 22→lg(16)",
+    "亮/暗模式手动验证设置页各子页面"
+  ],
+
+  "test": {
+    "commands": ["flutter analyze lib/features/mine/"],
+    "unit": [],
+    "integration": [],
+    "success_metrics": ["dart analyze 零错误", "设置页在圆角预设切换时响应"]
+  },
+
+  "reference": {
+    "pattern": "TASK-004 组件迁移模式，扩展应用到模块级别",
+    "files": [],
+    "examples": null
+  },
+
+  "rationale": {
+    "chosen_approach": "设置页是'信任锚点'——用户在这里配置外观，必须最先体现变化",
+    "decision_factors": ["设置页自身遵守设置→用户信任", "设置页有最多的可定制项交互", "12 个文件批量迁移，效率最高"],
+    "tradeoffs": null
+  },
+
+  "risks": ["storage_settings_widgets.dart 的图表绘制（_StoragePiePainter）使用 Canvas API，颜色替换需特别小心——确认 CustomPainter 中也能通过 Theme.of(context) 获取颜色"],
+
+  "doc_context": {
+    "affected_features": ["FT-008 User Profile & Settings"],
+    "affected_components": ["TC-037 MinePage", "TC-038 RiverSideProfilePage", "TC-040 SettingsPages", "TC-041 AppSettingsController"],
+    "affected_requirements": ["REQ-002 组件样式标准化"],
+    "adr_ids": ["ADR-002 渐进式迁移策略"]
+  },
+
+  "meta": { "estimated_time": "8 hours", "risk": "medium", "autonomous": true, "checkpoint": true }
+}

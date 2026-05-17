@@ -1,0 +1,30 @@
+{
+  "id": "TASK-014",
+  "title": "Topic Detail 交互组件迁移",
+  "description": "迁移 topic_detail_widgets_cards + reactions + actions + comment_detail（~79 BR），这是 posts 模块中 BR 密度最高的区域",
+  "type": "feature", "priority": "high", "effort": "large",
+  "action": "sed 批量替换 topic_detail_widgets_cards.dart (20 BR), topic_detail_page_reactions.dart (10 BR), topic_detail_page_actions.dart (15 BR), topic_detail_comment_detail_*.dart (34 BR)",
+  "status": "pending",
+  "scope": "lib/features/posts/",
+  "focus_paths": ["lib/features/posts/topic_detail_widgets_cards.dart", "lib/features/posts/topic_detail_page_reactions.dart", "lib/features/posts/topic_detail_page_actions.dart", "lib/features/posts/topic_detail_comment_detail_page.dart", "lib/features/posts/topic_detail_comment_detail_actions.dart", "lib/features/posts/topic_detail_comment_detail_ui.dart", "lib/features/posts/topic_detail_page_loading.dart"],
+  "read_first": ["lib/core/theme/river_design_tokens.dart", "lib/features/posts/topic_detail_page.dart（父文件）"],
+  "depends_on": [], "wave": 1, "parallel_group": "migration",
+  "convergence": {
+    "criteria": [
+      "lib/features/posts/topic_detail_widgets_cards.dart 不包含硬编码数字 BR",
+      "lib/features/posts/topic_detail_page_reactions.dart 不包含硬编码数字 BR",
+      "dart analyze 零错误"
+    ],
+    "verification": "grep 'BorderRadius.circular([0-9]' lib/features/posts/topic_detail_*.dart 返回 0",
+    "definition_of_done": "反应选择器/操作栏/评论卡片/投票卡片统一使用令牌圆角"
+  },
+  "files": [
+    {"path": "lib/features/posts/topic_detail_widgets_cards.dart", "action": "modify", "target": "20 处 BR + 评论卡片/_MainPostCard 样式", "change": "sed BR 映射（cards 中有多种值：8/10→md, 14/16→lg, 20/24→xl, 999→full）"},
+    {"path": "lib/features/posts/topic_detail_page_reactions.dart", "action": "modify", "target": "10 处 BR + _ReactionPickerSheet", "change": "sed BR 映射"},
+    {"path": "lib/features/posts/topic_detail_page_actions.dart", "action": "modify", "target": "15 处 BR", "change": "sed BR 映射"},
+    {"path": "lib/features/posts/topic_detail_comment_detail_page.dart", "action": "modify", "target": "父文件 + 3 part 子文件", "change": "父文件加 import，sed 替换 part 文件 BR"},
+    {"path": "lib/features/posts/topic_detail_page_loading.dart", "action": "modify", "target": "加载状态", "change": "sed BR 映射"}
+  ],
+  "implementation": ["在 topic_detail_page.dart 和 topic_detail_comment_detail_page.dart 父文件加 import", "sed 批量替换 7 个文件 BR 字面量", "dart analyze 验证"],
+  "meta": { "estimated_time": "5 hours", "risk": "medium", "autonomous": true, "checkpoint": true }
+}

@@ -43,6 +43,8 @@
 
 项目已迭代至 v1.1.5，拥有 10 个功能模块、130 个 Dart 文件。采用 `lib/app/`（应用壳）、`lib/core/`（共享基础设施）、`lib/features/`（功能页面）三层架构。使用 ChangeNotifier 做状态管理，API 客户端通过扩展方法组织端点。CI/CD 已通过 Codemagic 配置。
 
+**MVP 里程碑完成 (2026-05-17)**: 全项目 UI 统一 — 建立设计令牌系统（RiverRadius/RiverSpacing/RiverSemanticColors/RiverCustomComponentTheme），529 处硬编码 BorderRadius 清零，圆角收敛至 6 级尺度。12 commits，20 tasks，0 dart analyze errors。
+
 ## Constraints
 
 - **API 兼容**: 必须保持与现有 RiverSide 服务器 API 的兼容性 — 核心后端接口不可变更

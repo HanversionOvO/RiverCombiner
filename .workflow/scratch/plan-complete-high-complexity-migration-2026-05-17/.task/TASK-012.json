@@ -1,0 +1,27 @@
+{
+  "id": "TASK-012",
+  "title": "Posts Feed 页面迁移",
+  "description": "迁移 posts_page.dart 和 posts_page_widgets.dart 的 ~38 处硬编码 BR + 3 处 fontSize + 硬编码颜色",
+  "type": "feature", "priority": "high", "effort": "large",
+  "action": "sed 批量替换 lib/features/posts/posts_page.dart 和 posts_page_widgets.dart 中的 BorderRadius.circular(N)→RiverRadius 令牌（10→md, 12→md, 14→lg, 16→lg, 20→xl, 24→xl, 999→full），添加 import。替换硬编码 fontSize→TextTheme 层级引用",
+  "status": "pending",
+  "scope": "lib/features/posts/",
+  "focus_paths": ["lib/features/posts/posts_page.dart", "lib/features/posts/posts_page_widgets.dart"],
+  "read_first": ["lib/core/theme/river_design_tokens.dart", "lib/features/posts/posts_page.dart（导入结构）"],
+  "depends_on": [], "wave": 1, "parallel_group": "migration",
+  "convergence": {
+    "criteria": [
+      "lib/features/posts/posts_page.dart 不包含 'BorderRadius.circular(' 后跟数字字面量",
+      "lib/features/posts/posts_page_widgets.dart 同上",
+      "dart analyze lib/features/posts/posts_page.dart 零错误"
+    ],
+    "verification": "grep -c 'BorderRadius.circular([0-9]' lib/features/posts/posts_page*.dart 返回 0",
+    "definition_of_done": "帖子列表页的卡片/标签/图片网格 BR 统一使用 RiverRadius 令牌"
+  },
+  "files": [
+    {"path": "lib/features/posts/posts_page.dart", "action": "modify", "target": "全部 BorderRadius 硬编码", "change": "sed 映射：10/12→md, 14/16→lg, 20/24→xl, 999→full + import"},
+    {"path": "lib/features/posts/posts_page_widgets.dart", "action": "modify", "target": "全部 BorderRadius 硬编码", "change": "同上（part file，父文件加 import）"}
+  ],
+  "implementation": ["在 posts_page.dart 添加 import river_design_tokens.dart", "sed 批量替换 2 个文件中的全部 BR 字面量", "dart analyze 验证"],
+  "meta": { "estimated_time": "3 hours", "risk": "medium", "autonomous": true, "checkpoint": false }
+}

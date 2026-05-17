@@ -1,0 +1,94 @@
+{
+  "id": "TASK-004",
+  "title": "简单组件迁移（ConfirmDialog + EmojiPicker + CategoryPicker + AIButton）",
+  "description": "将 RiverConfirmDialog、RiverEmojiPicker、RiverCategoryPickerSheet、RiverPublishCategoryPickerSheet、RiverAIActionButton 的硬编码样式替换为令牌和主题引用",
+
+  "issue_id": null,
+  "type": "feature",
+  "priority": "high",
+  "effort": "medium",
+  "action": "迁移 5 个简单组件：RiverConfirmDialog 的 BorderRadius.circular(24)→RiverRadius.xl + 硬编码 EdgeInsets→RiverSpacing；RiverEmojiPicker、RiverCategoryPickerSheet、RiverPublishCategoryPickerSheet 的 BR→RiverRadius.lg/md；RiverAIActionButton 的 BR→RiverRadius.md，颜色从硬编码→theme.colorScheme.primary",
+  "status": "pending",
+
+  "scope": "lib/core/widgets/",
+  "focus_paths": ["lib/core/widgets/river_confirm_dialog.dart", "lib/core/widgets/river_structured_emoji_picker.dart", "lib/core/widgets/riverside_category_picker_sheet.dart", "lib/core/widgets/river_publish_category_picker_sheet.dart", "lib/core/widgets/river_ai_action_button.dart"],
+  "read_first": [
+    "lib/core/widgets/river_confirm_dialog.dart（迁移模板，151行，2处BR+硬编码EdgeInsets）",
+    "lib/core/theme/river_design_tokens.dart（TASK-001 输出）",
+    "lib/core/theme/river_custom_component_theme.dart（TASK-002 输出）"
+  ],
+  "depends_on": ["TASK-003"],
+  "wave": 3,
+  "parallel_group": "simple-components",
+
+  "convergence": {
+    "criteria": [
+      "lib/core/widgets/river_confirm_dialog.dart 不包含 'BorderRadius.circular(24)'",
+      "lib/core/widgets/river_confirm_dialog.dart 包含 'RiverRadius.xl'",
+      "lib/core/widgets/river_structured_emoji_picker.dart 不包含 'BorderRadius.circular(8)'",
+      "lib/core/widgets/riverside_category_picker_sheet.dart 不包含 'BorderRadius.circular('",
+      "lib/core/widgets/river_ai_action_button.dart 不包含 'Color(0xFF'",
+      "dart analyze 零错误"
+    ],
+    "verification": "grep -r 'BorderRadius.circular' lib/core/widgets/river_confirm_dialog.dart lib/core/widgets/river_ai_action_button.dart | 验证无硬编码字面量",
+    "definition_of_done": "5 个组件全部完成令牌迁移，亮/暗模式手动验证通过"
+  },
+
+  "files": [
+    {"path": "lib/core/widgets/river_confirm_dialog.dart", "action": "modify", "target": "_RiverConfirmDialogCard", "change": "BorderRadius.circular(24)→RiverRadius.xl, EdgeInsets.symmetric(horizontal:24,vertical:20)→EdgeInsets.symmetric(horizontal:RiverSpacing.xl,vertical:RiverSpacing.lg), Colors.black.withValues(alpha:0.12)→Theme.of(context).colorScheme.shadow"},
+    {"path": "lib/core/widgets/river_structured_emoji_picker.dart", "action": "modify", "target": "RiverEmojiPicker", "change": "硬编码 BR→RiverRadius.md/sm，分类标签颜色→theme.colorScheme.primary"},
+    {"path": "lib/core/widgets/riverside_category_picker_sheet.dart", "action": "modify", "target": "RiverSideCategoryPickerSheet", "change": "硬编码 BR→RiverRadius.lg，卡片颜色→theme.colorScheme.surfaceContainerLow"},
+    {"path": "lib/core/widgets/river_publish_category_picker_sheet.dart", "action": "modify", "target": "发布分类选择器", "change": "硬编码 BR→RiverRadius.lg"},
+    {"path": "lib/core/widgets/river_ai_action_button.dart", "action": "modify", "target": "RiverAiActionButton", "change": "硬编码 Color(0xFF...)→theme.colorScheme.primary/tertiary，BR→RiverRadius.md"}
+  ],
+
+  "implementation": [
+    "Step 1: 迁移 river_confirm_dialog.dart（作为模板）",
+    "  替换 BorderRadius.circular(24)→RiverRadius.xl",
+    "  替换 EdgeInsets.symmetric(horizontal:24,vertical:20)→EdgeInsets.symmetric(horizontal:RiverSpacing.xl,vertical:RiverSpacing.lg)",
+    "  替换 Colors.black.withValues(alpha:0.12)→Theme.of(context).colorScheme.shadow",
+    "  验证亮/暗模式",
+    "Step 2: 迁移 river_ai_action_button.dart",
+    "  替换所有 Color(0xFF...)(约2处)→theme.colorScheme.primary 或 tertiary",
+    "  替换 BR→RiverRadius.md",
+    "Step 3: 迁移 river_structured_emoji_picker.dart",
+    "  替换分类标签颜色→theme.colorScheme.primary",
+    "  替换 BR→RiverRadius.md/sm",
+    "Step 4: 迁移 riverside_category_picker_sheet.dart",
+    "  替换 BR→RiverRadius.lg",
+    "  替换卡片颜色→theme.colorScheme.surfaceContainerLow",
+    "Step 5: 迁移 river_publish_category_picker_sheet.dart",
+    "  替换 BR→RiverRadius.lg",
+    "Step 6: 所有组件在亮/暗模式下手动验证"
+  ],
+
+  "test": {
+    "commands": ["flutter analyze lib/core/widgets/"],
+    "unit": [],
+    "integration": [],
+    "success_metrics": ["dart analyze 零错误"]
+  },
+
+  "reference": {
+    "pattern": "RiverConfirmDialog 迁移模板（Step 1 产出）",
+    "files": [],
+    "examples": "迁移前后 diff 只应显示常量替换，不应有任何视觉逻辑变更"
+  },
+
+  "rationale": {
+    "chosen_approach": "以 RiverConfirmDialog（2 处 BR、良好主题化）为模板先行迁移，建立可复制的模式",
+    "decision_factors": ["最小风险的组件先行", "建立 commit message 模板", "验证迁移模式的可行性"],
+    "tradeoffs": null
+  },
+
+  "risks": ["emoji_picker_flutter 第三方包的分类颜色可能需要在 ThemeData 中额外配置"],
+
+  "doc_context": {
+    "affected_features": ["FT-010 Core Infrastructure", "FT-005 Compose"],
+    "affected_components": ["TC-054 SharedWidgets"],
+    "affected_requirements": ["REQ-002 组件样式标准化"],
+    "adr_ids": ["ADR-002 渐进式迁移策略"]
+  },
+
+  "meta": { "estimated_time": "4 hours", "risk": "low", "autonomous": true, "checkpoint": false }
+}

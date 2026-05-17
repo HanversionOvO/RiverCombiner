@@ -1,0 +1,28 @@
+{
+  "id": "TASK-020",
+  "title": "ReduceMotion 动画覆盖",
+  "description": "确保 reduceMotion 开启时通知 banner、聊天气泡、浮动面板等动画直接跳到目标状态",
+  "type": "feature", "priority": "medium", "effort": "medium",
+  "action": "在 lib/app/app.dart 中通知 banner 动画、lib/features/notifications/ 聊天气泡 AnimatedSwitcher、lib/core/widgets/ 浮动面板动画 中添加 reduceMotion 检查：settings.reduceMotion → duration: Duration.zero",
+  "status": "pending",
+  "scope": "lib/",
+  "focus_paths": ["lib/app/app.dart（通知 banner 动画）", "lib/features/notifications/（聊天气泡 AnimatedSwitcher）", "lib/core/mini_apps/（浮动面板）"],
+  "read_first": ["lib/app/app.dart _buildTheme() reduceMotion 处理", "lib/app/app.dart:860-930（_RiverInAppBannerHost 动画）"],
+  "depends_on": ["TASK-018"],
+  "wave": 4, "parallel_group": null,
+  "convergence": {
+    "criteria": [
+      "通知 banner 弹出/收起动画在 reduceMotion 时使用 duration: Duration.zero",
+      "聊天气泡 AnimatedSwitcher 在 reduceMotion 时使用 duration: Duration.zero",
+      "浮动面板扇形展开动画在 reduceMotion 时直接显示最终状态"
+    ],
+    "verification": "grep -c 'reduceMotion' lib/app/app.dart 返回 >= 3",
+    "definition_of_done": "reduceMotion 全局生效，所有大动画抑制"
+  },
+  "files": [
+    {"path": "lib/app/app.dart", "action": "modify", "target": "_RiverInAppBannerHost + _MiniAppFloating* 动画", "change": "动画 duration 在 settings.reduceMotion 时设为 Duration.zero"},
+    {"path": "lib/features/notifications/chat_detail_page_ui.dart", "action": "modify", "target": "AnimatedSwitcher 280ms", "change": "reduceMotion 时 duration: Duration.zero"}
+  ],
+  "implementation": ["读取 app.dart 通知 banner 动画（_visibilityController 驱动）", "在 animation duration 处添加 reduceMotion 三元运算符", "在聊天气泡页面的 AnimatedSwitcher 中添加 reduceMotion 检查", "在浮动面板的扇形动画处添加 reduceMotion 检查", "dart analyze + 手动开启 reduceMotion 验证"],
+  "meta": { "estimated_time": "2 hours", "risk": "low", "autonomous": true, "checkpoint": false }
+}

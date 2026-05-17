@@ -1,0 +1,103 @@
+{
+  "id": "TASK-001",
+  "title": "创建设计令牌常量（RiverRadius + RiverSpacing）",
+  "description": "创建 lib/core/theme/river_design_tokens.dart，定义圆角 6 级尺度和间距 4px 基准栅格常量",
+
+  "issue_id": null,
+  "issue_refs": [],
+  "type": "feature",
+  "priority": "high",
+  "effort": "small",
+  "action": "创建 lib/core/theme/river_design_tokens.dart，包含 RiverRadius（none=0, xs=4, sm=8, md=12, lg=16, xl=24, full=999）和 RiverSpacing（xs=4, sm=8, md=12, lg=16, xl=24, xxl=32）两个抽象最终类，所有字段为 static const double",
+  "status": "pending",
+  "completed_at": null,
+  "actual_duration": null,
+
+  "scope": "lib/core/theme/",
+  "focus_paths": ["lib/core/theme/"],
+
+  "read_first": [
+    "lib/app/app.dart:512-668 (_buildTheme 方法)",
+    "lib/app/app_settings_controller.dart:92-102 (defaultSeedColor, cornerPreset 枚举值 compact=10/standard=14/relaxed=20)"
+  ],
+
+  "depends_on": [],
+  "wave": 1,
+  "parallel_group": "tokens",
+  "execution_group": null,
+  "executor": "agent",
+
+  "convergence": {
+    "criteria": [
+      "lib/core/theme/river_design_tokens.dart 存在",
+      "文件包含 'abstract final class RiverRadius'",
+      "文件包含 'static const double none = 0'",
+      "文件包含 'static const double xs = 4'",
+      "文件包含 'static const double sm = 8'",
+      "文件包含 'static const double md = 12'",
+      "文件包含 'static const double lg = 16'",
+      "文件包含 'static const double xl = 24'",
+      "文件包含 'static const double full = 999'",
+      "文件包含 'abstract final class RiverSpacing'",
+      "文件包含 'static const double xs = 4'",
+      "文件包含 'static const double xxl = 32'"
+    ],
+    "verification": "grep -c 'static const double' lib/core/theme/river_design_tokens.dart 返回 >= 12",
+    "definition_of_done": "RiverRadius 6 级 + RiverSpacing 6 级常量全部定义，文件通过 dart analyze"
+  },
+
+  "files": [
+    {
+      "path": "lib/core/theme/river_design_tokens.dart",
+      "action": "create",
+      "target": "RiverRadius, RiverSpacing",
+      "change": "创建新文件：abstract final class RiverRadius { static const double none = 0; static const double xs = 4; static const double sm = 8; static const double md = 12; static const double lg = 16; static const double xl = 24; static const double full = 999; } abstract final class RiverSpacing { static const double xs = 4; static const double sm = 8; static const double md = 12; static const double lg = 16; static const double xl = 24; static const double xxl = 32; }"
+    }
+  ],
+
+  "implementation": [
+    "创建 lib/core/theme/ 目录",
+    "创建 river_design_tokens.dart 文件",
+    "定义 abstract final class RiverRadius，包含 7 个 static const double 字段：none=0, xs=4, sm=8, md=12, lg=16, xl=24, full=999",
+    "定义 abstract final class RiverSpacing，包含 6 个 static const double 字段：xs=4, sm=8, md=12, lg=16, xl=24, xxl=32",
+    "添加文件头注释说明用途和使用方式",
+    "运行 dart analyze 验证无错误"
+  ],
+
+  "test": {
+    "commands": ["flutter analyze lib/core/theme/"],
+    "unit": [],
+    "integration": [],
+    "success_metrics": ["dart analyze 零错误"]
+  },
+
+  "reference": {
+    "pattern": "lib/core/constants.dart（现有常量文件模式）",
+    "files": ["lib/core/constants.dart"],
+    "examples": "abstract final class 确保类不能被实例化"
+  },
+
+  "rationale": {
+    "chosen_approach": "使用 abstract final class + static const 而非 enum，因为 enum 不支持 double 值且语义不对（这些不是枚举项而是尺度阶梯）",
+    "decision_factors": ["类型安全", "零运行时开销", "可被 lint 规则引用"],
+    "tradeoffs": null
+  },
+
+  "risks": [],
+
+  "code_skeleton": "abstract final class RiverRadius {\n  const RiverRadius._();\n  static const double none = 0;\n  static const double xs = 4;\n  static const double sm = 8;\n  static const double md = 12;\n  static const double lg = 16;\n  static const double xl = 24;\n  static const double full = 999;\n}\n\nabstract final class RiverSpacing {\n  const RiverSpacing._();\n  static const double xs = 4;\n  static const double sm = 8;\n  static const double md = 12;\n  static const double lg = 16;\n  static const double xl = 24;\n  static const double xxl = 32;\n}",
+
+  "doc_context": {
+    "affected_features": ["FT-010 Core Infrastructure"],
+    "affected_components": ["TC-061 Constants"],
+    "affected_requirements": ["REQ-001 设计令牌系统"],
+    "adr_ids": ["ADR-001 混合令牌架构"]
+  },
+
+  "meta": {
+    "estimated_time": "1 hour",
+    "risk": "low",
+    "autonomous": true,
+    "checkpoint": false
+  }
+}

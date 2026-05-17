@@ -1,0 +1,25 @@
+{
+  "id": "TASK-018",
+  "title": "组件主题补全（TabBar/Slider/Checkbox/Switch）",
+  "description": "在 _buildTheme() 中补全缺失的 Flutter 内置组件主题：tabBarTheme, sliderTheme, checkboxTheme, switchTheme",
+  "type": "feature", "priority": "medium", "effort": "small",
+  "action": "修改 lib/app/app.dart _buildTheme()，在 base.copyWith() 中增加 tabBarTheme（indicatorSize+labelStyle）、sliderTheme（activeTrackColor+thumbColor→colorScheme.primary）、checkboxTheme（fillColor→colorScheme.primary）、switchTheme（thumbColor→colorScheme.primary）",
+  "status": "pending",
+  "scope": "lib/app/",
+  "focus_paths": ["lib/app/app.dart:561-670"],
+  "read_first": ["lib/app/app.dart:561-670（_buildTheme return base.copyWith 块）", "lib/app/app_settings_controller.dart（AppFontWeightPreset）"],
+  "depends_on": [], "wave": 2, "parallel_group": "quality",
+  "convergence": {
+    "criteria": [
+      "lib/app/app.dart _buildTheme() return 语句中包含 'tabBarTheme:'",
+      "包含 'sliderTheme:' 配置",
+      "包含 'checkboxTheme:' 配置",
+      "包含 'switchTheme:' 配置",
+      "dart analyze 零错误"
+    ],
+    "verification": "grep -c 'tabBarTheme\\|sliderTheme\\|checkboxTheme\\|switchTheme' lib/app/app.dart 返回 >= 4",
+    "definition_of_done": "设置页和其他页面的 TabBar/Slider/Checkbox/Switch 统一使用主题色"
+  },
+  "implementation": ["在 _buildTheme() 的 base.copyWith() 调用中添加 tabBarTheme 配置", "添加 sliderTheme 配置（activeTrackColor/thumbColor→colorScheme.primary）", "添加 checkboxTheme 配置（checkColor→colorScheme.onPrimary）", "添加 switchTheme 配置", "dart analyze 验证"],
+  "meta": { "estimated_time": "1 hour", "risk": "low", "autonomous": true, "checkpoint": false }
+}

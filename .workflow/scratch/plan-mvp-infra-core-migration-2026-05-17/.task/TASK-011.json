@@ -1,0 +1,95 @@
+{
+  "id": "TASK-011",
+  "title": "MVP 集成验证",
+  "description": "对 Phase 1 MVP 全部产出进行集成验证：5 个关键页面在亮/暗模式下的 QA，圆角预设切换验证，字体缩放验证，确认无视觉回归和硬编码样式遗漏",
+
+  "issue_id": null,
+  "type": "verification",
+  "priority": "high",
+  "effort": "medium",
+  "action": "验证 Phase 1 的 4 条 Success Criteria：SC-1(暗黑模式 0 白屏)、SC-2(圆角预设全局响应)、SC-3(核心组件亮暗一致)、SC-4(圆角值收敛至 6 级)。逐项检查 home/topic feed/notifications/chat/settings 5 个页面",
+  "status": "pending",
+
+  "scope": "全 App 范围验证",
+  "focus_paths": ["lib/app/", "lib/core/widgets/", "lib/core/theme/", "lib/features/mine/", "lib/features/notifications/", "lib/features/search/"],
+  "read_first": [
+    ".workflow/roadmap.md Phase 1 Success Criteria",
+    ".workflow/.spec/SPEC-ui-unification-2026-05-17/requirements/_index.md"
+  ],
+  "depends_on": ["TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010"],
+  "wave": 6,
+  "parallel_group": null,
+
+  "convergence": {
+    "criteria": [
+      "暗黑模式：home/topic feed/notifications/chat/settings 5 页面 0 处亮色硬编码背景闪现",
+      "圆角预设：compact(10)→standard(14)→relaxed(20) 三档切换后，所有迁移页面的卡片/对话框/Chip/按钮均响应",
+      "字体缩放：fontScale=1.3 时迁移页面无文字截断或溢出",
+      "grep -r 'Color(0xFF' lib/features/mine/ lib/features/notifications/ lib/features/search/ lib/core/widgets/river_*.dart 返回结果仅剩注释或启动屏引用",
+      "dart analyze 全项目零错误"
+    ],
+    "verification": "手动 QA checklist + dart analyze + grep 扫描",
+    "definition_of_done": "Phase 1 的 4 条 Success Criteria 全部满足，可进入 Phase 2"
+  },
+
+  "files": [],
+
+  "implementation": [
+    "Step 1: 代码扫描",
+    "  grep -r 'Color(0xFF' lib/features/mine/ lib/features/notifications/ lib/features/search/ lib/core/widgets/",
+    "  grep -r 'fontSize:' lib/features/mine/ lib/features/notifications/ lib/features/search/",
+    "  grep -r 'BorderRadius.circular(' lib/features/mine/ lib/features/notifications/ lib/features/search/ lib/core/widgets/",
+    "  确认所有残留值来自令牌常量或 ThemeData",
+    "Step 2: 暗黑模式验证（SC-1）",
+    "  切换到 dark 模式，依次打开 5 个关键页面",
+    "  检查每个页面的背景是否为深色、文字是否为浅色",
+    "  特别关注：设置页、聊天页（之前有硬编码白色背景）、通知 banner",
+    "Step 3: 圆角预设验证（SC-2）",
+    "  依次切换到 compact(10)→standard(14)→relaxed(20)",
+    "  每次切换后检查：设置页卡片、通知条目、搜索卡片、对话框、按钮",
+    "  验证所有 BR 按比例缩放",
+    "Step 4: 字体缩放验证",
+    "  设置 fontScale=1.3（最大），浏览 5 个关键页面",
+    "  确认无文字溢出、截断、或重叠",
+    "Step 5: 核心组件专项验证（SC-3）",
+    "  RiverConfirmDialog: 亮/暗下弹窗正常",
+    "  RiverSnackBar: 触发 success 和 error 两种 tone",
+    "  RiverImageViewer: 亮/暗下全屏看图（含操作栏）",
+    "  RiverMarkdownEditor: 编辑/预览模式切换",
+    "  RiverEmojiPicker: 展开表情选择器",
+    "Step 6: 回归检查",
+    "  运行 flutter test",
+    "  运行 flutter analyze",
+    "  确认无新增 warning/error"
+  ],
+
+  "test": {
+    "commands": ["flutter analyze", "flutter test"],
+    "unit": [],
+    "integration": ["手动 QA：5 页面 × 2 模式 × 3 圆角预设"],
+    "success_metrics": ["dart analyze 零错误", "flutter test 通过", "SC-1/2/3/4 全部满足"]
+  },
+
+  "reference": {
+    "pattern": "roadmap.md Phase 1 Success Criteria",
+    "files": [".workflow/roadmap.md"],
+    "examples": null
+  },
+
+  "rationale": {
+    "chosen_approach": "集中验证确保 Phase 1 交付质量，在进入 Phase 2 高复杂度迁移前确认基础正确",
+    "decision_factors": ["Phase 2 依赖 Phase 1 的令牌和迁移模式", "MVP 范围需要独立的 gate 确认"],
+    "tradeoffs": null
+  },
+
+  "risks": ["如果某个页面的特定组件在手动 QA 中发现问题，需要回到对应的 TASK 进行修复——集成验证是最后的修正机会"],
+
+  "doc_context": {
+    "affected_features": ["FT-002", "FT-003", "FT-006", "FT-007", "FT-008"],
+    "affected_components": ["全部 Phase 1 涉及的 TC 组件"],
+    "affected_requirements": ["REQ-001", "REQ-002", "REQ-004"],
+    "adr_ids": ["ADR-001", "ADR-002", "ADR-003"]
+  },
+
+  "meta": { "estimated_time": "4 hours", "risk": "low", "autonomous": false, "checkpoint": true }
+}
