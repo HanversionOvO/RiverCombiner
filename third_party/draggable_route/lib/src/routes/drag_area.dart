@@ -247,7 +247,12 @@ class _PanGestureRecognizer extends PanGestureRecognizer {
     double? deviceTouchSlop,
   ) {
     final delta = finalPosition.global - initialPosition.global;
-    if (delta.dx.abs() <= delta.dy.abs()) {
+    // Only accept horizontal-dominant swipes.
+    // Require |dx| > 2 * |dy| so diagonal or ambiguous swipes won't trigger.
+    // Once accepted, all delta (including vertical) is passed to the route
+    // via _checkUpdate → onUpdate, allowing the user to continue the dismiss
+    // gesture in any direction after the initial horizontal trigger.
+    if (delta.dx.abs() <= delta.dy.abs() * 2) {
       return false;
     }
 
