@@ -21,6 +21,8 @@ import 'package:river/core/network/riverside_api_client.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/platform/app_icon_switcher.dart';
 import 'package:river/core/platform/riverside_cookie_bridge.dart';
+import 'package:river/core/theme/river_custom_component_theme.dart';
+import 'package:river/core/theme/river_semantic_colors.dart';
 import 'package:river/core/update/app_update_checker.dart';
 import 'package:river/features/home/home_shell_page.dart';
 import 'package:river/features/login/login_page.dart';
@@ -665,6 +667,12 @@ class _RiverAppState extends State<RiverApp> {
           borderRadius: BorderRadius.circular(cornerRadius),
         ),
       ),
+      extensions: <ThemeExtension<dynamic>>[
+        brightness == Brightness.dark
+            ? RiverSemanticColors.dark()
+            : RiverSemanticColors.light(),
+        RiverCustomComponentTheme.scaleForPreset(settings.cornerPreset),
+      ],
     );
   }
 
