@@ -528,7 +528,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
                       height: 4,
                       decoration: BoxDecoration(
                         color: sheetTheme.colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                       ),
                     ),
                   ),
@@ -2829,7 +2829,7 @@ extension _TopicDetailPageCommentActions on _TopicDetailPageState {
                       height: 4,
                       decoration: BoxDecoration(
                         color: theme.colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                       ),
                     ),
                   ),
@@ -2959,10 +2959,10 @@ class _TopicMoreActionTile extends StatelessWidget {
       color: enabled
           ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.78)
           : theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.46),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(RiverRadius.lg),
       child: InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
           child: Row(
@@ -2976,7 +2976,7 @@ class _TopicMoreActionTile extends StatelessWidget {
                           alpha: 0.72,
                         )
                       : theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(RiverRadius.md),
                 ),
                 alignment: Alignment.center,
                 child: Icon(
@@ -3077,7 +3077,7 @@ class _TopicReportSheetState extends State<_TopicReportSheet> {
                   theme.colorScheme.surfaceContainerLow,
                 ],
               ),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(RiverRadius.xl),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.34),
               ),
@@ -3104,7 +3104,7 @@ class _TopicReportSheetState extends State<_TopicReportSheet> {
                           color: theme.colorScheme.errorContainer.withValues(
                             alpha: 0.72,
                           ),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                         ),
                         alignment: Alignment.center,
                         child: Icon(
@@ -3149,7 +3149,7 @@ class _TopicReportSheetState extends State<_TopicReportSheet> {
                       filled: true,
                       fillColor: theme.colorScheme.surface,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                       ),
                     ),
                   ),
@@ -3317,7 +3317,7 @@ class _CrossPostTransferSheet extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(RiverRadius.lg),
                 border: Border.all(
                   color: Theme.of(
                     context,
@@ -3360,7 +3360,7 @@ class _CrossPostTransferSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(RiverRadius.md),
               onTap: onPickCategory,
               child: Container(
                 width: double.infinity,
@@ -3372,7 +3372,7 @@ class _CrossPostTransferSheet extends StatelessWidget {
                   color: Theme.of(
                     context,
                   ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(RiverRadius.md),
                   border: Border.all(
                     color: Theme.of(
                       context,
@@ -3417,7 +3417,7 @@ class _CrossPostTransferSheet extends StatelessWidget {
             if (qingTypeEnabled) ...[
               const SizedBox(height: 8),
               InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(RiverRadius.md),
                 onTap: onPickQingType,
                 child: Container(
                   width: double.infinity,
@@ -3428,7 +3428,7 @@ class _CrossPostTransferSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(RiverRadius.md),
                     border: Border.all(
                       color: Theme.of(
                         context,

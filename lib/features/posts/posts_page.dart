@@ -10,6 +10,7 @@ import 'package:card_stack_swiper/card_stack_swiper.dart';
 import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
@@ -422,7 +423,7 @@ class _PostsSecondFloorLayerState extends State<_PostsSecondFloorLayer>
       );
     }
 
-    final cardRadius = BorderRadius.circular(18);
+    final cardRadius = BorderRadius.circular(RiverRadius.lg);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
@@ -1288,7 +1289,7 @@ class _SecondFloorMiniAppItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
           child: Column(
@@ -1419,13 +1420,13 @@ class _OnlineMiniAppSearchTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: onTapCard,
         child: Ink(
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.24),
             ),
@@ -1496,7 +1497,7 @@ class _OnlineMiniAppSearchTile extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primaryContainer
                                   .withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(RiverRadius.full),
                             ),
                             child: Text(
                               statusLabel,
@@ -3071,7 +3072,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                               color: theme.colorScheme.primary.withValues(
                                 alpha: 0.12,
                               ),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(RiverRadius.md),
                             ),
                             alignment: Alignment.center,
                             child: Icon(
@@ -3140,7 +3141,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                           Container(
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(RiverRadius.lg),
                               border: Border.all(
                                 color: theme.colorScheme.outlineVariant
                                     .withValues(alpha: 0.28),
@@ -3195,7 +3196,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(RiverRadius.md),
                                     onTap: () async {
                                       Navigator.of(sheetContext).pop();
                                       await Navigator.of(context).push(
@@ -3224,7 +3225,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                         color: theme
                                             .colorScheme
                                             .surfaceContainerLow,
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(RiverRadius.md),
                                       ),
                                       padding: const EdgeInsets.fromLTRB(
                                         12,
@@ -3289,7 +3290,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.22),
         ),
@@ -3953,7 +3954,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: detailTheme.colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         border: Border.all(
                           color: detailTheme.colorScheme.outlineVariant
                               .withValues(alpha: 0.32),
@@ -4147,7 +4148,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                   decoration: BoxDecoration(
                                     color:
                                         theme.colorScheme.surfaceContainerLow,
-                                    borderRadius: BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                                   ),
                                   child: Text(
                                     '暂无推荐小程序',
@@ -4200,7 +4201,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(RiverRadius.lg),
                             ),
                             child: Text(
                               '暂无搜索结果',
@@ -4299,7 +4300,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                         color: Theme.of(
                           context,
                         ).colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         border: Border.all(
                           color: Theme.of(
                             context,
@@ -4315,7 +4316,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                               color: Theme.of(
                                 context,
                               ).colorScheme.primary.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(RiverRadius.md),
                             ),
                             alignment: Alignment.center,
                             child: Icon(
@@ -4361,7 +4362,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                           margin: const EdgeInsets.only(bottom: 8),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(RiverRadius.lg),
                             border: Border.all(
                               color: Theme.of(context)
                                   .colorScheme
@@ -4456,7 +4457,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                           .colorScheme
                                           .surfaceContainerHighest
                                           .withValues(alpha: 0.7),
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(RiverRadius.md),
                                     ),
                                     alignment: Alignment.center,
                                     child: const Icon(
@@ -4818,7 +4819,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                         color: theme.colorScheme.surface.withValues(
                           alpha: 0.92,
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant.withValues(
                             alpha: 0.38,
@@ -5087,7 +5088,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                             height: 12,
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surface,
-                              borderRadius: BorderRadius.circular(2),
+                              borderRadius: BorderRadius.circular(RiverRadius.none),
                               border: Border.all(
                                 color: theme.colorScheme.outlineVariant
                                     .withValues(alpha: 0.32),
@@ -5099,7 +5100,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                       Container(
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(RiverRadius.lg),
                           border: Border.all(
                             color: theme.colorScheme.outlineVariant.withValues(
                               alpha: 0.32,
@@ -5142,7 +5143,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                     ),
                                     decoration: BoxDecoration(
                                       color: theme.colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(999),
+                                      borderRadius: BorderRadius.circular(RiverRadius.full),
                                     ),
                                     child: Text(
                                       '$onlineCount',
@@ -5187,7 +5188,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                     return Material(
                                       color: Colors.transparent,
                                       child: InkWell(
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(RiverRadius.md),
                                         onTap: () => Navigator.of(
                                           dialogContext,
                                         ).pop(user),
@@ -5524,7 +5525,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(RiverRadius.full),
           onTap: enabled ? _openOnlineUsersPopup : null,
           child: Ink(
             padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
@@ -5532,7 +5533,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
               color: theme.colorScheme.surfaceContainerHigh.withValues(
                 alpha: 0.7,
               ),
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(RiverRadius.full),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.38),
               ),
@@ -5790,7 +5791,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                 decoration: BoxDecoration(
                                   color: theme.colorScheme.surfaceContainerHigh
                                       .withValues(alpha: 0.64),
-                                  borderRadius: BorderRadius.circular(18),
+                                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                                   border: Border.all(
                                     color: theme.colorScheme.outlineVariant
                                         .withValues(alpha: 0.26),
@@ -5806,7 +5807,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                   labelPadding: const EdgeInsets.symmetric(
                                     horizontal: 3,
                                   ),
-                                  splashBorderRadius: BorderRadius.circular(14),
+                                  splashBorderRadius: BorderRadius.circular(RiverRadius.lg),
                                   overlayColor: WidgetStatePropertyAll(
                                     theme.colorScheme.primary.withValues(
                                       alpha: 0.08,
@@ -5814,7 +5815,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                                   ),
                                   indicator: BoxDecoration(
                                     color: theme.colorScheme.surface,
-                                    borderRadius: BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                                     boxShadow: [
                                       BoxShadow(
                                         color: theme.colorScheme.shadow
@@ -5901,7 +5902,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
         color: Colors.transparent,
         child: InkWell(
           onTap: _onBoardFilterPressed,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(RiverRadius.xl),
           child: Container(
             padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
             decoration: BoxDecoration(
@@ -5910,7 +5911,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                   : theme.colorScheme.surfaceContainerHighest.withValues(
                       alpha: 0.3,
                     ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(RiverRadius.xl),
               border: hasSelection
                   ? Border.all(
                       color: theme.colorScheme.primary.withValues(alpha: 0.2),
@@ -6060,7 +6061,7 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
       color: cardColor,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         side: BorderSide(color: cardBorderColor),
       ),
       child: Center(

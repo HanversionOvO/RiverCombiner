@@ -922,7 +922,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
                       height: 4,
                       decoration: BoxDecoration(
                         color: theme.colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                       ),
                     ),
                   ),
@@ -1070,7 +1070,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
                         height: 4,
                         decoration: BoxDecoration(
                           color: theme.colorScheme.outlineVariant,
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                         ),
                       ),
                     ),
@@ -1125,7 +1125,7 @@ extension _CommentDetailPageActions on _CommentDetailPageState {
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerLow
                               .withValues(alpha: 0.58),
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(RiverRadius.lg),
                           border: Border.all(
                             color: theme.colorScheme.outlineVariant.withValues(
                               alpha: 0.30,

@@ -465,7 +465,7 @@ class _InlinePillLink extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 1),
       child: Material(
         color: theme.colorScheme.primaryContainer.withValues(alpha: 0.62),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -611,12 +611,12 @@ class _ExternalLinkBookmarkCardState extends State<_ExternalLinkBookmarkCard> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: widget.onTap,
         child: Ink(
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.54),
             ),
@@ -684,7 +684,7 @@ class _ExternalLinkBookmarkCardState extends State<_ExternalLinkBookmarkCard> {
                 if (hasImage) ...[
                   const SizedBox(width: 10),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(RiverRadius.md),
                     child: CachedNetworkImage(
                       imageUrl: imageUrl,
                       width: 78,

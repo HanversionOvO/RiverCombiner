@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/features/login/riverside_password_login_service.dart';
@@ -195,7 +196,7 @@ class _RiverSideCredentialLoginSheetBodyState
             height: 4,
             decoration: BoxDecoration(
               color: theme.colorScheme.outlineVariant,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(RiverRadius.full),
             ),
           ),
           Padding(
@@ -259,7 +260,7 @@ class _RiverSideCredentialLoginSheetBodyState
                           vertical: 9,
                         ),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                           color: theme.colorScheme.secondaryContainer
                               .withValues(alpha: 0.55),
                         ),
@@ -336,7 +337,7 @@ class _RiverSideCredentialLoginSheetBodyState
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(RiverRadius.lg),
                         ),
                       ),
                       icon: _submitting

@@ -115,7 +115,7 @@ class _PostAuthorHeader extends StatelessWidget {
                         color: colors.surfaceContainerHighest.withValues(
                           alpha: 0.72,
                         ),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                         border: Border.all(
                           color: colors.outlineVariant.withValues(alpha: 0.22),
                         ),
@@ -146,7 +146,7 @@ class _PostAuthorHeader extends StatelessWidget {
     }
 
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(RiverRadius.md),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),

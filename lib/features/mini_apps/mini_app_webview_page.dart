@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
@@ -876,7 +877,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
                     height: 42,
                     decoration: BoxDecoration(
                       color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(RiverRadius.md),
                     ),
                     child: Icon(
                       permission.icon,
@@ -1163,7 +1164,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
                       height: 42,
                       decoration: BoxDecoration(
                         color: colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(RiverRadius.md),
                       ),
                       child: Icon(
                         Icons.system_update_alt_rounded,
@@ -1769,7 +1770,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(RiverRadius.md),
               border: Border.all(
                 color: colorScheme.outlineVariant.withValues(alpha: 0.35),
               ),
@@ -1819,7 +1820,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
                     height: 38,
                     decoration: BoxDecoration(
                       color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(11),
+                      borderRadius: BorderRadius.circular(RiverRadius.md),
                     ),
                     child: Icon(
                       Icons.verified_user_rounded,
@@ -2466,13 +2467,13 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
         return Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(RiverRadius.xl),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface.withValues(alpha: 0.84),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(RiverRadius.xl),
                   border: Border.all(
                     color: theme.colorScheme.outlineVariant.withValues(
                       alpha: 0.26,
@@ -2499,7 +2500,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
                           decoration: BoxDecoration(
                             color: theme.colorScheme.onSurfaceVariant
                                 .withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(RiverRadius.full),
                           ),
                         ),
                       ),
@@ -2512,7 +2513,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
                             height: 44,
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerHigh,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(RiverRadius.md),
                               image: iconProvider == null
                                   ? null
                                   : DecorationImage(
@@ -2575,7 +2576,7 @@ class _MiniAppWebViewPageState extends State<MiniAppWebViewPage> {
                                         .colorScheme
                                         .surfaceContainerHighest
                                         .withValues(alpha: 0.62),
-                                    borderRadius: BorderRadius.circular(999),
+                                    borderRadius: BorderRadius.circular(RiverRadius.full),
                                   ),
                                   child: Text(
                                     tag,
@@ -2831,7 +2832,7 @@ class _MiniAppLoadingOverlay extends StatelessWidget {
                       height: 66,
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         image: iconProvider == null
                             ? null
                             : DecorationImage(
@@ -3146,7 +3147,7 @@ class _MiniAppSheetAction extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: () {
           unawaited(onTap());
         },
@@ -3157,7 +3158,7 @@ class _MiniAppSheetAction extends StatelessWidget {
             color: theme.colorScheme.surfaceContainerHigh.withValues(
               alpha: 0.82,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.26),
             ),
@@ -3171,7 +3172,7 @@ class _MiniAppSheetAction extends StatelessWidget {
                   color: theme.colorScheme.primaryContainer.withValues(
                     alpha: 0.70,
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(RiverRadius.md),
                 ),
                 alignment: Alignment.center,
                 child: Icon(icon, size: 16, color: theme.colorScheme.primary),

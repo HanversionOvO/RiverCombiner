@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 class MineSettingsToolbarAction {
   const MineSettingsToolbarAction({
     this.iosSymbol,
@@ -386,7 +387,7 @@ class MineSettingsAppBar extends StatelessWidget
               height: 34,
               decoration: BoxDecoration(
                 color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(11),
+                borderRadius: BorderRadius.circular(RiverRadius.md),
               ),
               child: Icon(
                 icon,

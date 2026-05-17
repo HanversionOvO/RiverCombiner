@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/core/categories/riverside_category_utils.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
@@ -122,7 +123,7 @@ class _RiverSideCategoryPickerSheetState
                   if (widget.allowSelectAll)
                     InkWell(
                       onTap: () => widget.onSelected(null),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -137,7 +138,7 @@ class _RiverSideCategoryPickerSheetState
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(RiverRadius.lg),
                           border: Border.all(
                             color: theme.colorScheme.primary.withValues(
                               alpha: 0.12,
@@ -249,7 +250,7 @@ class _BoardGroupCard extends StatelessWidget {
       children: [
         InkWell(
           onTap: isParentSelectable ? () => onSelected(parent) : null,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(RiverRadius.sm),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
             child: Row(
@@ -261,7 +262,7 @@ class _BoardGroupCard extends StatelessWidget {
                     color: isParentSelected
                         ? theme.colorScheme.primary
                         : theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(RiverRadius.none),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -287,7 +288,7 @@ class _BoardGroupCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest
                           .withValues(alpha: 0.65),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                     ),
                     child: Text(
                       '仅分组',

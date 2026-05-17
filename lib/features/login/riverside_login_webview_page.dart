@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/core/constants.dart';
@@ -395,7 +396,7 @@ class _RiverSideLoginWebViewPageState extends State<RiverSideLoginWebViewPage> {
                       ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant.withValues(
                             alpha: 0.20,

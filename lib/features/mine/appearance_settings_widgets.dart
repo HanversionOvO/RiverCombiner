@@ -1001,7 +1001,7 @@ class _IconChoiceCard extends StatelessWidget {
             child: Column(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(RiverRadius.sm),
                   child: Image.asset(
                     option.assetPath,
                     width: 32,

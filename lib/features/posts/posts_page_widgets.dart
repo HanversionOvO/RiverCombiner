@@ -782,7 +782,7 @@ class _TopicListTabState extends State<_TopicListTab>
                               ),
                               decoration: BoxDecoration(
                                 color: Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(999),
+                                borderRadius: BorderRadius.circular(RiverRadius.full),
                               ),
                               child: const Text('正在加载更多帖子...'),
                             ),
@@ -903,7 +903,7 @@ class _InlineRealtimeHintCard extends StatelessWidget {
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: theme.colorScheme.primaryContainer.withValues(alpha: 0.38),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: theme.colorScheme.primary.withValues(alpha: 0.24),
         ),
@@ -912,7 +912,7 @@ class _InlineRealtimeHintCard extends StatelessWidget {
         children: [
           Expanded(
             child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               onTap: onTap,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
@@ -1029,7 +1029,7 @@ class _TopicCard extends StatelessWidget {
             colors.surfaceContainerLowest.withValues(alpha: 0.94),
           ],
         ),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: colors.outlineVariant.withValues(alpha: 0.32),
         ),
@@ -1233,7 +1233,7 @@ class _TopicCard extends StatelessWidget {
                         color: colors.surfaceContainerHighest.withValues(
                           alpha: 0.34,
                         ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         border: Border.all(
                           color: colors.outlineVariant.withValues(alpha: 0.22),
                         ),
@@ -1339,7 +1339,7 @@ class _TopicCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1385,7 +1385,7 @@ class _IconText extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: colors.surface.withValues(alpha: 0.84),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(
           color: colors.outlineVariant.withValues(alpha: 0.24),
         ),
@@ -1424,7 +1424,7 @@ class _TopicCardSkeleton extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         boxShadow: [
           BoxShadow(
             color: theme.shadowColor.withValues(alpha: 0.04),

@@ -1077,7 +1077,7 @@ extension _SearchPageView on _SearchPageState {
                         height: 14,
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(99),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                         ),
                       ),
                     ),

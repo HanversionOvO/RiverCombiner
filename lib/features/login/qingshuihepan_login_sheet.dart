@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/features/login/qingshuihepan_login_service.dart';
@@ -156,7 +157,7 @@ class _QingShuiHePanCredentialLoginSheetBodyState
             height: 4,
             decoration: BoxDecoration(
               color: theme.colorScheme.outlineVariant,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(RiverRadius.full),
             ),
           ),
           Padding(
@@ -274,7 +275,7 @@ class _QingShuiHePanCredentialLoginSheetBodyState
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(RiverRadius.lg),
                         ),
                       ),
                       icon: _submitting

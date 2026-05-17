@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/core/network/riverside_topic_models.dart';
 
 class RiverPublishCategoryPickerTab {
@@ -256,7 +257,7 @@ class _RiverPublishCategorySectionCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.32),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: 0.25),
         ),

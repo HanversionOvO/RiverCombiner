@@ -231,7 +231,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
-                                    borderRadius: BorderRadius.circular(30),
+                                    borderRadius: BorderRadius.circular(RiverRadius.xl),
                                     boxShadow: _publishing
                                         ? []
                                         : [
@@ -330,7 +330,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
           color: selected
               ? colorScheme.primaryContainer
               : colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
           border: Border.all(
             color: selected
                 ? colorScheme.primary.withValues(alpha: 0.28)
@@ -338,7 +338,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
           ),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
           onTap: enabled ? onTap : null,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -576,7 +576,7 @@ extension _ComposeTopicPageView on _ComposeTopicPageState {
                           : colorScheme.surfaceContainerHigh.withValues(
                               alpha: 0.8,
                             ),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                     ),
                     child: Text(
                       selectedTargets > 0 ? '已选 $selectedTargets 个目标' : '请选择论坛',

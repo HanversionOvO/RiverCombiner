@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -588,7 +589,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                   ).colorScheme.surface.withValues(alpha: 0.96),
                   clipBehavior: Clip.antiAlias,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(RiverRadius.xl),
                     side: BorderSide(
                       color: Theme.of(
                         context,
@@ -607,7 +608,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.outlineVariant
                                 .withValues(alpha: 0.72),
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(RiverRadius.full),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -638,7 +639,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                         .colorScheme
                                         .primaryContainer
                                         .withValues(alpha: 0.9),
-                                    borderRadius: BorderRadius.circular(999),
+                                    borderRadius: BorderRadius.circular(RiverRadius.full),
                                   ),
                                   child: Text(
                                     '截图触发',
@@ -1838,7 +1839,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                           height: 4,
                           decoration: BoxDecoration(
                             color: theme.colorScheme.outlineVariant,
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(RiverRadius.full),
                           ),
                         ),
                       ),
@@ -1900,7 +1901,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerLow
                                 .withValues(alpha: 0.58),
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(RiverRadius.lg),
                             border: Border.all(
                               color: theme.colorScheme.outlineVariant.withValues(
                                 alpha: 0.30,
@@ -2211,7 +2212,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
             elevation: 12,
             shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.22),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(RiverRadius.xl),
               side: BorderSide(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.38),
               ),
@@ -2230,7 +2231,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.72,
                       ),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -2242,7 +2243,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                           width: 30,
                           height: 30,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(RiverRadius.md),
                             gradient: LinearGradient(
                               colors: [
                                 theme.colorScheme.primary.withValues(
@@ -2312,7 +2313,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(RiverRadius.lg),
                           border: Border.all(
                             color: theme.colorScheme.outlineVariant.withValues(
                               alpha: 0.34,
@@ -2505,7 +2506,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                 elevation: 0,
                 color: theme.colorScheme.surfaceContainerLow,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(RiverRadius.xl),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -2608,7 +2609,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                   elevation: 0,
                   color: theme.colorScheme.surfaceContainerLow,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                   ),
                   child: const Padding(
                     padding: EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -3106,7 +3107,7 @@ class _TopicDetailPageState extends State<TopicDetailPage>
                                     decoration: BoxDecoration(
                                       color:
                                           theme.colorScheme.surfaceContainerLow,
-                                      borderRadius: BorderRadius.circular(999),
+                                      borderRadius: BorderRadius.circular(RiverRadius.full),
                                     ),
                                     child: const Text('正在加载更多评论...'),
                                   ),
@@ -3322,7 +3323,7 @@ class _TopicSharePosterCard extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
@@ -3379,7 +3380,7 @@ class _TopicSharePosterCard extends StatelessWidget {
                     color: theme.colorScheme.primaryContainer.withValues(
                       alpha: 0.28,
                     ),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(RiverRadius.md),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(7),
@@ -3421,7 +3422,7 @@ class _TopicSharePosterCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(RiverRadius.lg),
                 border: Border.all(
                   color: theme.colorScheme.outlineVariant.withValues(
                     alpha: 0.4,
@@ -3450,7 +3451,7 @@ class _TopicSharePosterCard extends StatelessWidget {
                   ),
                   blockquoteDecoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(RiverRadius.md),
                     border: Border(
                       left: BorderSide(
                         color: theme.colorScheme.primary.withValues(
@@ -3469,7 +3470,7 @@ class _TopicSharePosterCard extends StatelessWidget {
                   ),
                   codeblockDecoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(RiverRadius.md),
                     border: Border.all(
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.45,
@@ -3494,7 +3495,7 @@ class _TopicSharePosterCard extends StatelessWidget {
                 color: theme.colorScheme.primaryContainer.withValues(
                   alpha: 0.24,
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(RiverRadius.md),
               ),
               child: Text(
                 topicLink,
@@ -3588,7 +3589,7 @@ class _PosterMetaChip extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
@@ -3626,7 +3627,7 @@ class _TopicMetaPill extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: 0.68),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.38),
         ),
@@ -3674,7 +3675,7 @@ class _TopicStatsCapsule extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: 0.74),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
@@ -3832,7 +3833,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: opacity),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       alignment: Alignment.centerLeft,
@@ -3843,7 +3844,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
             height: 16,
             decoration: BoxDecoration(
               color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(RiverRadius.none),
             ),
           ),
           const SizedBox(width: 10),
@@ -3860,7 +3861,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
               color: theme.colorScheme.secondaryContainer.withValues(
                 alpha: 0.5,
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(RiverRadius.md),
             ),
             child: Text(
               '$count',
@@ -3893,7 +3894,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest
                           .withValues(alpha: 0.56),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                       border: Border.all(
                         color: theme.colorScheme.outlineVariant.withValues(
                           alpha: 0.6,
@@ -3904,7 +3905,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         InkWell(
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                           onTap: onRealtimeHintTap,
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(9, 5, 6, 5),
@@ -3931,7 +3932,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
                         Padding(
                           padding: const EdgeInsets.only(right: 4),
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(RiverRadius.full),
                             onTap: onRealtimeHintClose,
                             child: Container(
                               width: 20,
@@ -4047,7 +4048,7 @@ class _ReplyFloorJumpSheetState extends State<_ReplyFloorJumpSheet> {
         color: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(RiverRadius.xl),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -4076,7 +4077,7 @@ class _ReplyFloorJumpSheetState extends State<_ReplyFloorJumpSheet> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: colors.outlineVariant.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                     ),
                   ),
                 ),
@@ -4088,7 +4089,7 @@ class _ReplyFloorJumpSheetState extends State<_ReplyFloorJumpSheet> {
                       height: 34,
                       decoration: BoxDecoration(
                         color: colors.primaryContainer.withValues(alpha: 0.62),
-                        borderRadius: BorderRadius.circular(11),
+                        borderRadius: BorderRadius.circular(RiverRadius.md),
                       ),
                       alignment: Alignment.center,
                       child: Icon(
@@ -4130,19 +4131,19 @@ class _ReplyFloorJumpSheetState extends State<_ReplyFloorJumpSheet> {
                     filled: true,
                     fillColor: colors.surface.withValues(alpha: 0.72),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       borderSide: BorderSide(
                         color: colors.outlineVariant.withValues(alpha: 0.76),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       borderSide: BorderSide(
                         color: colors.outlineVariant.withValues(alpha: 0.76),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       borderSide: BorderSide(color: colors.primary, width: 1.2),
                     ),
                   ),
@@ -4267,7 +4268,7 @@ class _RepliesFloorJumpHeaderDelegate extends SliverPersistentHeaderDelegate {
                 theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.96),
               ],
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.76),
             ),
@@ -4288,7 +4289,7 @@ class _RepliesFloorJumpHeaderDelegate extends SliverPersistentHeaderDelegate {
                   color: theme.colorScheme.primaryContainer.withValues(
                     alpha: 0.62,
                   ),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
                 child: Text(
                   '当前 $shownFloor 楼',
@@ -4316,7 +4317,7 @@ class _RepliesFloorJumpHeaderDelegate extends SliverPersistentHeaderDelegate {
                     ),
                     const SizedBox(height: 6),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                       child: LinearProgressIndicator(
                         value: floorRatio,
                         minHeight: 4,
@@ -4340,7 +4341,7 @@ class _RepliesFloorJumpHeaderDelegate extends SliverPersistentHeaderDelegate {
                     vertical: 7,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(RiverRadius.md),
                   ),
                 ),
               ),

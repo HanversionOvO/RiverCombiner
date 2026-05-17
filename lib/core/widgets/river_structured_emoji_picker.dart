@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter/services.dart';
 
 const String _riverAssetEmojiScheme = 'asset://';
@@ -184,7 +185,7 @@ class _RiverEmojiPickerState extends State<RiverEmojiPicker> {
                 height: 4,
                 decoration: BoxDecoration(
                   color: colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
               ),
             ),
@@ -481,7 +482,7 @@ class _RiverEmojiPickerViewState extends State<_RiverEmojiPickerView>
                     itemBuilder: (context, emojiIndex) {
                       final emoji = item.emojis[emojiIndex];
                       return InkWell(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         onTap: () {
                           HapticFeedback.selectionClick();
                           widget.state.onEmojiSelected(
@@ -492,7 +493,7 @@ class _RiverEmojiPickerViewState extends State<_RiverEmojiPickerView>
                         child: Ink(
                           decoration: BoxDecoration(
                             color: colorScheme.surface.withValues(alpha: 0.76),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(RiverRadius.lg),
                             border: Border.all(
                               color: colorScheme.outlineVariant.withValues(
                                 alpha: 0.16,
@@ -525,7 +526,7 @@ class _RiverEmojiPickerViewState extends State<_RiverEmojiPickerView>
             height: 56,
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.76),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               border: Border.all(
                 color: colorScheme.outlineVariant.withValues(alpha: 0.16),
               ),
@@ -543,7 +544,7 @@ class _RiverEmojiPickerViewState extends State<_RiverEmojiPickerView>
               labelPadding: const EdgeInsets.symmetric(horizontal: 3),
               indicator: BoxDecoration(
                 color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(RiverRadius.lg),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
                     color: colorScheme.shadow.withValues(alpha: 0.08),

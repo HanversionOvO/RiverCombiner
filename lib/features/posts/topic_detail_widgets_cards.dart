@@ -181,7 +181,7 @@ class _MainPostCardState extends State<_MainPostCard>
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
             decoration: BoxDecoration(
               color: colors.surfaceContainerLow.withValues(alpha: 0.58),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               border: Border.all(
                 color: colors.outlineVariant.withValues(alpha: 0.22),
               ),
@@ -252,16 +252,16 @@ class _MainPostCardState extends State<_MainPostCard>
       child: _JumpHighlightWrapper(
         highlighted: widget.isJumpHighlighted,
         token: widget.jumpHighlightToken,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
           child: _AiMarqueeBorder(
             enabled: widget.showAiSummaryMarquee,
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(RiverRadius.xl),
             child: Container(
               decoration: BoxDecoration(
                 color: colors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(26),
+                borderRadius: BorderRadius.circular(RiverRadius.xl),
                 border: Border.all(
                   color: colors.outlineVariant.withValues(alpha: 0.26),
                 ),
@@ -454,7 +454,7 @@ class _CollapsibleMainPostBodyState extends State<_CollapsibleMainPostBody> {
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(RiverRadius.full),
                             onTap: () {
                               setState(() {
                                 _isCollapsed = false;
@@ -500,7 +500,7 @@ class _CollapsibleMainPostBodyState extends State<_CollapsibleMainPostBody> {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                   onTap: () {
                     setState(() {
                       _isCollapsed = true;
@@ -769,7 +769,7 @@ class _TopicPollCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: colors.outlineVariant.withValues(alpha: 0.45),
         ),
@@ -905,9 +905,9 @@ class _TopicPollOptionTile extends StatelessWidget {
       color: selected
           ? colors.primaryContainer.withValues(alpha: 0.38)
           : colors.surfaceContainerHighest.withValues(alpha: 0.55),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(RiverRadius.md),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         onTap: canVote ? onTap : null,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
@@ -952,7 +952,7 @@ class _TopicPollOptionTile extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
                 child: LinearProgressIndicator(
                   minHeight: 6,
                   value: ratio,
@@ -980,7 +980,7 @@ class _TopicPollOptionTile extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: colors.surface.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(RiverRadius.full),
                             border: Border.all(
                               color: colors.outlineVariant.withValues(
                                 alpha: 0.35,
@@ -1236,19 +1236,19 @@ class _CommentCardState extends State<_CommentCard>
         child: _JumpHighlightWrapper(
           highlighted: widget.isJumpHighlighted,
           token: widget.jumpHighlightToken,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
           child: Card(
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             elevation: 0,
             color: Theme.of(context).colorScheme.surfaceContainerLow,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: widget.onTap,
               onLongPress: widget.onLongPress,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                 child: Column(
@@ -1414,12 +1414,12 @@ class _SystemActionPostCard extends StatelessWidget {
       margin: margin,
       elevation: 0,
       color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.lg)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           child: Row(
@@ -1490,7 +1490,7 @@ class _SystemActionPostCard extends StatelessWidget {
       card = _JumpHighlightWrapper(
         highlighted: true,
         token: highlightToken,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         child: card,
       );
     }
@@ -1614,11 +1614,11 @@ class _CommentDetailPostCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       color: Theme.of(context).colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.lg)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
           child: Column(
@@ -2056,7 +2056,7 @@ class _CommentInlineActionButton extends StatelessWidget {
             ? backgroundColor.withValues(alpha: 0.45)
             : backgroundColor.withValues(alpha: 0.9),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(RiverRadius.md),
           side: BorderSide(
             color: disabled ? borderColor.withValues(alpha: 0.35) : borderColor,
           ),

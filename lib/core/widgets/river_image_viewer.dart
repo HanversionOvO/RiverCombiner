@@ -495,7 +495,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                   clipBehavior: Clip.antiAlias,
                   color: theme.colorScheme.surface.withValues(alpha: 0.96),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(RiverRadius.xl),
                     side: BorderSide(
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.36,
@@ -513,7 +513,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                           color: theme.colorScheme.outlineVariant.withValues(
                             alpha: 0.72,
                           ),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -640,7 +640,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
               clipBehavior: Clip.antiAlias,
               color: theme.colorScheme.surface.withValues(alpha: 0.96),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(RiverRadius.xl),
                 side: BorderSide(
                   color: theme.colorScheme.outlineVariant.withValues(
                     alpha: 0.36,
@@ -665,7 +665,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant.withValues(
                             alpha: 0.42,
@@ -888,7 +888,7 @@ class _RiverImageViewerPageState extends State<RiverImageViewerPage> {
           inputTextFieldBackground: colorScheme.surfaceContainerHighest
               .withValues(alpha: 0.62),
           inputTextFieldBorderColor: outlineColor,
-          inputTextFieldBorderRadius: BorderRadius.circular(14),
+          inputTextFieldBorderRadius: BorderRadius.circular(RiverRadius.lg),
           inputTextFieldPadding: const EdgeInsets.symmetric(
             horizontal: 12,
             vertical: 8,

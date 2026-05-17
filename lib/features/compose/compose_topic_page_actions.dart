@@ -1571,7 +1571,7 @@ extension _ComposeTopicPageActions on _ComposeTopicPageState {
                             .colorScheme
                             .surfaceContainerHighest
                             .withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(RiverRadius.md),
                       ),
                       child: Text(
                         isRiver

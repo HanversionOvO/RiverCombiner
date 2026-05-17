@@ -1280,7 +1280,7 @@ class _ActivityCard extends StatelessWidget {
                       color: theme.colorScheme.secondaryContainer.withValues(
                         alpha: 0.5,
                       ),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(RiverRadius.xs),
                     ),
                     child: Text(
                       item.categoryName,
@@ -1559,7 +1559,7 @@ class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
     final content = Motion.elevated(
       elevation: 32,
       controller: _dialogMotionController,
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(RiverRadius.xl),
       glare: false,
       shadow: false,
       translation: false,
@@ -1567,7 +1567,7 @@ class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
         color: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(RiverRadius.xl),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -1600,7 +1600,7 @@ class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
                       color: theme.colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.36,
                       ),
-                      borderRadius: BorderRadius.circular(99),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                     ),
                   ),
                 ),

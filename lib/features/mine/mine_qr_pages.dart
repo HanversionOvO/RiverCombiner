@@ -1220,7 +1220,7 @@ class _IdentityQrCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: style.colors,
         ),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
         boxShadow: [
           BoxShadow(

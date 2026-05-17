@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:lottie/lottie.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/navigation/river_page_route.dart';
@@ -238,7 +239,7 @@ class _LoginPageState extends State<LoginPage>
                           color: theme.colorScheme.surface.withValues(
                             alpha: 0.88,
                           ),
-                          borderRadius: BorderRadius.circular(22),
+                          borderRadius: BorderRadius.circular(RiverRadius.xl),
                           border: Border.all(
                             color: theme.colorScheme.outlineVariant.withValues(
                               alpha: 0.35,
@@ -353,7 +354,7 @@ class _LoginPageState extends State<LoginPage>
           backgroundColor: backgroundColor,
           foregroundColor: foregroundColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
           ),
         ),
         child: isLoading

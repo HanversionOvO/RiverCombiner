@@ -98,7 +98,7 @@ class _MarkdownImageState extends State<_MarkdownImage> {
     bool isRiverSideImage,
   ) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RiverRadius.sm),
       child: CachedNetworkImage(
         imageUrl: widget.url,
         httpHeaders: requestHeaders,
@@ -142,7 +142,7 @@ class _MarkdownImageState extends State<_MarkdownImage> {
     bool hasCookie,
   ) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RiverRadius.sm),
       child: Image.network(
         widget.url,
         headers: headers,

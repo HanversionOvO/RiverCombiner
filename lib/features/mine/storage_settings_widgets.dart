@@ -61,7 +61,7 @@ class _CategoryEntriesSheet extends StatelessWidget {
                         height: 34,
                         decoration: BoxDecoration(
                           color: accent.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(11),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                         ),
                         alignment: Alignment.center,
                         child: Icon(icon, color: accent),
@@ -290,7 +290,7 @@ class _LargestEntriesSheet extends StatelessWidget {
                         height: 34,
                         decoration: BoxDecoration(
                           color: accent.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(11),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                         ),
                         alignment: Alignment.center,
                         child: Icon(Icons.leaderboard_rounded, color: accent),

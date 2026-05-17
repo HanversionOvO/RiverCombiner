@@ -132,7 +132,7 @@ class _QuotePreviewCard extends StatelessWidget {
               color:
                   inlineStyle.backgroundColor ??
                   Theme.of(context).colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(RiverRadius.sm),
             ),
             child: Text(
               preview.isEmpty ? '查看引用内容' : preview,
@@ -143,9 +143,9 @@ class _QuotePreviewCard extends StatelessWidget {
           );
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(RiverRadius.md),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
@@ -393,7 +393,7 @@ class _MarkdownContent extends StatelessWidget {
         blockquotePadding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         blockquoteDecoration: BoxDecoration(
           color: quoteBg,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(RiverRadius.md),
           border: Border(left: BorderSide(color: quoteBorder, width: 3)),
         ),
       ),
@@ -756,12 +756,12 @@ class _SelectionCopyToolbarButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         clipBehavior: Clip.antiAlias,
         child: Ink(
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(RiverRadius.md),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
             ),
@@ -828,7 +828,7 @@ class _HtmlTableBlock extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: colors.surfaceContainerLow,
@@ -1074,7 +1074,7 @@ class _InlineVideoSourceCardState extends State<_InlineVideoSourceCard> {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),

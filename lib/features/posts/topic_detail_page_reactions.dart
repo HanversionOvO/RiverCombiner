@@ -629,7 +629,7 @@ class _ReactionPickerSheetState extends State<_ReactionPickerSheet>
                       height: 4,
                       decoration: BoxDecoration(
                         color: colors.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                       ),
                     ),
                   ),
@@ -719,9 +719,9 @@ class _ReactionPickerSheetState extends State<_ReactionPickerSheet>
                                       : colors.surfaceContainerLow.withValues(
                                           alpha: 0.74,
                                         ),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                                   child: InkWell(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                                     onTap: () => _handleSelect(option),
                                     child: Padding(
                                       padding: const EdgeInsets.fromLTRB(
@@ -816,7 +816,7 @@ class _ReactionUsersSheet extends StatelessWidget {
             elevation: 10,
             shadowColor: colors.shadow.withValues(alpha: 0.2),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(RiverRadius.xl),
               side: BorderSide(
                 color: colors.outlineVariant.withValues(alpha: 0.45),
               ),
@@ -834,7 +834,7 @@ class _ReactionUsersSheet extends StatelessWidget {
                       height: 4,
                       decoration: BoxDecoration(
                         color: colors.outlineVariant.withValues(alpha: 0.58),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                       ),
                     ),
                   ),
@@ -848,7 +848,7 @@ class _ReactionUsersSheet extends StatelessWidget {
                         ),
                         child: Material(
                           color: colors.primaryContainer.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -902,7 +902,7 @@ class _ReactionUsersSheet extends StatelessWidget {
                         color: colors.surfaceContainerHighest.withValues(
                           alpha: 0.45,
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                       ),
                       child: const Text(
                         _TopicDetailPageState._labelReactionUsersEmpty,
@@ -959,10 +959,10 @@ class _ReactionUserTile extends StatelessWidget {
       },
       child: Material(
         color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         child: ListTile(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 10,

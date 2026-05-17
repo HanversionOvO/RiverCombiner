@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 
 import '../theme/river_semantic_colors.dart';
 
@@ -168,14 +169,14 @@ class _RiverSnackBarCardState extends State<_RiverSnackBarCard>
                     Padding(
                       padding: const EdgeInsets.all(2.8),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(13),
+                        borderRadius: BorderRadius.circular(RiverRadius.md),
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                           child: Container(
                             padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                             decoration: BoxDecoration(
                               color: background,
-                              borderRadius: BorderRadius.circular(13),
+                              borderRadius: BorderRadius.circular(RiverRadius.md),
                               border: Border.all(
                                 color: theme.colorScheme.outlineVariant
                                     .withValues(alpha: 0.26),

@@ -1518,7 +1518,7 @@ class _MinePageState extends State<MinePage> {
         color: theme.colorScheme.surface.withValues(
           alpha: _avatarAsCardBackground ? 0.14 : 0.58,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.26),
         ),
@@ -1592,7 +1592,7 @@ class _MinePageState extends State<MinePage> {
                     opacity: _avatarAsCardBackground ? 1 : 0,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(28),
+                        borderRadius: BorderRadius.circular(RiverRadius.xl),
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
@@ -1751,7 +1751,7 @@ class _MinePageState extends State<MinePage> {
             theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.88),
           ],
         ),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.30),
         ),

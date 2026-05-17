@@ -632,7 +632,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                             );
                           }
                         : null,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(RiverRadius.sm),
                     child: Hero(
                       tag: heroNameTag,
                       child: Material(
@@ -669,7 +669,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                     codeblockPadding: const EdgeInsets.all(8),
                     codeblockDecoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(RiverRadius.sm),
                     ),
                   ),
                   inlineSyntaxes: _emojiUrls.isEmpty

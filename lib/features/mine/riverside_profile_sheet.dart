@@ -800,7 +800,7 @@ class _RiverSideUserProfileSheetState
               height: 28,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(RiverRadius.sm),
               ),
             ),
           ),
@@ -844,7 +844,7 @@ class _StatChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(RiverRadius.sm),
       ),
       child: Text(
         '$label $value',

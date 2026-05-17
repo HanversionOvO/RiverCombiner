@@ -1174,7 +1174,7 @@ extension _NotificationsPageView on _NotificationsPageState {
                 height: 18,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.error,
-                  borderRadius: BorderRadius.circular(99),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
               ),
             ),
