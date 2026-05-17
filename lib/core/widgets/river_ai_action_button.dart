@@ -3,6 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../theme/river_design_tokens.dart';
+
 class RiverAiActionButton extends StatefulWidget {
   const RiverAiActionButton({
     super.key,
@@ -56,12 +58,12 @@ class _RiverAiActionButtonState extends State<RiverAiActionButton>
         );
 
         return ClipRRect(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(RiverRadius.full),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Ink(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
                 gradient: LinearGradient(
                   begin: gradientBegin,
                   end: gradientEnd,
@@ -97,9 +99,9 @@ class _RiverAiActionButtonState extends State<RiverAiActionButton>
                 color: theme.colorScheme.surface.withValues(
                   alpha: isDark ? 0.22 : 0.14,
                 ),
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                   onTap: widget.loading ? null : widget.onPressed,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(

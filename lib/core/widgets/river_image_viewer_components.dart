@@ -16,9 +16,9 @@ class _ViewerActionTile extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.72),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(RiverRadius.md),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
@@ -32,7 +32,7 @@ class _ViewerActionTile extends StatelessWidget {
                     color: theme.colorScheme.primaryContainer.withValues(
                       alpha: 0.9,
                     ),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(RiverRadius.sm),
                   ),
                   child: Icon(
                     icon,
@@ -86,7 +86,7 @@ class _PageIndicator extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
         ),
         child: Padding(
           padding: const EdgeInsets.all(7),
@@ -728,7 +728,7 @@ class _MiniMapPanel extends StatelessWidget {
             width: miniMapWidth,
             height: miniMapHeight,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(RiverRadius.sm),
               border: Border.all(color: Colors.white54),
               color: Colors.black54,
             ),

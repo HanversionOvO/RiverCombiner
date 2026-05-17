@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../theme/river_semantic_colors.dart';
+
 enum RiverSnackBarTone { normal, error }
 
 extension RiverSnackBarMessenger on ScaffoldMessengerState {
@@ -115,12 +117,15 @@ class _RiverSnackBarCardState extends State<_RiverSnackBarCard>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final semanticColors = theme.extension<RiverSemanticColors>()!;
     final isError = widget.tone == RiverSnackBarTone.error;
     final icon = isError
         ? Icons.error_outline_rounded
         : Icons.check_circle_rounded;
-    final accent = isError ? const Color(0xFFDC2626) : const Color(0xFF16A34A);
-    final iconBg = isError ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7);
+    final accent = isError ? semanticColors.error : semanticColors.success;
+    final iconBg = isError
+        ? semanticColors.errorContainer
+        : semanticColors.successContainer;
     final background = theme.colorScheme.surface.withValues(alpha: 0.80);
 
     return AnimatedBuilder(

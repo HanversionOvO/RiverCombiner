@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/river_design_tokens.dart';
+
 Future<bool> showRiverConfirmDialog({
   required BuildContext context,
   required String title,
@@ -81,13 +83,13 @@ class _RiverConfirmDialogCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: const BorderRadius.all(Radius.circular(RiverRadius.xl)),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: theme.colorScheme.shadow.withValues(alpha: 0.12),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -95,7 +97,9 @@ class _RiverConfirmDialogCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        padding: const EdgeInsets.fromLTRB(
+          RiverSpacing.lg, 18, RiverSpacing.lg, RiverSpacing.lg,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
