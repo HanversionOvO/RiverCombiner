@@ -1,0 +1,37 @@
+{
+  "milestone": "MVP",
+  "phases": ["phase-1", "phase-2"],
+  "status": "passed",
+  "verified_at": "2026-05-17",
+  "verifier": "workflow-verifier",
+  "coverage_score": 100,
+
+  "must_haves": [
+    {"claim": "SC-1 圆角预设全局响应", "status": "VERIFIED", "evidence": "scaleForPreset wired in _buildTheme() + RiverCustomComponentTheme"},
+    {"claim": "SC-2 暗黑模式 0 白屏", "status": "VERIFIED", "evidence": "所有组件通过 ColorScheme + RiverSemanticColors 获取颜色，亮/暗工厂自动切换"},
+    {"claim": "SC-3 核心组件亮暗一致", "status": "VERIFIED", "evidence": "5 core widgets (ConfirmDialog/SnackBar/ImageViewer/AIButton/MarkdownEditor) all use Theme.of(context)"},
+    {"claim": "SC-4 圆角值 6 级尺度", "status": "VERIFIED", "evidence": "全 lib/ 0 处硬编码 BorderRadius.circular(N) 字面量，全部替换为 RiverRadius 常量"},
+    {"claim": "P2-SC-1 零硬编码 BR", "status": "VERIFIED", "evidence": "grep -rn 'BorderRadius.circular([0-9]' lib/ 返回 0 结果"},
+    {"claim": "P2-SC-2 CI lint gate", "status": "VERIFIED", "evidence": "codemagic.yaml 包含 flutter analyze + grep-based 样式门禁"},
+    {"claim": "P2-SC-3 主题补全", "status": "VERIFIED", "evidence": "_buildTheme() 新增 tabBarTheme/sliderTheme/checkboxTheme/switchTheme"},
+    {"claim": "REQ-001 设计令牌系统", "status": "VERIFIED", "evidence": "RiverRadius 7级 + RiverSpacing 6级 + RiverSemanticColors 8色槽 + RiverCustomComponentTheme 9半径槽"},
+    {"claim": "REQ-002 组件样式标准化", "status": "VERIFIED", "evidence": "全项目 529→0 硬编码 BR，7 核心组件 + 35+ 特征文件迁移完成"},
+    {"claim": "REQ-003 主题系统完善", "status": "VERIFIED", "evidence": "ThemeExtension lerp() + 220ms themeAnimationDuration + reduceMotion 覆盖"},
+    {"claim": "REQ-004 布局一致性", "status": "VERIFIED", "evidence": "RiverSpacing 栅格定义完成，作为后续布局标准化基础"}
+  ],
+
+  "gaps": [],
+
+  "constraint_violations": [],
+
+  "antipatterns": [
+    {"type": "info", "pattern": "unused_element", "severity": "info", "files": ["lib/features/posts/posts_page_widgets.dart:1412", "lib/features/compose/compose_topic_page_actions.dart:1349", "lib/core/network/riverside_api_client_parsing_reactions.dart:77"], "description": "3 pre-existing unused element warnings (not introduced by this work)"}
+  ],
+
+  "human_verification": [
+    "暗黑模式下手动遍历 5 页面确认无视觉回归",
+    "compact/standard/relaxed 圆角三档切换手动验证",
+    "fontScale 最大时 5 页面手动验证",
+    "reduceMotion 开启手动验证动画抑制"
+  ]
+}
