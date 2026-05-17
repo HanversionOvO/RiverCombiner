@@ -22,6 +22,7 @@ import 'package:river/core/network/riverside_topic_models.dart';
 import 'package:river/core/platform/app_icon_switcher.dart';
 import 'package:river/core/platform/riverside_cookie_bridge.dart';
 import 'package:river/core/theme/river_custom_component_theme.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/core/theme/river_semantic_colors.dart';
 import 'package:river/core/update/app_update_checker.dart';
 import 'package:river/features/home/home_shell_page.dart';
@@ -666,6 +667,48 @@ class _RiverAppState extends State<RiverApp> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cornerRadius),
         ),
+      ),
+      tabBarTheme: base.tabBarTheme.copyWith(
+        indicatorSize: TabBarIndicatorSize.label,
+        labelStyle: weightedTextTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: weightedTextTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+      sliderTheme: base.sliderTheme.copyWith(
+        activeTrackColor: colorScheme.primary,
+        inactiveTrackColor: colorScheme.surfaceContainerHighest,
+        thumbColor: colorScheme.primary,
+        overlayColor: colorScheme.primary.withValues(alpha: 0.12),
+        trackHeight: 4,
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary;
+          }
+          return colorScheme.outlineVariant;
+        }),
+        checkColor: WidgetStatePropertyAll(colorScheme.onPrimary),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(RiverRadius.xs),
+        ),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary;
+          }
+          return colorScheme.surfaceContainerHighest;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary.withValues(alpha: 0.5);
+          }
+          return colorScheme.surfaceContainerHighest;
+        }),
       ),
       extensions: <ThemeExtension<dynamic>>[
         brightness == Brightness.dark
