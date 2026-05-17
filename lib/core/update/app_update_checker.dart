@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:river/core/constants.dart';
@@ -407,7 +408,7 @@ class _RiverInfoDialogCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
@@ -495,7 +496,7 @@ class _RiverUpdatePromptCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.32),
         ),
@@ -562,7 +563,7 @@ class _RiverUpdatePromptCard extends StatelessWidget {
                           color: theme.colorScheme.primary.withValues(
                             alpha: 0.14,
                           ),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                         ),
                         child: Text(
                           'v$latest',
@@ -645,7 +646,7 @@ class _RiverUpdatePromptCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerHighest
                               .withValues(alpha: 0.66),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,7 +732,7 @@ class _VersionStatCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
       ),
       child: Row(
         children: [

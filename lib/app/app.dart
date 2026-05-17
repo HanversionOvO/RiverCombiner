@@ -1122,11 +1122,11 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
                         onVerticalDragUpdate: _handleVerticalDragUpdate,
                         onVerticalDragEnd: _handleVerticalDragEnd,
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(RiverRadius.xl),
                           onTap: _handleTap,
                           child: Ink(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(28),
+                              borderRadius: BorderRadius.circular(RiverRadius.xl),
                               boxShadow: <BoxShadow>[
                                 BoxShadow(
                                   color: accent.withValues(alpha: 0.16),
@@ -1141,7 +1141,7 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
                               ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(28),
+                              borderRadius: BorderRadius.circular(RiverRadius.xl),
                               child: BackdropFilter(
                                 filter: ui.ImageFilter.blur(
                                   sigmaX: 18,
@@ -1164,7 +1164,7 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
                                         ),
                                       ],
                                     ),
-                                    borderRadius: BorderRadius.circular(28),
+                                    borderRadius: BorderRadius.circular(RiverRadius.xl),
                                     border: Border.all(
                                       color: accent.withValues(alpha: 0.22),
                                     ),
@@ -1327,7 +1327,7 @@ class _RiverInAppBannerHostState extends State<_RiverInAppBannerHost>
                                                     .onSurfaceVariant
                                                     .withValues(alpha: 0.22),
                                                 borderRadius:
-                                                    BorderRadius.circular(999),
+                                                    BorderRadius.circular(RiverRadius.full),
                                               ),
                                             ),
                                           ),
@@ -1949,7 +1949,7 @@ class _MiniAppFloatingHandle extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                         border: Border.all(
                           color: theme.colorScheme.surface.withValues(
                             alpha: 0.96,
@@ -2563,14 +2563,14 @@ class _RiverStartupScreenState extends State<_RiverStartupScreen>
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: palette.logoBg,
-                              borderRadius: BorderRadius.circular(32),
+                              borderRadius: BorderRadius.circular(RiverRadius.xl),
                               border: Border.all(
                                 color: palette.accentSecondary,
                                 width: 2,
                               ),
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(28),
+                              borderRadius: BorderRadius.circular(RiverRadius.xl),
                               child: Image.asset(
                                 startupIconAsset,
                                 fit: BoxFit.cover,
@@ -2720,7 +2720,7 @@ class _FluidLoadingIndicator extends StatelessWidget {
               height: height,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: opacity),
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(RiverRadius.none),
               ),
             );
           }),
