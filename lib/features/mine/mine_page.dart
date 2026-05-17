@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
@@ -956,7 +957,7 @@ class _MinePageState extends State<MinePage> {
     bool compact = false,
   }) {
     final theme = Theme.of(context);
-    final radius = BorderRadius.circular(999);
+    final radius = BorderRadius.circular(RiverRadius.full);
     final bgColor = emphasized
         ? (overImage
               ? Colors.white.withValues(alpha: 0.92)
@@ -1203,7 +1204,7 @@ class _MinePageState extends State<MinePage> {
                                                   context,
                                                 ).colorScheme.errorContainer,
                                                 borderRadius:
-                                                    BorderRadius.circular(999),
+                                                    BorderRadius.circular(RiverRadius.full),
                                               ),
                                               child: Text(
                                                 '可更新',
@@ -1672,7 +1673,7 @@ class _MinePageState extends State<MinePage> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(RiverRadius.full),
                               border: Border.all(
                                 color: Colors.white.withValues(alpha: 0.30),
                               ),
@@ -1781,7 +1782,7 @@ class _MinePageState extends State<MinePage> {
                 ),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1833,7 +1834,7 @@ class _MinePageState extends State<MinePage> {
             padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface.withValues(alpha: 0.64),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.22),
               ),
@@ -1880,7 +1881,7 @@ class _MinePageState extends State<MinePage> {
     required String tooltip,
   }) {
     final theme = Theme.of(context);
-    final radius = BorderRadius.circular(999);
+    final radius = BorderRadius.circular(RiverRadius.full);
 
     return Tooltip(
       message: tooltip,
@@ -1956,13 +1957,13 @@ class _MinePageState extends State<MinePage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(RiverRadius.full),
           onTap: onTap,
           child: Ink(
             width: 38,
             height: 34,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(RiverRadius.full),
               color: theme.colorScheme.surfaceContainerHighest.withValues(
                 alpha: 0.70,
               ),
@@ -1990,7 +1991,7 @@ class _MinePageState extends State<MinePage> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

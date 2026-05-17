@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/app/app_settings_controller.dart';
@@ -118,7 +119,7 @@ class _AboutPageState extends State<AboutPage> {
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(RiverRadius.xl),
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -137,7 +138,7 @@ class _AboutPageState extends State<AboutPage> {
                       width: 86,
                       height: 86,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(RiverRadius.xl),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.56),
                         ),
@@ -183,7 +184,7 @@ class _AboutPageState extends State<AboutPage> {
                     const SizedBox(height: 14),
                     InkWell(
                       onTap: _onVersionTap,
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                       child: Ink(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -191,7 +192,7 @@ class _AboutPageState extends State<AboutPage> {
                         ),
                         decoration: BoxDecoration(
                           color: colorScheme.surface.withValues(alpha: 0.68),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                         ),
                         child: Text(
                           '版本 $_version ($_buildNumber)',
@@ -234,7 +235,7 @@ class _AboutPageState extends State<AboutPage> {
                           color: colorScheme.surfaceContainerHighest.withValues(
                             alpha: 0.36,
                           ),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                         ),
                         child: Text(
                           '包名：$_packageName',
@@ -296,7 +297,7 @@ class _AboutBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: colorScheme.surface.withValues(alpha: 0.62),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

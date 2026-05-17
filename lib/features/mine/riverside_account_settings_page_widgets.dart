@@ -19,7 +19,7 @@ class _SettingsSectionCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
@@ -88,13 +88,13 @@ class _ActionTile extends StatelessWidget {
           color: onTap == null
               ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
               : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
           border: Border.all(
             color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
           ),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
           onTap: onTap,
           child: ListTile(
             leading: Container(
@@ -102,7 +102,7 @@ class _ActionTile extends StatelessWidget {
               height: 34,
               decoration: BoxDecoration(
                 color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(RiverRadius.md),
               ),
               alignment: Alignment.center,
               child: Icon(
@@ -162,7 +162,7 @@ class _SwitchExplainTile extends StatelessWidget {
         color: value
             ? accent.withValues(alpha: 0.08)
             : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: value
               ? accent.withValues(alpha: 0.45)
@@ -177,7 +177,7 @@ class _SwitchExplainTile extends StatelessWidget {
             color: value
                 ? accent.withValues(alpha: 0.16)
                 : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RiverRadius.md),
           ),
           alignment: Alignment.center,
           child: Icon(
@@ -222,7 +222,7 @@ class _InfoChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
@@ -256,7 +256,7 @@ class _DeviceTile extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.56),
         ),
@@ -291,7 +291,7 @@ class _DeviceTile extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
                 child: Text(
                   '当前设备',
@@ -325,7 +325,7 @@ class _IgnoredUserTile extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.56),
         ),
@@ -377,7 +377,7 @@ class _ErrorStateCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(RiverRadius.xl),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
             ),
@@ -452,7 +452,7 @@ class _TitleBadgePickerSheet extends StatelessWidget {
               height: 4.5,
               decoration: BoxDecoration(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
               ),
             ),
             Padding(
@@ -559,7 +559,7 @@ class _TitleBadgeOptionTile extends StatelessWidget {
         color: selected
             ? accent.withValues(alpha: 0.11)
             : theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: selected
               ? accent.withValues(alpha: 0.45)
@@ -569,7 +569,7 @@ class _TitleBadgeOptionTile extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
           onTap: onTap,
           child: ListTile(
             contentPadding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -580,7 +580,7 @@ class _TitleBadgeOptionTile extends StatelessWidget {
                 color: selected
                     ? accent.withValues(alpha: 0.16)
                     : theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(RiverRadius.md),
               ),
               alignment: Alignment.center,
               child: leading,
@@ -745,7 +745,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
               height: 4.5,
               decoration: BoxDecoration(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
               ),
             ),
             Padding(
@@ -793,7 +793,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                   filled: true,
                   fillColor: theme.colorScheme.surfaceContainerLow,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                     borderSide: BorderSide(
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.5,
@@ -801,7 +801,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                     borderSide: BorderSide(
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.5,
@@ -809,7 +809,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                     borderSide: BorderSide(
                       color: theme.colorScheme.primary.withValues(alpha: 0.75),
                     ),
@@ -846,7 +846,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                             return Container(
                               decoration: BoxDecoration(
                                 color: theme.colorScheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(RiverRadius.lg),
                                 border: Border.all(
                                   color: theme.colorScheme.outlineVariant
                                       .withValues(alpha: 0.45),
@@ -924,7 +924,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                             curve: Curves.easeOutCubic,
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(RiverRadius.lg),
                               border: Border.all(
                                 color: theme.colorScheme.outlineVariant
                                     .withValues(alpha: 0.45),
@@ -933,7 +933,7 @@ class _IgnoreUserPickerSheetState extends State<_IgnoreUserPickerSheet> {
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(RiverRadius.lg),
                                 onTap: () {
                                   HapticFeedback.selectionClick();
                                   Navigator.of(context).pop(user);

@@ -12,7 +12,7 @@ class _SettingsCard extends StatelessWidget {
       color: Theme.of(
         context,
       ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.lg)),
       margin: EdgeInsets.zero,
       child: Column(children: children),
     );
@@ -139,7 +139,7 @@ class _SettingsTile extends StatelessWidget {
             color: Colors.grey.withValues(alpha: 0.5),
             size: 20,
           ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.lg)),
     );
   }
 }
@@ -230,7 +230,7 @@ class _AvatarEditTargetSheet extends StatelessWidget {
                   height: 4,
                   decoration: BoxDecoration(
                     color: theme.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(RiverRadius.full),
                   ),
                 ),
               ),
@@ -328,12 +328,12 @@ class _AvatarEditTargetAction extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: onTap,
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             color: theme.colorScheme.surfaceContainerLow.withValues(
               alpha: 0.74,
             ),
@@ -458,7 +458,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: theme.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(RiverRadius.full),
                   ),
                 ),
               ),
@@ -506,7 +506,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                     ),
                     if (totalAccounts > 0)
                       InkWell(
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                         onTap: _toggleEditing,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
@@ -516,7 +516,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(RiverRadius.full),
                             color: _isEditing
                                 ? theme.colorScheme.primary
                                 : theme.colorScheme.surfaceContainerHighest,
@@ -565,7 +565,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest
                           .withValues(alpha: 0.56),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                     ),
                     child: Row(
                       children: [
@@ -661,7 +661,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.50),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.26),
         ),
@@ -740,7 +740,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
       ),
       child: Text(
         '暂无账号',
@@ -763,7 +763,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: canSwitch
             ? () {
                 setState(() {
@@ -781,7 +781,7 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             color: isActive
                 ? theme.colorScheme.primaryContainer.withValues(alpha: 0.20)
                 : theme.colorScheme.surface.withValues(alpha: 0.72),
@@ -942,12 +942,12 @@ class _AccountManagerSheetState extends State<_AccountManagerSheet> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: onTap,
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             color: enabled
                 ? theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.78)
                 : theme.colorScheme.surfaceContainerHighest.withValues(

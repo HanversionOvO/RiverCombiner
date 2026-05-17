@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/features/mine/widgets/mine_settings_app_bar.dart';
 
@@ -82,7 +83,7 @@ class _SettingsSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
@@ -139,7 +140,7 @@ class _SwitchTile extends StatelessWidget {
         color: value
             ? selectedColor.withValues(alpha: 0.08)
             : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: value
               ? selectedColor.withValues(alpha: 0.45)
@@ -147,7 +148,7 @@ class _SwitchTile extends StatelessWidget {
         ),
       ),
       child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.lg)),
         leading: Container(
           width: 34,
           height: 34,
@@ -155,7 +156,7 @@ class _SwitchTile extends StatelessWidget {
             color: value
                 ? selectedColor.withValues(alpha: 0.16)
                 : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RiverRadius.md),
           ),
           alignment: Alignment.center,
           child: Icon(

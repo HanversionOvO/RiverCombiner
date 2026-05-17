@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart'
     as mlkit;
@@ -861,14 +862,14 @@ class _MineQrScanPageState extends State<MineQrScanPage> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(RiverRadius.xl),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                     child: Container(
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.38),
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(RiverRadius.xl),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.18),
                         ),
@@ -1112,7 +1113,7 @@ class _MineIdentityQrPageState extends State<MineIdentityQrPage> {
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       border: Border.all(
                         color: theme.colorScheme.outlineVariant.withValues(
                           alpha: 0.35,
@@ -1276,7 +1277,7 @@ class _IdentityQrCard extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
                 child: Text(
                   account.provider == AccountProvider.riverSide
@@ -1295,7 +1296,7 @@ class _IdentityQrCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(RiverRadius.xl),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.08),
@@ -1362,7 +1363,7 @@ class _GlassIconButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         onTap: onTap,
         child: Ink(
           width: 42,
@@ -1515,7 +1516,7 @@ class _ForumSwitchBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         color: theme.colorScheme.surfaceContainerLow,
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.26),
@@ -1561,14 +1562,14 @@ class _ForumSwitchItem extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RiverRadius.md),
             color: active
                 ? theme.colorScheme.primary.withValues(alpha: 0.14)
                 : Colors.transparent,
@@ -1606,7 +1607,7 @@ class _QrStyleCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
@@ -1614,7 +1615,7 @@ class _QrStyleCard extends StatelessWidget {
           width: 130,
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,

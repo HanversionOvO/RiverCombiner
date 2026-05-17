@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:draggable_route/draggable_route.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
@@ -233,7 +234,7 @@ class _ProfileHeaderCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.46),
         ),
@@ -361,7 +362,7 @@ class _InfoChip extends StatelessWidget {
         color: Theme.of(
           context,
         ).colorScheme.primaryContainer.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
       ),
       child: Text(label, style: Theme.of(context).textTheme.labelSmall),
     );
@@ -435,9 +436,9 @@ class _ProfileActivityList extends StatelessWidget {
             final item = items[index];
             return Material(
               color: Theme.of(context).colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               child: InkWell(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(RiverRadius.lg),
                 onTap: onTap == null ? null : () => onTap!(item),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),

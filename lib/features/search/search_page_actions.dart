@@ -1164,7 +1164,7 @@ extension _SearchPageActions on _SearchPageState {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: detailTheme.colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       border: Border.all(
                         color: detailTheme.colorScheme.outlineVariant
                             .withValues(alpha: 0.28),
@@ -1276,7 +1276,7 @@ extension _SearchPageActions on _SearchPageState {
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                     decoration: BoxDecoration(
                       color: detailTheme.colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       border: Border.all(
                         color: detailTheme.colorScheme.outlineVariant
                             .withValues(alpha: 0.32),

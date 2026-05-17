@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
 import 'package:river/core/mini_apps/river_mini_app_models.dart';
@@ -215,7 +216,7 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(RiverRadius.md),
                       border: Border.all(
                         color: Theme.of(
                           context,
@@ -378,7 +379,7 @@ class _SettingsSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
@@ -427,16 +428,16 @@ class _ActionTile extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(RiverRadius.lg),
       child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.lg)),
         onTap: onTap,
         leading: Container(
           width: 34,
           height: 34,
           decoration: BoxDecoration(
             color: theme.colorScheme.primaryContainer.withValues(alpha: 0.38),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RiverRadius.md),
           ),
           alignment: Alignment.center,
           child: Icon(icon, size: 18, color: theme.colorScheme.primary),
@@ -483,16 +484,16 @@ class _SwitchActionTile extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(RiverRadius.lg),
       child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.lg)),
         onTap: () => onChanged(!value),
         leading: Container(
           width: 34,
           height: 34,
           decoration: BoxDecoration(
             color: theme.colorScheme.primaryContainer.withValues(alpha: 0.38),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RiverRadius.md),
           ),
           alignment: Alignment.center,
           child: Icon(icon, size: 18, color: theme.colorScheme.primary),
@@ -538,7 +539,7 @@ class _Field extends StatelessWidget {
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(RiverRadius.md)),
           isDense: true,
         ),
       ),

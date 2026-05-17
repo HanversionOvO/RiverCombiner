@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:draggable_route/draggable_route.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:motion/motion.dart';
 import 'package:river/app/app_dependencies.dart';
@@ -1254,7 +1255,7 @@ class _ActivityCard extends StatelessWidget {
       elevation: 0,
       color: theme.colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         side: BorderSide(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
@@ -1262,7 +1263,7 @@ class _ActivityCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1689,7 +1690,7 @@ class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
                   child: Motion.elevated(
                     elevation: 40,
                     controller: _badgeMotionController,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(RiverRadius.xl),
                     child: _ProfileBadgeVisual(
                       badgeId: widget.badge.id,
                       imageUrl: widget.badge.imageUrl,
@@ -1865,7 +1866,7 @@ class _BadgeDetailDialogState extends State<_BadgeDetailDialog> {
                 color: theme.colorScheme.surfaceContainerLowest.withValues(
                   alpha: 0.78,
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(RiverRadius.md),
                 border: Border.all(
                   color: theme.colorScheme.outlineVariant.withValues(
                     alpha: 0.5,
@@ -1913,7 +1914,7 @@ class _BadgeMarkdownCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
@@ -2050,13 +2051,13 @@ class _BadgesTabState extends State<_BadgesTab>
                             onTap: () {
                               unawaited(widget.onBadgeTap(badge));
                             },
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(RiverRadius.lg),
                             child: Ink(
                               decoration: BoxDecoration(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(RiverRadius.lg),
                                 border: Border.all(
                                   color: Theme.of(context)
                                       .colorScheme

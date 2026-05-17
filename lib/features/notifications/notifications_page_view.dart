@@ -163,14 +163,14 @@ extension _NotificationsPageView on _NotificationsPageState {
       height: 40,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
       ),
       child: TabBar(
         controller: _tabController,
         dividerColor: Colors.transparent,
         indicator: BoxDecoration(
           color: theme.colorScheme.primary,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(RiverRadius.xl),
           boxShadow: [
             BoxShadow(
               color: theme.colorScheme.primary.withValues(alpha: 0.3),
@@ -362,7 +362,7 @@ extension _NotificationsPageView on _NotificationsPageState {
                 child: Container(
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                   ),
                   child: const ListTile(
                     leading: CircleAvatar(
@@ -439,7 +439,7 @@ extension _NotificationsPageView on _NotificationsPageState {
             theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.38),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(color: borderColor),
       ),
       child: Column(
@@ -516,7 +516,7 @@ extension _NotificationsPageView on _NotificationsPageState {
         color: selected
             ? selectedSurface
             : theme.colorScheme.surface.withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(
           color: selected
               ? selectedColor.withValues(alpha: 0.46)
@@ -535,7 +535,7 @@ extension _NotificationsPageView on _NotificationsPageState {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(RiverRadius.full),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -563,7 +563,7 @@ extension _NotificationsPageView on _NotificationsPageState {
                       color: selected
                           ? selectedColor.withValues(alpha: 0.22)
                           : theme.colorScheme.primary.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                     ),
                     child: Text(
                       '$count',
@@ -631,7 +631,7 @@ extension _NotificationsPageView on _NotificationsPageState {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -881,7 +881,7 @@ extension _NotificationsPageView on _NotificationsPageState {
           final card = Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.04),
@@ -921,7 +921,7 @@ extension _NotificationsPageView on _NotificationsPageState {
                           color: theme.colorScheme.primaryContainer.withValues(
                             alpha: 0.5,
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                         ),
                         child: Icon(
                           Icons.tag_rounded,
@@ -984,7 +984,7 @@ extension _NotificationsPageView on _NotificationsPageState {
                       ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.error,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(RiverRadius.md),
                       ),
                       child: Text(
                         '${item.unreadCount}',
@@ -1017,7 +1017,7 @@ extension _NotificationsPageView on _NotificationsPageState {
               children: [
                 CustomSlidableAction(
                   autoClose: true,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                   backgroundColor: theme.colorScheme.errorContainer,
                   foregroundColor: theme.colorScheme.onErrorContainer,
                   onPressed: (_) async {
@@ -1137,7 +1137,7 @@ extension _NotificationsPageView on _NotificationsPageState {
           return Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.04),

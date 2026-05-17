@@ -199,7 +199,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                       : theme.colorScheme.surfaceContainerHigh.withValues(
                           alpha: 0.8,
                         ),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                 ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,7 +441,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
               ),
               child: const Text('正在加载历史消息...'),
             ),
@@ -517,7 +517,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
             color: theme.colorScheme.surfaceContainerHighest.withValues(
               alpha: 0.85,
             ),
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(RiverRadius.full),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
             ),
@@ -715,7 +715,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                           );
                         },
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxHeight: 260),
                             child: Hero(
@@ -750,7 +750,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                                   decoration: BoxDecoration(
                                     color:
                                         theme.colorScheme.surfaceContainerLow,
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(RiverRadius.md),
                                     border: Border.all(
                                       color: theme.colorScheme.outlineVariant,
                                     ),
@@ -906,7 +906,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RiverRadius.md),
         onTap: () async {
           HapticFeedback.selectionClick();
           await _jumpToMessageById(replyRef.id);
@@ -916,7 +916,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
           padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface.withValues(alpha: 0.64),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RiverRadius.md),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
             ),
@@ -968,7 +968,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
           key: _composerDockKey,
           decoration: BoxDecoration(
             color: theme.colorScheme.surface.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             boxShadow: [
               BoxShadow(
                 color: theme.colorScheme.shadow.withValues(alpha: 0.08),
@@ -987,7 +987,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                   padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(RiverRadius.md),
                   ),
                   child: Row(
                     children: [
@@ -1015,7 +1015,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -1244,7 +1244,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(44),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                   ),
                 ),
               ),
@@ -1264,7 +1264,7 @@ extension _ChatDetailPageUi on _ChatDetailPageState {
                     ),
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                   ),
                 ),
               ),

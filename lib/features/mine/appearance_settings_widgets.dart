@@ -17,7 +17,7 @@ class _SettingsSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
@@ -104,7 +104,7 @@ class _SwitchTile extends StatelessWidget {
     final selectedColor = theme.colorScheme.primary;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         color: value
             ? selectedColor.withValues(alpha: 0.1)
             : theme.colorScheme.surface,
@@ -173,11 +173,11 @@ class _ActionTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             color: theme.colorScheme.surface,
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.65),
@@ -280,7 +280,7 @@ class _PostsTabOrderSheetState extends State<_PostsTabOrderSheet> {
               height: 4.5,
               decoration: BoxDecoration(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
               ),
             ),
             const SizedBox(height: 14),
@@ -340,7 +340,7 @@ class _PostsTabOrderSheetState extends State<_PostsTabOrderSheet> {
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       border: Border.all(
                         color: theme.colorScheme.outlineVariant.withValues(
                           alpha: 0.45,
@@ -359,7 +359,7 @@ class _PostsTabOrderSheetState extends State<_PostsTabOrderSheet> {
                           color: theme.colorScheme.primary.withValues(
                             alpha: 0.10,
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                         ),
                         alignment: Alignment.center,
                         child: Icon(
@@ -388,7 +388,7 @@ class _PostsTabOrderSheetState extends State<_PostsTabOrderSheet> {
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHighest
                                 .withValues(alpha: 0.7),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(RiverRadius.md),
                           ),
                           alignment: Alignment.center,
                           child: Icon(
@@ -487,14 +487,14 @@ class _PillButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(RiverRadius.full),
             color: selected
                 ? selectedColor.withValues(alpha: 0.14)
                 : theme.colorScheme.surface,
@@ -550,7 +550,7 @@ class _ColorDot extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
@@ -600,7 +600,7 @@ class _CustomColorDot extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
@@ -653,7 +653,7 @@ class _CurrentFontCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         color: theme.colorScheme.surface,
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.65),
@@ -778,7 +778,7 @@ class _FontPickerSheetState extends State<_FontPickerSheet> {
               height: 4.5,
               decoration: BoxDecoration(
                 color: theme.colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
               ),
             ),
             Padding(
@@ -870,14 +870,14 @@ class _FontPickerTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             color: selected
                 ? selectedColor.withValues(alpha: 0.11)
                 : theme.colorScheme.surface,
@@ -981,14 +981,14 @@ class _IconChoiceCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(RiverRadius.md),
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(RiverRadius.md),
               color: selected
                   ? selectedColor.withValues(alpha: 0.12)
                   : theme.colorScheme.surface,

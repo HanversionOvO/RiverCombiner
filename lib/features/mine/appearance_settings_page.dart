@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/platform/app_icon_switcher.dart';
@@ -185,7 +186,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                           color: theme.colorScheme.outlineVariant.withValues(
                             alpha: 0.9,
                           ),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                         ),
                       ),
                     ),
@@ -212,7 +213,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
                       ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         border: Border.all(
                           color: selected.withValues(alpha: 0.45),
                           width: 1.2,

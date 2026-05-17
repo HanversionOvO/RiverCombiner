@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/app/app_dependencies.dart';
 import 'package:river/core/account/account_models.dart';
 import 'package:river/core/network/riverside_api_client.dart';
@@ -547,7 +548,7 @@ class _RiverSideUserProfileSheetState
                   height: 4,
                   decoration: BoxDecoration(
                     color: colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(RiverRadius.full),
                   ),
                 ),
               ),
@@ -824,7 +825,7 @@ class _RiverSideUserProfileSheetState
         height: 12,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(RiverRadius.full),
         ),
       ),
     );

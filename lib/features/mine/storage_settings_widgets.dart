@@ -42,7 +42,7 @@ class _CategoryEntriesSheet extends StatelessWidget {
                 height: 4.5,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
               ),
               Padding(
@@ -51,7 +51,7 @@ class _CategoryEntriesSheet extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                     border: Border.all(color: accent.withValues(alpha: 0.25)),
                   ),
                   child: Row(
@@ -97,7 +97,7 @@ class _CategoryEntriesSheet extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                           border: Border.all(
                             color: accent.withValues(alpha: 0.32),
                           ),
@@ -137,7 +137,7 @@ class _CategoryEntriesSheet extends StatelessWidget {
                           return Container(
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(RiverRadius.lg),
                               border: Border.all(
                                 color: theme.colorScheme.outlineVariant
                                     .withValues(alpha: 0.4),
@@ -155,7 +155,7 @@ class _CategoryEntriesSheet extends StatelessWidget {
                                 height: 34,
                                 decoration: BoxDecoration(
                                   color: accent.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(RiverRadius.md),
                                 ),
                                 alignment: Alignment.center,
                                 child: Icon(
@@ -271,7 +271,7 @@ class _LargestEntriesSheet extends StatelessWidget {
                 height: 4.5,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
               ),
               Padding(
@@ -280,7 +280,7 @@ class _LargestEntriesSheet extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                     border: Border.all(color: accent.withValues(alpha: 0.25)),
                   ),
                   child: Row(
@@ -339,7 +339,7 @@ class _LargestEntriesSheet extends StatelessWidget {
                           return Container(
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(RiverRadius.lg),
                               border: Border.all(
                                 color: theme.colorScheme.outlineVariant
                                     .withValues(alpha: 0.4),
@@ -358,7 +358,7 @@ class _LargestEntriesSheet extends StatelessWidget {
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: accent.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(RiverRadius.md),
                                 ),
                                 child: Text(
                                   '${index + 1}',
@@ -432,7 +432,7 @@ class _SettingsSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.42),
         ),
@@ -487,7 +487,7 @@ class _StorageSummaryCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         color: theme.colorScheme.surface,
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.46),
@@ -554,7 +554,7 @@ class _StorageSummaryCard extends StatelessWidget {
                             color: theme.colorScheme.surface.withValues(
                               alpha: 0.92,
                             ),
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(RiverRadius.full),
                             border: Border.all(
                               color: theme.colorScheme.outlineVariant,
                             ),
@@ -620,7 +620,7 @@ class _CategoryTile extends StatelessWidget {
     final percent = (category.bytes / denominator).clamp(0.0, 1.0).toDouble();
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         color: theme.colorScheme.surface,
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
@@ -670,7 +670,7 @@ class _CategoryTile extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(RiverRadius.full),
             child: LinearProgressIndicator(
               value: percent,
               minHeight: 6,
@@ -737,7 +737,7 @@ class _SmartCategoryCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
@@ -751,7 +751,7 @@ class _SmartCategoryCard extends StatelessWidget {
                 height: 30,
                 decoration: BoxDecoration(
                   color: item.color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(RiverRadius.md),
                 ),
                 child: Icon(item.icon, size: 16, color: item.color),
               ),
@@ -836,10 +836,10 @@ class _ToolCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         child: Ink(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             color: theme.colorScheme.surface,
             border: Border.all(color: theme.colorScheme.outlineVariant),
           ),

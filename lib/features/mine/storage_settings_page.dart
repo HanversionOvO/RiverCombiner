@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/core/mini_apps/river_mini_app_install_store.dart';
 import 'package:river/core/storage/app_cache_service.dart';
 import 'package:river/core/widgets/river_confirm_dialog.dart';
@@ -476,7 +477,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       border: Border.all(
                         color: theme.colorScheme.outlineVariant,
                       ),
@@ -539,7 +540,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant,
                         ),
@@ -567,7 +568,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: theme.colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                                   border: Border.all(
                                     color: theme.colorScheme.outlineVariant,
                                   ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:http/http.dart' as http;
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/config/server_config.dart';
@@ -462,7 +463,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                   border: Border.all(
                     color: theme.colorScheme.outlineVariant.withValues(
                       alpha: 0.55,
@@ -532,7 +533,7 @@ class _SettingsSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),

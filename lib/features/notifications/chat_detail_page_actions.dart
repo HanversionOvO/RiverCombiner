@@ -288,7 +288,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
               vertical: 2,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
             ),
             leading: Container(
               width: 40,
@@ -356,7 +356,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
                       height: 4,
                       decoration: BoxDecoration(
                         color: colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                       ),
                     ),
                   ),
@@ -406,7 +406,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
                         color: colorScheme.surfaceContainerLow.withValues(
                           alpha: 0.5,
                         ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         border: Border.all(
                           color: colorScheme.outlineVariant.withValues(
                             alpha: 0.26,
@@ -986,7 +986,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
                         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                         decoration: BoxDecoration(
                           color: colorScheme.surface,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(RiverRadius.xl),
                           boxShadow: [
                             BoxShadow(
                               color: colorScheme.shadow.withValues(alpha: 0.12),
@@ -1040,7 +1040,7 @@ extension _ChatDetailPageActions on _ChatDetailPageState {
                     Container(
                       decoration: BoxDecoration(
                         color: colorScheme.surface,
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(RiverRadius.lg),
                         boxShadow: [
                           BoxShadow(
                             color: colorScheme.shadow.withValues(alpha: 0.12),

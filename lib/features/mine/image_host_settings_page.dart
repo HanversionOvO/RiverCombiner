@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:river/app/app_settings_controller.dart';
 import 'package:river/core/image_host/picui_image_host_service.dart';
@@ -271,7 +272,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
               margin: const EdgeInsets.fromLTRB(12, 8, 12, 10),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(RiverRadius.xl),
                 border: Border.all(
                   color: theme.colorScheme.outlineVariant.withValues(
                     alpha: 0.3,
@@ -324,7 +325,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
                             : item.links.thumbnailUrl;
                         return Material(
                           color: theme.colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(RiverRadius.lg),
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
                             onTap: () {
@@ -511,7 +512,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
         ),
         child: Text(
           '登录后可在这里查看你上传到 PicUI 的图片，点开即可预览与管理。',
@@ -540,7 +541,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 5),
                 child: Material(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                   color: theme.colorScheme.surfaceContainerLow,
                   clipBehavior: Clip.antiAlias,
                   child: Column(
@@ -565,7 +566,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
                                 child: DecoratedBox(
                                   decoration: BoxDecoration(
                                     color: Colors.black.withValues(alpha: 0.45),
-                                    borderRadius: BorderRadius.circular(999),
+                                    borderRadius: BorderRadius.circular(RiverRadius.full),
                                   ),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -677,7 +678,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
                     color: theme.colorScheme.surfaceContainerLow.withValues(
                       alpha: 0.8,
                     ),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(RiverRadius.lg),
                     border: Border.all(
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.26,
@@ -693,7 +694,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
                           color: theme.colorScheme.primaryContainer.withValues(
                             alpha: 0.8,
                           ),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                         ),
                         alignment: Alignment.center,
                         child: Icon(
@@ -790,7 +791,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerLow
                               .withValues(alpha: 0.8),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(RiverRadius.lg),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -871,7 +872,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
                             ),
                             const SizedBox(height: 6),
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(RiverRadius.full),
                               child: LinearProgressIndicator(
                                 value: totalStorage <= 0 ? 0 : usageRatio,
                                 minHeight: 9,
@@ -916,7 +917,7 @@ class _ImageHostSettingsPageState extends State<ImageHostSettingsPage> {
                     color: theme.colorScheme.primaryContainer.withValues(
                       alpha: 0.35,
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(RiverRadius.md),
                     border: Border.all(
                       color: theme.colorScheme.primary.withValues(alpha: 0.18),
                     ),
@@ -1051,7 +1052,7 @@ class _ImageHostSectionCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RiverRadius.xl),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -1137,7 +1138,7 @@ class _ImageHostSwitchTile extends StatelessWidget {
         color: value
             ? selectedColor.withValues(alpha: 0.08)
             : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: value
               ? selectedColor.withValues(alpha: 0.45)
@@ -1145,7 +1146,7 @@ class _ImageHostSwitchTile extends StatelessWidget {
         ),
       ),
       child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.lg)),
         leading: Container(
           width: 34,
           height: 34,
@@ -1153,7 +1154,7 @@ class _ImageHostSwitchTile extends StatelessWidget {
             color: value
                 ? selectedColor.withValues(alpha: 0.16)
                 : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RiverRadius.md),
           ),
           alignment: Alignment.center,
           child: Icon(
@@ -1614,7 +1615,7 @@ class _PicUiAuthWebViewDialogPageState
                           color: theme.colorScheme.surface.withValues(
                             alpha: 0.92,
                           ),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(RiverRadius.full),
                           border: Border.all(
                             color: theme.colorScheme.outlineVariant.withValues(
                               alpha: 0.20,
@@ -1647,7 +1648,7 @@ class _PicUiAuthWebViewDialogPageState
                       ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant.withValues(
                             alpha: 0.20,

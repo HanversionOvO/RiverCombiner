@@ -178,7 +178,7 @@ extension _SearchPageView on _SearchPageState {
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         color: _keywordFocused
             ? theme.colorScheme.surface
             : theme.colorScheme.surfaceContainerLowest,
@@ -266,7 +266,7 @@ extension _SearchPageView on _SearchPageState {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.36),
         ),
@@ -286,14 +286,14 @@ extension _SearchPageView on _SearchPageState {
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(RiverRadius.md),
                       onTap: () => _onModeChanged(mode),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         curve: Curves.easeOutCubic,
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(RiverRadius.md),
                           gradient: selected
                               ? LinearGradient(
                                   colors: <Color>[
@@ -365,7 +365,7 @@ extension _SearchPageView on _SearchPageState {
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.30),
         ),
@@ -413,7 +413,7 @@ extension _SearchPageView on _SearchPageState {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -589,7 +589,7 @@ extension _SearchPageView on _SearchPageState {
         Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             border: Border.all(
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
@@ -743,7 +743,7 @@ extension _SearchPageView on _SearchPageState {
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -870,7 +870,7 @@ extension _SearchPageView on _SearchPageState {
                     ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(RiverRadius.full),
                     ),
                     child: const Text('正在加载更多搜索结果...'),
                   ),
@@ -904,7 +904,7 @@ extension _SearchPageView on _SearchPageState {
                 clipBehavior: Clip.antiAlias,
                 margin: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                   side: BorderSide(
                     color: Theme.of(
                       context,
@@ -1249,14 +1249,14 @@ class _ForumChoiceChip extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(RiverRadius.md),
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(RiverRadius.md),
               color: selected
                   ? theme.colorScheme.primary.withValues(alpha: 0.14)
                   : Colors.transparent,
@@ -1376,7 +1376,7 @@ class _MetaInfoPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         color: Theme.of(
           context,
         ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
@@ -1432,13 +1432,13 @@ class _MiniAppSearchCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: onTap,
         child: Ink(
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.24),
             ),
@@ -1508,7 +1508,7 @@ class _MiniAppSearchCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primaryContainer
                                   .withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(RiverRadius.full),
                             ),
                             child: Text(
                               statusLabel,
@@ -1630,7 +1630,7 @@ class _MiniAppMetaBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.28),
         ),
