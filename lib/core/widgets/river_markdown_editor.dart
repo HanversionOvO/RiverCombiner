@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:image/image.dart' as img;
 import 'package:river/core/widgets/river_structured_emoji_picker.dart';
+import 'package:river/core/theme/river_design_tokens.dart';
 import 'package:river/core/widgets/river_snack_bar.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
@@ -402,7 +403,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
                     ),
                     decoration: BoxDecoration(
                       color: colorScheme.surface.withValues(alpha: 0.78),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       border: Border.all(
                         color: colorScheme.outlineVariant.withValues(
                           alpha: 0.28,
@@ -444,12 +445,12 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
               return Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                   onTap: () => Navigator.of(sheetContext).pop(draft),
                   child: Ink(
                     padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       color: colorScheme.surface.withValues(alpha: 0.72),
                       border: Border.all(
                         color: colorScheme.outlineVariant.withValues(
@@ -466,7 +467,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
                             color: colorScheme.primaryContainer.withValues(
                               alpha: 0.82,
                             ),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(RiverRadius.md),
                           ),
                           alignment: Alignment.center,
                           child: Icon(
@@ -1609,7 +1610,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: colorScheme.surfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(RiverRadius.xl),
                             border: Border.all(
                               color: colorScheme.outlineVariant.withValues(
                                 alpha: 0.24,
@@ -1617,7 +1618,7 @@ class _RiverMarkdownEditorState extends State<RiverMarkdownEditor> {
                             ),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(RiverRadius.xl),
                             child: Stack(
                               alignment: Alignment.bottomCenter,
                               children: [
@@ -1936,7 +1937,7 @@ class _EditorModeSwitch extends StatelessWidget {
       height: 32,
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(RiverRadius.full),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: 0.45),
         ),
@@ -1955,7 +1956,7 @@ class _EditorModeSwitch extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 3),
               decoration: BoxDecoration(
                 color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(RiverRadius.full),
               ),
             ),
           ),
@@ -2044,7 +2045,7 @@ class _MentionSuggestionPanel extends StatelessWidget {
           constraints: const BoxConstraints(maxHeight: panelHeight),
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             border: Border.all(
               color: colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
@@ -2249,7 +2250,7 @@ class _EditorToolbar extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerLow.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
           border: Border.all(
             color: colorScheme.outlineVariant.withValues(alpha: 0.25),
           ),
@@ -2328,7 +2329,7 @@ class _ToolbarAiAction extends StatelessWidget {
           alpha: 0.7,
         ),
         foregroundColor: colorScheme.onSurfaceVariant,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.md)),
       ),
       icon: busy
           ? SizedBox(
@@ -2462,7 +2463,7 @@ class _AiThinkingHintChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(RiverRadius.full),
           border: Border.all(
             color: colorScheme.outlineVariant.withValues(alpha: 0.42),
           ),
@@ -2513,7 +2514,7 @@ class _ToolbarAction extends StatelessWidget {
         foregroundColor: active
             ? colorScheme.onPrimaryContainer
             : colorScheme.onSurfaceVariant,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(RiverRadius.md)),
       ),
       icon: busy
           ? SizedBox(
@@ -2600,7 +2601,7 @@ class _EditorActionSheetShell extends StatelessWidget {
                   height: 4,
                   decoration: BoxDecoration(
                     color: theme.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(RiverRadius.full),
                   ),
                 ),
               ),
@@ -2715,13 +2716,13 @@ class _ImageSourceActionTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         onTap: onTap,
         child: Ink(
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(RiverRadius.lg),
             border: Border.all(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.30),
             ),
@@ -2733,7 +2734,7 @@ class _ImageSourceActionTile extends StatelessWidget {
                 height: 34,
                 decoration: BoxDecoration(
                   color: colorScheme.primaryContainer.withValues(alpha: 0.82),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(RiverRadius.md),
                 ),
                 alignment: Alignment.center,
                 child: Icon(
@@ -2807,13 +2808,13 @@ class _AiToolsSheet extends StatelessWidget {
               return Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                   onTap: () => Navigator.of(context).pop(item),
                   child: Ink(
                     padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(RiverRadius.lg),
                       border: Border.all(
                         color: theme.colorScheme.outlineVariant.withValues(
                           alpha: 0.30,
@@ -2829,7 +2830,7 @@ class _AiToolsSheet extends StatelessWidget {
                             color: colorScheme.primaryContainer.withValues(
                               alpha: 0.82,
                             ),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(RiverRadius.md),
                           ),
                           alignment: Alignment.center,
                           child: Icon(
@@ -3178,7 +3179,7 @@ class _RiverStructuredEmojiPickerState
       height: 54,
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.76),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RiverRadius.lg),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: 0.16),
         ),
@@ -3197,7 +3198,7 @@ class _RiverStructuredEmojiPickerState
           return Tooltip(
             message: item.name,
             child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(RiverRadius.lg),
               onTap: () => _scrollToCategory(index),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
@@ -3205,7 +3206,7 @@ class _RiverStructuredEmojiPickerState
                 width: 42,
                 decoration: BoxDecoration(
                   color: selected ? colorScheme.surface : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(RiverRadius.lg),
                   boxShadow: selected
                       ? <BoxShadow>[
                           BoxShadow(
@@ -3252,7 +3253,7 @@ class _RiverStructuredEmojiPickerState
                                   ),
                                 ],
                         ),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(RiverRadius.full),
                       ),
                     ),
                   ],
@@ -3269,7 +3270,7 @@ class _RiverStructuredEmojiPickerState
     final colorScheme = Theme.of(context).colorScheme;
     final source = widget.emojiUrls[key] ?? '';
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(RiverRadius.lg),
       onTap: () {
         HapticFeedback.selectionClick();
         widget.onSelected(key);
@@ -3277,7 +3278,7 @@ class _RiverStructuredEmojiPickerState
       child: Ink(
         decoration: BoxDecoration(
           color: colorScheme.surface.withValues(alpha: 0.76),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(RiverRadius.lg),
           border: Border.all(
             color: colorScheme.outlineVariant.withValues(alpha: 0.16),
           ),
@@ -3344,7 +3345,7 @@ class _RiverStructuredEmojiPickerState
                                 color: colorScheme.primary.withValues(
                                   alpha: 0.12,
                                 ),
-                                borderRadius: BorderRadius.circular(999),
+                                borderRadius: BorderRadius.circular(RiverRadius.full),
                               ),
                               alignment: Alignment.center,
                               child: _buildEmojiThumb(
@@ -3434,7 +3435,7 @@ class _RiverStructuredEmojiPickerState
                 height: 4,
                 decoration: BoxDecoration(
                   color: colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(RiverRadius.full),
                 ),
               ),
             ),
@@ -3471,7 +3472,7 @@ class _RiverStructuredEmojiPickerState
                   color: colorScheme.surfaceContainerLow.withValues(
                     alpha: 0.48,
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(RiverRadius.xl),
                   border: Border.all(
                     color: colorScheme.outlineVariant.withValues(alpha: 0.16),
                   ),
