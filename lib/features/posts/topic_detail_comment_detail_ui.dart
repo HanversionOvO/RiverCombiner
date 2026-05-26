@@ -138,7 +138,7 @@ extension _CommentDetailPageUi on _CommentDetailPageState {
                   onLongPress: () {},
                   onAuthorTap: (_) {},
                   onReactPressed: (_) {},
-                  onReactionStatusPressed: (_, __) {},
+                  onReactionStatusPressed: (_, _) {},
                   onReplyPressed: (_) {},
                 ),
               );

@@ -1408,35 +1408,3 @@ class _IconText extends StatelessWidget {
     );
   }
 }
-
-class _SkeletonBox extends StatelessWidget {
-  const _SkeletonBox({
-    required this.width,
-    required this.height,
-    required this.radius,
-    required this.color,
-    required this.highlight,
-  });
-
-  final double width;
-  final double height;
-  final double radius;
-  final Color color;
-  final Color highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: LinearGradient(
-          colors: [color, highlight, color],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-    );
-  }
-}

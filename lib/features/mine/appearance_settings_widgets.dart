@@ -325,11 +325,8 @@ class _PostsTabOrderSheetState extends State<_PostsTabOrderSheet> {
               child: ReorderableListView.builder(
                 shrinkWrap: true,
                 itemCount: _draft.length,
-                onReorder: (oldIndex, newIndex) {
+                onReorderItem: (int oldIndex, int newIndex) {
                   setState(() {
-                    if (newIndex > oldIndex) {
-                      newIndex -= 1;
-                    }
                     final item = _draft.removeAt(oldIndex);
                     _draft.insert(newIndex, item);
                   });

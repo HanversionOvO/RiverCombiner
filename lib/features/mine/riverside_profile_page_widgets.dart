@@ -100,7 +100,7 @@ class _ProfileSectionAnimatedSwitcher extends StatelessWidget {
                 opacity: fade,
                 child: SizeTransition(
                   sizeFactor: size,
-                  axisAlignment: -1,
+                  alignment: Alignment.topCenter,
                   child: SlideTransition(position: slide, child: child),
                 ),
               ),

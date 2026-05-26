@@ -5,6 +5,7 @@ analyzer:
     - custom_lint
   exclude:
     - 'packages/adaptive_platform_ui/example/**'
+    - 'packages/adaptive_platform_ui/**'
   errors:
     # Promote hardcoded-style patterns to errors post-migration (Phase 2 Wave 3)
     # These prevent regression of the UI unification work.

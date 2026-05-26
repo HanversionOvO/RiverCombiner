@@ -4345,11 +4345,8 @@ class _PostsPageState extends State<PostsPage> with TickerProviderStateMixin {
                     child: ReorderableListView.builder(
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                       itemCount: draft.length,
-                      onReorder: (oldIndex, newIndex) {
+                      onReorderItem: (oldIndex, newIndex) {
                         setModalState(() {
-                          if (newIndex > oldIndex) {
-                            newIndex -= 1;
-                          }
                           final item = draft.removeAt(oldIndex);
                           draft.insert(newIndex, item);
                           changed = true;
