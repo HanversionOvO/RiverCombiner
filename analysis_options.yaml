@@ -4,10 +4,6 @@ analyzer:
   plugins:
     - custom_lint
   exclude:
-    - '_ref/**'
-    - '_ref_*/**'
-    - '**/_ref/**'
-    - '**/_ref_*/**'
     - 'packages/adaptive_platform_ui/example/**'
   errors:
     # Promote hardcoded-style patterns to errors post-migration (Phase 2 Wave 3)

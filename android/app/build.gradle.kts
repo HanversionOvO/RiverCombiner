@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.mikannqaq.river"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -59,5 +59,13 @@ flutter {
 
 dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("androidx.glance:glance-appwidget:1.1.1")
+        force("androidx.glance:glance:1.1.1")
+        force("androidx.compose.remote:remote-creation-android:1.0.0-alpha08")
+    }
 }
 

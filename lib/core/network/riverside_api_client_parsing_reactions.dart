@@ -73,18 +73,4 @@ extension RiverSideApiClientParsingReactionsMethods on RiverSideApiClient {
       canUndo: _asBool(reaction['can_undo']),
     );
   }
-
-  Set<String> _asStringSet(dynamic value) {
-    if (value is! Iterable) {
-      return const <String>{};
-    }
-    final set = <String>{};
-    for (final item in value) {
-      final text = '$item'.trim();
-      if (text.isNotEmpty) {
-        set.add(text);
-      }
-    }
-    return set;
-  }
 }
