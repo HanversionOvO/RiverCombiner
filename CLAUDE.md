@@ -95,3 +95,10 @@ The app supports two forum providers with different auth mechanisms:
 - No `BorderRadius.circular(N)` — use `RiverRadius` constants or `RiverCustomComponentTheme`
 - No `Color(0xFF...)` — use `ColorScheme` or `RiverSemanticColors`
 - No `fontSize: N` — use `TextTheme` styles
+
+## Design & Code Specifications
+
+- **UI 设计规范**: `.claude/ui-design-spec.md` — 颜色、字体、间距、组件、动画、深色模式等完整规范
+- **代码编写规范**: `.claude/code-writing-spec.md` — 状态管理、DI、页面结构、API Client、命名、异步等完整规范
+
+所有新代码必须遵循这两份规范。
